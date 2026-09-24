@@ -4,8 +4,8 @@ schema: v1
 models:
   - name: Cisco OpenAI-compatible model
     provider: openai-compatible
-    model: gpt-4o-mini
-    apiBase: https://chat-ai.cisco.com/openai/deployments/gpt-4o-mini/
+    model: gemini-3.1-flash-lite
+    apiBase: https://chat-ai.cisco.com/openai/deployments/gemini-3.1-flash-lite/
     apiKey: ${{ secrets.CISCO_ACCESS_TOKEN }}
     requestOptions:
       headers:
