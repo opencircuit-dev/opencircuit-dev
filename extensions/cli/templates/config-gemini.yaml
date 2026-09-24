@@ -1,0 +1,10 @@
+name: Open Circuit Gemini
+version: 1.0.0
+schema: v1
+models:
+  - name: Gemini model
+    provider: gemini
+    model: gemini-2.0-flash
+    apiKey: ${{ secrets.GEMINI_API_KEY }}
+    roles:
+      - chat

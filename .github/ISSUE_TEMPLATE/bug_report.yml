@@ -1,0 +1,66 @@
+---
+name: 🐛 Bug report
+description: Create a report to help us fix your bug
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this bug! This will help us find the cause of the problem quickly with less back-and-forth required.
+  - type: checkboxes
+    attributes:
+      label: Before submitting your bug report
+      options:
+        - label: I'm not able to find an [open issue](https://github.com/brettconnor/opencircuit-dev/issues?q=is%3Aopen+is%3Aissue) that reports the same bug
+          required: false
+  - type: textarea
+    attributes:
+      label: Relevant environment info
+      description: |
+        Feel free to omit any info that is not relevant to your issue.
+
+        - **OS**: macOS
+        - **Open Circuit version**: v0.9.4
+        - **IDE version**:  VSCode 1.85.1
+        - Model: Claude Sonnet 4.5
+        - Agent configuration
+      value: |
+        - OS:
+        - Open Circuit version:
+        - IDE version:
+        - Model:
+        - config:
+          ```yaml
+
+          ```
+          OR link to agent in Open Circuit hub:
+      render: Markdown
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Description
+      description: |
+        Please provide a clear and concise description of the bug
+      placeholder: |
+        Short description
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: To reproduce
+      description: Steps to reproduce the problem. If possible, include a gif, screenshot, or video to better illustrate.
+      placeholder: |
+        1. Go to …
+        2. Click on …
+        3. Scroll down to …
+        4. See error
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: |
+        Include the relevant log lines or the last 100 lines when available.
+      render: Shell

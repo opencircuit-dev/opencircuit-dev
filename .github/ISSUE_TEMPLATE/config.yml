@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature ideas and product feedback
+    url: https://github.com/brettconnor/opencircuit-dev/discussions
+    about: Search existing discussions, then open a new discussion for an idea or feedback.
+  - name: Questions and troubleshooting
+    url: https://github.com/brettconnor/opencircuit-dev/discussions
+    about: Search existing discussions before asking for help.

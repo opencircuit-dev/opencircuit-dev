@@ -1,0 +1,298 @@
+import { FQSN, SecretResult, SecretType } from "@opencircuit/config-yaml";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  Mock,
+  test,
+  vi,
+} from "vitest";
+import { IDE } from "../..";
+import { LocalPlatformClient } from "./LocalPlatformClient";
+
+vi.mock("../../util/paths", { spy: true });
+
+describe("LocalPlatformClient", () => {
+  const testFQSN: FQSN = {
+    packageSlugs: [
+      {
+        ownerSlug: "test-owner-slug",
+        packageSlug: "test-package-slug",
+      },
+    ],
+    secretName: "TEST_OCIRCUIT_SECRET_KEY",
+  };
+  const testFQSN2: FQSN = {
+    packageSlugs: [
+      {
+        ownerSlug: "test-owner-slug-2",
+        packageSlug: "test-package-slug-2",
+      },
+    ],
+    secretName: "TEST_WORKSPACE_SECRET_KEY",
+  };
+
+  let testIde: IDE;
+  beforeEach(
+    /**dynamic import before each test for test isolation */
+    async () => {
+      const testFixtures = await import("../../test/fixtures");
+      testIde = testFixtures.testIde;
+    },
+  );
+
+  let secretValue: string;
+  let envKeyValues: Record<string, unknown>;
+  let envKeyValuesString: string;
+  beforeEach(
+    /**generate unique env key value pairs for each test */
+    () => {
+      secretValue = Math.floor(Math.random() * 100) + "";
+      envKeyValues = {
+        TEST_OCIRCUIT_SECRET_KEY: secretValue,
+        TEST_WORKSPACE_SECRET_KEY: secretValue + "-workspace",
+      };
+      envKeyValuesString = Object.entries(envKeyValues)
+        .map(([key, value]) => `${key}=${value}`)
+        .join("\n");
+    },
+  );
+
+  afterEach(() => {
+    vi.resetAllMocks();
+    vi.restoreAllMocks();
+    vi.resetModules(); // clear dynamic imported module cache
+  });
+
+  test("should not be able to resolve FQSNs if they do not exist", async () => {
+    const localPlatformClient = new LocalPlatformClient(testIde);
+    const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+
+    expect(resolvedFQSNs.length).toBeGreaterThan(0);
+    expect(resolvedFQSNs[0]?.found).toBeUndefined();
+  });
+
+  describe("searches for secrets in local .env files", () => {
+    let getOCircuitDotEnv: Mock;
+    beforeEach(async () => {
+      const utilPaths = await import("../../util/paths");
+      getOCircuitDotEnv = vi.fn(() => envKeyValues);
+      utilPaths.getOCircuitDotEnv = getOCircuitDotEnv;
+    });
+
+    test("should be able to get secrets from ~/.ocircuit/.env files", async () => {
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+      expect(getOCircuitDotEnv).toHaveBeenCalled();
+      expect(resolvedFQSNs.length).toBe(1);
+      expect(
+        (resolvedFQSNs[0] as SecretResult & { value: unknown })?.value,
+      ).toBe(secretValue);
+    });
+  });
+
+  describe("should be able to get secrets from workspace .env files", () => {
+    test("should get secrets from <workspace>/.ocircuit/.env and <workspace>/.env", async () => {
+      const originalIdeFileExists = testIde.fileExists;
+      testIde.fileExists = vi.fn(async (fileUri: string) =>
+        fileUri.includes(".env") ? true : originalIdeFileExists(fileUri),
+      );
+
+      const originalIdeReadFile = testIde.readFile;
+      const randomValueForOCircuitDirDotEnv =
+        "ocircuit-dir-" + Math.floor(Math.random() * 100);
+      const randomValueForWorkspaceDotEnv =
+        "dotenv-" + Math.floor(Math.random() * 100);
+
+      testIde.readFile = vi.fn(async (fileUri: string) => {
+        // fileUri should contain .ocircuit/.env and not .env
+        if (fileUri.match(/.*\.ocircuit\/\.env.*/gi)?.length) {
+          return (
+            envKeyValuesString.split("\n")[0] + randomValueForOCircuitDirDotEnv
+          );
+        }
+        // filUri should contain .env and not .ocircuit/.env
+        else if (fileUri.match(/.*(?<!\.ocircuit\/)\.env.*/gi)?.length) {
+          return (
+            envKeyValuesString.split("\n")[1] + randomValueForWorkspaceDotEnv
+          );
+        }
+        return originalIdeReadFile(fileUri);
+      });
+
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([
+        testFQSN,
+        testFQSN2,
+      ]);
+
+      // both the secrets should be present as they are retrieved from different files
+
+      expect(resolvedFQSNs.length).toBe(2);
+
+      const ocircuitDirSecretValue = (
+        resolvedFQSNs[0] as SecretResult & { value: unknown }
+      )?.value;
+      const dotEnvSecretValue = (
+        resolvedFQSNs[1] as SecretResult & { value: unknown }
+      )?.value;
+      expect(ocircuitDirSecretValue).toContain(secretValue);
+      expect(ocircuitDirSecretValue).toContain(randomValueForOCircuitDirDotEnv);
+      expect(dotEnvSecretValue).toContain(secretValue + "-workspace");
+      expect(dotEnvSecretValue).toContain(randomValueForWorkspaceDotEnv);
+    });
+
+    test("should first get secrets from <workspace>/.ocircuit/.env and then <workspace>/.env", async () => {
+      const originalIdeFileExists = testIde.fileExists;
+      testIde.fileExists = vi.fn(async (fileUri: string) =>
+        fileUri.includes(".env") ? true : originalIdeFileExists(fileUri),
+      );
+
+      const randomValueForOCircuitDirDotEnv =
+        "ocircuit-dir-" + Math.floor(Math.random() * 100);
+      const randomValueForWorkspaceDotEnv =
+        "dotenv-" + Math.floor(Math.random() * 100);
+
+      const originalIdeReadFile = testIde.readFile;
+      testIde.readFile = vi.fn(async (fileUri: string) => {
+        // fileUri should contain .ocircuit/.env and not .env
+        if (fileUri.match(/.*\.ocircuit\/\.env.*/gi)?.length) {
+          return (
+            envKeyValuesString.split("\n")[0] + randomValueForOCircuitDirDotEnv
+          );
+        }
+        // filUri should contain .env and not .ocircuit/.env
+        else if (fileUri.match(/.*(?<!\.ocircuit\/)\.env.*/gi)?.length) {
+          return (
+            envKeyValuesString.split("\n")[0] + randomValueForWorkspaceDotEnv
+          );
+        }
+        return originalIdeReadFile(fileUri);
+      });
+
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+
+      expect(resolvedFQSNs.length).toBe(1);
+      expect(
+        (resolvedFQSNs[0] as SecretResult & { value: unknown })?.value,
+      ).toContain(secretValue);
+      // we check that workspace <workspace>.ocircuit/.env does not override the <workspace>/.env secret
+      expect(
+        (resolvedFQSNs[0] as SecretResult & { value: unknown })?.value,
+      ).toContain(randomValueForOCircuitDirDotEnv);
+      expect(
+        (resolvedFQSNs[0] as SecretResult & { value: unknown })?.value,
+      ).not.toContain(randomValueForWorkspaceDotEnv);
+    });
+  });
+
+  describe("should be able to get secrets from process.env", () => {
+    const ogProcessEnv = { ...process.env };
+
+    beforeEach(async () => {
+      // Ensure secrets are not found in local .env files
+      const utilPaths = await import("../../util/paths");
+      utilPaths.getOCircuitDotEnv = vi.fn(() => ({}));
+
+      // Ensure secrets are not found in workspace .env files
+      testIde.fileExists = vi.fn(async () => false);
+      testIde.readFile = vi.fn(async () => "");
+
+      // Clear any potentially set process.env variables from previous tests in this block
+      delete process.env[testFQSN.secretName];
+      delete process.env[testFQSN2.secretName];
+    });
+
+    afterEach(() => {
+      // Restore original process.env
+      process.env = { ...ogProcessEnv };
+    });
+
+    test("should resolve secret from process.env if not found elsewhere", async () => {
+      const processEnvSecretValue = "secret-from-process-env";
+      process.env[testFQSN.secretName] = processEnvSecretValue;
+
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+
+      expect(resolvedFQSNs.length).toBe(1);
+      const result = resolvedFQSNs[0];
+      expect(result?.found).toBe(true);
+      expect((result as SecretResult & { value: unknown })?.value).toBe(
+        processEnvSecretValue,
+      );
+      expect(result?.secretLocation?.secretType).toBe(SecretType.ProcessEnv);
+      // Check if the specific ProcessEnvSecretLocation is correctly formed
+      expect(result?.secretLocation).toEqual(
+        expect.objectContaining({
+          secretName: testFQSN.secretName,
+          secretType: SecretType.ProcessEnv,
+        }),
+      );
+    });
+
+    test("should return not found if secret is not in process.env or other locations", async () => {
+      // Ensure it's not in process.env
+      expect(process.env[testFQSN.secretName]).toBeUndefined();
+
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+
+      expect(resolvedFQSNs.length).toBe(1);
+      expect(resolvedFQSNs[0]).toBeUndefined();
+    });
+
+    test("should prioritize local ~/.ocircuit/.env file over process.env", async () => {
+      const localEnvFileValue = "secret-from-local-dot-ocircuit-env";
+      const utilPaths = await import("../../util/paths");
+      utilPaths.getOCircuitDotEnv = vi.fn(() => ({
+        [testFQSN.secretName]: localEnvFileValue,
+      }));
+
+      process.env[testFQSN.secretName] =
+        "secret-from-process-env-should-be-ignored";
+
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+
+      expect(resolvedFQSNs.length).toBe(1);
+      const result = resolvedFQSNs[0];
+      expect(result?.found).toBe(true);
+      expect((result as SecretResult & { value: unknown })?.value).toBe(
+        localEnvFileValue,
+      );
+      expect(result?.secretLocation?.secretType).toBe(SecretType.LocalEnv);
+    });
+
+    test("should prioritize workspace .env files over process.env", async () => {
+      const workspaceOCircuitEnvValue = "secret-from-workspace-ocircuit-env";
+      testIde.fileExists = vi.fn(async (fileUri: string) =>
+        // Only mock existence for <workspace>/.ocircuit/.env
+        fileUri.includes(".ocircuit/.env"),
+      );
+      testIde.readFile = vi.fn(async (fileUri: string) => {
+        if (fileUri.includes(".ocircuit/.env")) {
+          return `${testFQSN.secretName}=${workspaceOCircuitEnvValue}`;
+        }
+        return "";
+      });
+
+      process.env[testFQSN.secretName] =
+        "secret-from-process-env-should-be-ignored";
+
+      const localPlatformClient = new LocalPlatformClient(testIde);
+      const resolvedFQSNs = await localPlatformClient.resolveFQSNs([testFQSN]);
+
+      expect(resolvedFQSNs.length).toBe(1);
+      const result = resolvedFQSNs[0];
+      expect(result?.found).toBe(true);
+      expect((result as SecretResult & { value: unknown })?.value).toBe(
+        workspaceOCircuitEnvValue,
+      );
+      // This should be LocalEnv because findSecretInEnvFiles returns LocalEnv for workspace files too
+      expect(result?.secretLocation?.secretType).toBe(SecretType.LocalEnv);
+    });
+  });
+});

@@ -1,0 +1,11 @@
+name: Open Circuit BYOM
+version: 1.0.0
+schema: v1
+models:
+  - name: Local model
+    provider: openai-compatible
+    model: my-model
+    apiBase: http://127.0.0.1:8000/v1/
+    apiKey: ${{ secrets.BYOM_API_KEY }}
+    roles:
+      - chat

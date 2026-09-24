@@ -1,0 +1,10 @@
+name: Open Circuit Anthropic
+version: 1.0.0
+schema: v1
+models:
+  - name: Anthropic model
+    provider: anthropic
+    model: claude-sonnet-4-6
+    apiKey: ${{ secrets.ANTHROPIC_API_KEY }}
+    roles:
+      - chat
