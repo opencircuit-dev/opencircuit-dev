@@ -1,0 +1,10 @@
+name: Open Circuit OpenAI
+version: 1.0.0
+schema: v1
+models:
+  - name: OpenAI model
+    provider: openai
+    model: gpt-4o-mini
+    apiKey: ${{ secrets.OPENAI_API_KEY }}
+    roles:
+      - chat

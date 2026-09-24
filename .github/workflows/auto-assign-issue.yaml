@@ -1,0 +1,23 @@
+name: Issue assignment
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: "Auto-assign issue"
+        uses: pozil/auto-assign-issue@7bf9d82c77d45976224660b873fc83e60576c5aa
+        with:
+          repo-token: ${{ secrets.CI_GITHUB_TOKEN }}
+          assignees: Patrick-Erichsen,tomasz-stefaniak,RomneyDa,tingwai,uinstinct
+          numOfAssignee: 1
+      # - name: "Add default labels"
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     labels: |
+      #       "needs-triage"

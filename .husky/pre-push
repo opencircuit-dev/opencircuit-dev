@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+exec "$(git rev-parse --show-toplevel)/scripts/ubuntu1-pre-push-gate.sh" "$@"

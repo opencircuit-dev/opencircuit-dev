@@ -1,0 +1,36 @@
+name: Daily Snyk Agent
+
+on:
+  schedule:
+    # Runs at 9:00 AM UTC every day
+    - cron: "0 9 * * *"
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: read
+
+jobs:
+  run-oc-task:
+    runs-on: ubuntu-latest
+    # Only run this workflow on the canonical repository.
+    if: github.repository == 'brettconnor/opencircuit-dev'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "20"
+
+      - name: Install Open Circuit CLI globally
+        run: npm install -g @opencircuit/cli@1.0.0
+
+      - name: Run Snyk Agent
+        run: cd extensions/cli && oc -p --agent continuedev/snyk-code-scan-agent "The current directory"
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          OCIRCUIT_API_KEY: ${{ secrets.OCIRCUIT_API_KEY }}

@@ -1,0 +1,32 @@
+import { ConfigValidationError } from "@opencircuit/config-yaml";
+import { IDE, RuleWithSource } from "..";
+import { joinPathsToUri } from "../util/uri";
+export const SYSTEM_PROMPT_DOT_FILE = ".ocircuitrules";
+
+export async function getWorkspaceOCircuitRuleDotFiles(ide: IDE) {
+  const dirs = await ide.getWorkspaceDirs();
+
+  const errors: ConfigValidationError[] = [];
+  const rules: RuleWithSource[] = [];
+  for (const dir of dirs) {
+    try {
+      const dotFile = joinPathsToUri(dir, SYSTEM_PROMPT_DOT_FILE);
+      const exists = await ide.fileExists(dotFile);
+      if (exists) {
+        const content = await ide.readFile(dotFile);
+        rules.push({
+          rule: content,
+          sourceFile: dotFile,
+          source: ".ocircuitrules",
+        });
+      }
+    } catch (e) {
+      errors.push({
+        fatal: false,
+        message: `Failed to load system prompt dot file from workspace ${dir}: ${e instanceof Error ? e.message : e}`,
+      });
+    }
+  }
+
+  return { rules, errors };
+}

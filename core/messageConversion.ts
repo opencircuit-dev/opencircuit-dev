@@ -1,0 +1,10 @@
+// Stable facade for the CLI-Core message-conversion contract (Phase 3, Item 4).
+//
+// This re-exports the existing implementation in `util/messageConversion.ts`
+// under a root-relative path so it can be consumed as a durable subpath
+// (`@opencircuit/core/messageConversion`) without requiring a package.json
+// `exports` map yet. See docs/reduction/artifacts/phase3/item2-evidence.md
+// for the approved API proposal and
+// docs/reduction/artifacts/phase3/item4-errors-group.md for the migration
+// process (and the explicit-extension convention) this file follows.
+export * from "./util/messageConversion.js";
