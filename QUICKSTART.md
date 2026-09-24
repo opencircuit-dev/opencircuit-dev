@@ -7,7 +7,8 @@ This guide gets a beginner from zero to a working `oc` command.
 Pick the path that matches your goal:
 
 - Use Open Circuit as a user: follow the packaged CLI install flow in this guide.
-- Contribute to Open Circuit itself: use the source-build workflow in the repository README and contributor docs instead of the packaged CLI path.
+- Contribute to Open Circuit itself: use the source-build workflow in the repository README and contributor docs.
+- **Updating**: To upgrade to a new version, download the new release tarball and run the install command again.
 
 Do not start with the source-build path unless you intend to work on the project itself. The packaged release tarball is the default and simplest first-run experience for most users.
 
@@ -34,6 +35,20 @@ OC_SKIP_UBUNTU_GATE=1 git push
 ```
 
 The gate is opt-in per clone. It does not replace required GitHub checks.
+
+## 0.5 Updating the CLI
+
+When a new version is released:
+
+1. Download the new release tarball (`opencircuit-cli-X.Y.Z.tgz`) from the [GitHub Releases page](https://github.com/open-circuit-dev/open-circuit/releases).
+2. Install the new version over the old one:
+   ```bash
+   npm install --global ./opencircuit-cli-X.Y.Z.tgz
+   ```
+3. Verify the upgrade:
+   ```bash
+   oc --version
+   ```
 
 ## 1. Check Node.js
 

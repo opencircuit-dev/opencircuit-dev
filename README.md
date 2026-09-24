@@ -16,6 +16,7 @@ Choose the path that matches your goal before you install anything:
 
 - Use Open Circuit as a user: follow the packaged CLI install path below.
 - Contribute to Open Circuit itself: follow the source-build path later in this file.
+- **Updating**: To update your CLI, download the latest release tarball and run the install command again.
 
 New to Open Circuit? Follow the beginner guide:
 
@@ -125,6 +126,20 @@ command will be:
 ```bash
 npm install --global @opencircuit/cli@1.0.0
 ```
+
+## Updating the CLI
+
+When a new version is released:
+
+1. Download the new release tarball (`opencircuit-cli-X.Y.Z.tgz`) from the [GitHub Releases page](https://github.com/open-circuit-dev/open-circuit/releases).
+2. Install the new version over the old one:
+   ```bash
+   npm install --global ./opencircuit-cli-X.Y.Z.tgz
+   ```
+3. Verify the upgrade:
+   ```bash
+   oc --version
+   ```
 
 ## Build from source (contributor workflow)
 
