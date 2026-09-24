@@ -40,9 +40,15 @@ npm install --global .\opencircuit-cli-1.0.0.tgz
 oc
 ```
 
-Installation also creates starter provider templates in
-`~/.ocircuit/templates/`. Existing templates are never overwritten. Copy one
-to `~/.ocircuit/config.yaml` or use it directly with `oc --config`.
+The release tarball contains starter provider templates. Install them locally
+when needed with:
+
+```bash
+oc init
+```
+
+Existing templates are never overwritten. Copy one to
+`~/.ocircuit/config.yaml` or use it directly with `oc --config`.
 
 ### Headless Mode
 

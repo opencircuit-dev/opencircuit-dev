@@ -9,7 +9,6 @@
     "dist",
     "README.md",
     "LICENSE.txt",
-    "scripts",
     "templates"
   ],
   "bin": {
@@ -42,8 +41,6 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "watch:logs": "touch ~/.ocircuit/logs/oc.log && tail -f ~/.ocircuit/logs/oc.log",
-    "prepare": "npm run build",
-    "postinstall": "node scripts/install-templates.mjs",
     "semantic-release": "semantic-release",
     "semantic-release:dry-run": "semantic-release --dry-run"
   },

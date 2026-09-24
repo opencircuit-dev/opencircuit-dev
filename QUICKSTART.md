@@ -273,12 +273,17 @@ models:
       - chat
 ```
 
-The CLI package installs these five starter templates automatically in
-`~/.ocircuit/templates/` without overwriting existing files:
-`config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`, and
-`config-byom.yaml`, and `config-cisco.yaml`. Select exactly one template for the active configuration,
-copy it once to `~/.ocircuit/config.yaml`, and do not keep multiple provider
-configs active at the same time.
+The release tarball packages these five starter templates directly. Install
+them locally, without network access or lifecycle scripts, with:
+
+```bash
+oc init
+```
+
+`oc init` never overwrites existing files and installs the templates in
+`~/.ocircuit/templates/`. Select exactly one template for the active
+configuration, copy it once to `~/.ocircuit/config.yaml`, and do not keep
+multiple provider configs active at the same time.
 
 Example single-provider bootstrap flow for OpenAI:
 

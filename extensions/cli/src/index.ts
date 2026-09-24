@@ -7,6 +7,7 @@ import { Command } from "commander";
 
 import { chat } from "./commands/chat.js";
 import { checks } from "./commands/checks.js";
+import { initTemplatesCommand } from "./commands/initTemplates.js";
 import { listSessionsCommand } from "./commands/ls.js";
 import { review } from "./commands/review.js";
 import { serve } from "./commands/serve.js";
@@ -343,6 +344,14 @@ program
   .description("Show CI check statuses for a PR")
   .action(async (action: string | undefined, prUrl: string | undefined) => {
     await checks(action, prUrl);
+  });
+
+// Local-only initialization subcommand
+program
+  .command("init")
+  .description("Install packaged provider templates locally")
+  .action(async () => {
+    await initTemplatesCommand();
   });
 
 // Review subcommand

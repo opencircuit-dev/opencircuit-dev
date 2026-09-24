@@ -86,7 +86,11 @@ runTest("Version command", () => {
 // Test 4: Help command works
 runTest("Help command", () => {
   const output = execCommand(getCLICommand("--help"));
-  if (!output.includes("Open Circuit CLI") || !output.includes("--version")) {
+  if (
+    !output.includes("Open Circuit CLI") ||
+    !output.includes("--version") ||
+    !output.includes("init")
+  ) {
     throw new Error("Help output missing expected content");
   }
 });
