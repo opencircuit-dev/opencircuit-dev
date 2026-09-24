@@ -164,18 +164,23 @@ export function customFetch(
       return init;
     }
 
-    // Check if custom Authorization or x-api-key headers are provided
+    // Check if custom Authorization, x-api-key, or api-key headers are provided.
+    // OpenAI's client adds a Bearer header by default; providers such as Cisco
+    // authenticate with api-key instead and reject the default auth scheme.
     const hasCustomAuth =
       requestOptions.headers["Authorization"] ||
       requestOptions.headers["authorization"];
     const hasCustomXApiKey =
       requestOptions.headers["x-api-key"] ||
       requestOptions.headers["X-Api-Key"];
+    const hasCustomApiKey = Object.entries(requestOptions.headers).some(
+      ([key, value]) => key.toLowerCase() === "api-key" && Boolean(value),
+    );
 
     // Remove default auth headers if custom ones are provided
-    if (hasCustomAuth || hasCustomXApiKey) {
+    if (hasCustomAuth || hasCustomXApiKey || hasCustomApiKey) {
       if (init.headers instanceof Headers) {
-        if (hasCustomAuth) {
+        if (hasCustomAuth || hasCustomApiKey) {
           init.headers.delete("Authorization");
         }
         if (hasCustomXApiKey) {
@@ -184,12 +189,17 @@ export function customFetch(
       } else if (Array.isArray(init.headers)) {
         init.headers = init.headers.filter((header: [string, string]) => {
           const headerLower = (header[0] ?? "").toLowerCase();
-          if (hasCustomAuth && headerLower === "authorization") return false;
+          if (
+            (hasCustomAuth || hasCustomApiKey) &&
+            headerLower === "authorization"
+          ) {
+            return false;
+          }
           if (hasCustomXApiKey && headerLower === "x-api-key") return false;
           return true;
         });
       } else if (typeof init.headers === "object") {
-        if (hasCustomAuth) {
+        if (hasCustomAuth || hasCustomApiKey) {
           delete init.headers["Authorization"];
           delete init.headers["authorization"];
         }

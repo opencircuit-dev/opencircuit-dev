@@ -1,0 +1,19 @@
+name: Open Circuit Cisco BYOM
+version: 1.0.0
+schema: v1
+models:
+  - name: Cisco OpenAI-compatible model
+    provider: openai-compatible
+    model: gpt-4o-mini
+    apiBase: https://chat-ai.cisco.com/openai/deployments/gpt-4o-mini/
+    apiKey: ${{ secrets.CISCO_ACCESS_TOKEN }}
+    requestOptions:
+      headers:
+        api-key: ${{ secrets.CISCO_ACCESS_TOKEN }}
+        Accept: application/json
+      extraBodyProperties:
+        user: '{"appkey":"${{ secrets.CISCO_APPKEY }}"}'
+        stop:
+          - <|im_end|>
+    roles:
+      - chat

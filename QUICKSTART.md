@@ -273,10 +273,10 @@ models:
       - chat
 ```
 
-The CLI package installs these four starter templates automatically in
+The CLI package installs these five starter templates automatically in
 `~/.ocircuit/templates/` without overwriting existing files:
 `config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`, and
-`config-byom.yaml`. Select exactly one template for the active configuration,
+`config-byom.yaml`, and `config-cisco.yaml`. Select exactly one template for the active configuration,
 copy it once to `~/.ocircuit/config.yaml`, and do not keep multiple provider
 configs active at the same time.
 
@@ -324,6 +324,22 @@ models:
     roles:
       - chat
 ```
+
+For the Cisco BYOM endpoint, use the installed `config-cisco.yaml` template.
+It maps the access token to Cisco's `api-key` header, places the app key in
+the required JSON-encoded `user` field, and sends the required `<|im_end|>`
+stop sequence:
+
+```bash
+export CISCO_ACCESS_TOKEN="your-cisco-access-token"
+export CISCO_APPKEY="your-cisco-app-key"
+cp ~/.ocircuit/templates/config-cisco.yaml ~/.ocircuit/config.yaml
+chmod 600 ~/.ocircuit/config.yaml
+```
+
+Keep both values in environment-backed secrets. The Cisco deployment name is
+part of `apiBase`, so change both the URL deployment segment and `model` when
+selecting a different deployment.
 
 After the config is in place, run a harmless validation request without exposing
 credentials:
