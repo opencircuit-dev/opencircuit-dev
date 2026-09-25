@@ -229,8 +229,10 @@ npm --prefix extensions/cli run release:internal-artifact
 The internal packaging command creates the versioned tarball and SHA-256
 sidecar in the sibling `opencircuit-internal/` directory by default. Pass
 `--output-dir <path>` to write them elsewhere. The `Package Internal CLI`
-workflow builds the CLI on relevant `main` updates or when manually dispatched,
-then uploads both files as a downloadable Actions artifact for 14 days.
+workflow builds the CLI for relevant pull requests to `main`, after those
+changes merge to `main`, or when manually dispatched. Each run creates the
+archive in the sibling directory on its runner and uploads both files as a
+downloadable Actions artifact for 14 days.
 
 ## Development map
 

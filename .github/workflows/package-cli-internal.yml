@@ -1,6 +1,19 @@
 name: Package Internal CLI
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/package-cli-internal.yml"
+      - "core/**"
+      - "extensions/cli/**"
+      - "packages/**"
+      - "scripts/build-packages.js"
+      - "scripts/check-cli-release-artifact.mjs"
+      - "scripts/package-cli-internal.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
   push:
     branches: [main]
     paths:
@@ -71,13 +84,13 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Package internal archive
-        run: node scripts/package-cli-internal.mjs --output-dir "$RUNNER_TEMP/opencircuit-internal"
+        run: node scripts/package-cli-internal.mjs
 
       - name: Upload internal archive and checksum
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: opencircuit-cli-internal-${{ steps.version.outputs.value }}
-          path: ${{ runner.temp }}/opencircuit-internal/opencircuit-cli-internal-*.tgz*
+          path: ${{ github.workspace }}/../opencircuit-internal/opencircuit-cli-internal-*.tgz*
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
