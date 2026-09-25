@@ -62,21 +62,38 @@ export class CLIPlatformClient implements PlatformClient {
   }
 
   private findSecretInLocalEnvFiles(fqsn: FQSN): SecretResult | undefined {
-    // First check process.env (highest priority)
+    // The global application file is authoritative for CLI secrets. This
+    // avoids silently using a stale shell export when the user has refreshed
+    // the value in ~/.ocircuit/.env.
+    const workspaceDir = process.cwd();
+    const globalEnvPath = path.join(env.ocircuitHome, ".env");
+
+    const globalSecret = this.findSecretInEnvFile(
+      globalEnvPath,
+      fqsn.secretName,
+    );
+    if (globalSecret) {
+      return {
+        found: true,
+        fqsn,
+        value: globalSecret,
+        secretLocation: {
+          secretName: fqsn.secretName,
+          secretType: SecretType.LocalEnv,
+        },
+      };
+    }
+
+    // Preserve explicit process environment precedence over workspace files.
     const processEnvSecret = this.findSecretInProcessEnv(fqsn);
     if (processEnvSecret) {
       return processEnvSecret;
     }
 
-    // Then check in priority order: ~/.ocircuit/.env, <workspace>/.ocircuit/.env, <workspace>/.env
-    const workspaceDir = process.cwd();
-    const envPaths = [
-      path.join(env.ocircuitHome, ".env"),
+    for (const envPath of [
       path.join(workspaceDir, ".ocircuit", ".env"),
       path.join(workspaceDir, ".env"),
-    ];
-
-    for (const envPath of envPaths) {
+    ]) {
       const secretValue = this.findSecretInEnvFile(envPath, fqsn.secretName);
       if (secretValue) {
         return {
@@ -91,7 +108,9 @@ export class CLIPlatformClient implements PlatformClient {
       }
     }
 
-    return undefined;
+    // Fall back to the inherited environment when no application-scoped file
+    // contains the requested secret.
+    return this.findSecretInProcessEnv(fqsn);
   }
 
   async resolveFQSNs(fqsns: FQSN[]): Promise<(SecretResult | undefined)[]> {

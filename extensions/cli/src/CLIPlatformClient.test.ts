@@ -70,6 +70,32 @@ describe("CLIPlatformClient", () => {
       });
     });
 
+    it("prioritizes the application .env file over a stale shell export", async () => {
+      const fqsn: FQSN = {
+        packageSlugs: [],
+        secretName: "CISCO_ACCESS_TOKEN",
+      };
+
+      vi.stubEnv("CISCO_ACCESS_TOKEN", "stale-shell-token");
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        "CISCO_ACCESS_TOKEN=refreshed-file-token",
+      );
+
+      const client = new CLIPlatformClient(null, mockApiClient as any);
+      const results = await client.resolveFQSNs([fqsn]);
+
+      expect(mockApiClient.syncSecrets).not.toHaveBeenCalled();
+      expect(results[0]).toMatchObject({
+        found: true,
+        value: "refreshed-file-token",
+        secretLocation: {
+          secretType: SecretType.LocalEnv,
+          secretName: "CISCO_ACCESS_TOKEN",
+        },
+      });
+    });
+
     it("falls back to API when local env does not have the secret", async () => {
       const fqsn: FQSN = {
         packageSlugs: [
