@@ -22,6 +22,7 @@
     "test:runtime-boundary": "node ../../tests/characterization/runtime-boundary-check.mjs",
     "check:release-artifact": "node ../../scripts/check-cli-release-artifact.mjs",
     "release:artifact": "node ../../scripts/package-cli-release.mjs",
+    "release:internal-artifact": "node ../../scripts/package-cli-internal.mjs",
     "test:smoke": "node smoke-test.mjs",
     "test:smoke-api": "vitest run --config vitest.smoke-api.config.ts",
     "build:tsc": "tsc -p tsconfig.build.json",

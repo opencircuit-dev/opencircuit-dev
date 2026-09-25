@@ -198,7 +198,7 @@ Use a local `config.yaml` with `apiKey: ${{ secrets.PROVIDER_API_KEY }}` and run
 `oc --config ./config.yaml`. See the [beginner quickstart](QUICKSTART.md) for
 provider-specific examples. Never commit API keys.
 
-## Stage a release asset
+## Stage CLI release assets
 
 This section is for maintainers preparing a GitHub Release asset.
 
@@ -217,7 +217,20 @@ The command creates:
 Upload both files manually to the GitHub `v1.0.0` release. The staging
 directory is ignored by Git and is not an installation path for end users.
 
-CI automation and npm publication are intentionally deferred.
+### Build the internal CLI archive
+
+From the repository root, run:
+
+```bash
+npm --prefix extensions/cli run check:release-artifact
+npm --prefix extensions/cli run release:internal-artifact
+```
+
+The internal packaging command creates the versioned tarball and SHA-256
+sidecar in the sibling `opencircuit-internal/` directory by default. Pass
+`--output-dir <path>` to write them elsewhere. The `Package Internal CLI`
+workflow builds the CLI on relevant `main` updates or when manually dispatched,
+then uploads both files as a downloadable Actions artifact for 14 days.
 
 ## Development map
 

@@ -1,0 +1,83 @@
+name: Package Internal CLI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/package-cli-internal.yml"
+      - "core/**"
+      - "extensions/cli/**"
+      - "packages/**"
+      - "scripts/build-packages.js"
+      - "scripts/check-cli-release-artifact.mjs"
+      - "scripts/package-cli-internal.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-internal-cli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build and package internal CLI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup shared packages
+        uses: ./.github/actions/setup-packages
+
+      - name: Setup Core dependencies
+        uses: ./.github/actions/setup-component
+        with:
+          component: core
+          include-root: true
+
+      - name: Build Core
+        working-directory: core
+        run: npm run build
+
+      - name: Install CLI dependencies
+        working-directory: extensions/cli
+        run: npm ci --include=optional --no-audit --no-fund
+
+      - name: Check CLI dependency policy
+        working-directory: extensions/cli
+        run: |
+          npm run check:install-scripts
+          npm run check:dependency-policy
+
+      - name: Build CLI
+        working-directory: extensions/cli
+        run: npm run build
+
+      - name: Check release package contents
+        working-directory: extensions/cli
+        run: npm run check:release-artifact
+
+      - name: Read package version
+        id: version
+        run: |
+          version="$(node -p "require('./extensions/cli/package.json').version")"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Package internal archive
+        run: node scripts/package-cli-internal.mjs --output-dir "$RUNNER_TEMP/opencircuit-internal"
+
+      - name: Upload internal archive and checksum
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: opencircuit-cli-internal-${{ steps.version.outputs.value }}
+          path: ${{ runner.temp }}/opencircuit-internal/opencircuit-cli-internal-*.tgz*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
