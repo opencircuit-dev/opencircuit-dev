@@ -30,6 +30,8 @@ Secrets are supplied by the CI environment and must never be committed:
 - `GITHUB_TOKEN`, `CI_GITHUB_TOKEN`
 - `SEMANTIC_RELEASE_GITHUB_TOKEN`, `SEMANTIC_RELEASE_NPM_TOKEN`,
   `SEMANTIC_RELEASE_TOKEN`
+- `INTERNAL_RELEASE_REPO_TOKEN` (contents-write access to
+  `opencircuit-dev/opencircuit-internal`)
 - `VSCE_TOKEN`, `VSX_REGISTRY_TOKEN`
 - `SNYK_TOKEN`, `RUNLOOP_API_KEY`
 - `GH_ACTIONS_SSH_TEST_KEY_PEM`, `GH_ACTIONS_SSH_TEST_DNS_NAME`

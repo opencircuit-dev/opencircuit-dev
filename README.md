@@ -234,6 +234,14 @@ changes merge to `main`, or when manually dispatched. Each run creates the
 archive in the sibling directory on its runner and uploads both files as a
 downloadable Actions artifact for 14 days.
 
+To publish a version into the `opencircuit-internal` repository, run the
+`Release Internal CLI` workflow manually and enter the version. Configure the
+source repository secret `INTERNAL_RELEASE_REPO_TOKEN` with contents-write
+access to `opencircuit-dev/opencircuit-internal`. The workflow builds and tests
+the requested version, then commits and pushes the tarball and checksum to the
+internal artifact repository root, replacing its previous root-level version.
+Earlier releases remain available in the repository's commit history.
+
 ## Development map
 
 Start changes in the layer that owns the behavior:
