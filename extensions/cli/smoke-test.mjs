@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { existsSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -94,6 +94,41 @@ runTest("Help command", () => {
     throw new Error("Help output missing expected content");
   }
 });
+
+const unsupportedNode = process.env.OCIRCUIT_TEST_UNSUPPORTED_NODE;
+if (unsupportedNode) {
+  runTest("Unsupported Node runtime has an actionable diagnostic", () => {
+    const versionResult = spawnSync(unsupportedNode, ["--version"], {
+      cwd: __dirname,
+      encoding: "utf8",
+    });
+    if (versionResult.error) {
+      throw versionResult.error;
+    }
+    const detectedVersion = versionResult.stdout.trim();
+    const cliResult = spawnSync(
+      unsupportedNode,
+      ["dist/oc.js", "--version"],
+      { cwd: __dirname, encoding: "utf8" },
+    );
+    if (cliResult.error) {
+      throw cliResult.error;
+    }
+    const output = `${cliResult.stdout}${cliResult.stderr}`;
+    if (cliResult.status === 0) {
+      throw new Error("CLI unexpectedly accepted an unsupported Node runtime");
+    }
+    if (
+      !output.includes("requires Node.js >=24.19.0 <27") ||
+      !output.includes(`Detected ${detectedVersion}.`)
+    ) {
+      throw new Error(`Runtime diagnostic missing required details: ${output}`);
+    }
+    if (output.includes("SyntaxError")) {
+      throw new Error(`Launcher failed to parse on the old runtime: ${output}`);
+    }
+  });
+}
 
 // Test 5: Check bundle size
 runTest("Bundle size is reasonable", () => {

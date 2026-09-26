@@ -96,7 +96,18 @@ const require = __createRequire(import.meta.url);`,
   // Note: We must call runCli(); a plain dynamic import will not execute the CLI.
   writeFileSync(
     "dist/oc.js",
-    "#!/usr/bin/env node\nimport { runCli } from './index.js';\nawait runCli();\n",
+    `#!/usr/bin/env node
+const [major, minor] = process.versions.node.split(".").map(Number);
+if (major < 24 || (major === 24 && minor < 19) || major >= 27) {
+  console.error(
+    "Open Circuit CLI requires Node.js >=24.19.0 <27. Detected " +
+      process.version +
+      ". Select a supported version (for example, run 'nvm use 24').",
+  );
+  process.exit(1);
+}
+import("./index.js").then(({ runCli }) => runCli());
+`,
   );
   // Copy worker files needed by JSDOM
   const workerSource = resolve(
