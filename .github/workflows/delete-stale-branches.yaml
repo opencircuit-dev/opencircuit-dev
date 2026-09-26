@@ -21,4 +21,3 @@ jobs:
           days-before-delete: 60
           pr-check: true
           ignore-issue-interaction: true
-          branches-filter-regex: "^(?!cla-signatures$).*"

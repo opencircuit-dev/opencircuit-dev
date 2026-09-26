@@ -87,7 +87,7 @@ models:
       throw new Error("Hosted resolver must not be contacted");
     };
     const apiClient = {
-      configuration: { accessToken: undefined },
+      isAuthenticated: false,
       syncSecrets,
     };
 

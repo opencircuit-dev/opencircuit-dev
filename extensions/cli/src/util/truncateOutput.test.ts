@@ -1,4 +1,5 @@
 import {
+  appendAndTruncateOutputFromStart,
   parseEnvNumber,
   truncateByLinesAndChars,
   truncateLinesByCount,
@@ -14,6 +15,35 @@ const defaultLimits = {
   maxChars: DEFAULT_MAX_CHARS,
   maxLines: DEFAULT_MAX_LINES,
 };
+
+describe("appendAndTruncateOutputFromStart", () => {
+  it("should append output while it remains within limits", () => {
+    expect(
+      appendAndTruncateOutputFromStart("first", " second", {
+        maxChars: 20,
+        maxLines: 2,
+      }),
+    ).toEqual({ output: "first second", wasTruncated: false });
+  });
+
+  it("should retain only the most recent lines", () => {
+    expect(
+      appendAndTruncateOutputFromStart("first\nsecond", "\nthird", {
+        maxChars: 100,
+        maxLines: 2,
+      }),
+    ).toEqual({ output: "second\nthird", wasTruncated: true });
+  });
+
+  it("should retain only the most recent characters", () => {
+    expect(
+      appendAndTruncateOutputFromStart("1234", "5678", {
+        maxChars: 5,
+        maxLines: 10,
+      }),
+    ).toEqual({ output: "45678", wasTruncated: true });
+  });
+});
 
 describe("truncateOutputFromStart", () => {
   describe("no truncation needed", () => {

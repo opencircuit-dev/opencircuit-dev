@@ -7,7 +7,7 @@ import {
   SecretResult,
   SecretType,
 } from "@opencircuit/config-yaml";
-import { DefaultApiInterface } from "@opencircuit/sdk/dist/api";
+import { OpenCircuitClient } from "@opencircuit/sdk";
 import * as dotenv from "dotenv";
 
 import { env } from "./env.js";
@@ -15,14 +15,11 @@ import { env } from "./env.js";
 export class CLIPlatformClient implements PlatformClient {
   constructor(
     private orgScopeId: string | null,
-    private readonly apiClient: DefaultApiInterface,
+    private readonly apiClient: OpenCircuitClient,
   ) {}
 
   private hasRemoteCredentials(): boolean {
-    const client = this.apiClient as DefaultApiInterface & {
-      configuration?: { accessToken?: string };
-    };
-    return Boolean(client.configuration?.accessToken);
+    return this.apiClient.isAuthenticated;
   }
 
   private findSecretInEnvFile(

@@ -10,6 +10,7 @@ function runCommand(command, cwd, packageName) {
     const child = spawn(cmd, args, {
       cwd,
       stdio: "pipe",
+      shell: process.platform === "win32",
     });
 
     let stdout = "";
@@ -77,7 +78,7 @@ async function main() {
     await buildPackagesInParallel(["fetch", "config-yaml", "llm-info"]);
 
     // Phase 3: Build packages that depend on other local packages
-    await buildPackagesInParallel(["openai-adapters"]);
+    await buildPackagesInParallel(["openai-adapters", "sdk"]);
 
     console.log("🎉 All packages built successfully!");
   } catch (error) {

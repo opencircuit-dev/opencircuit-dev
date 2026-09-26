@@ -26,8 +26,13 @@ or its `/issues`, `/discussions`, and `/blob/main/...` descendants. Third-party
 links in workflow comments and dependency metadata are not project references.
 
 Release artifacts are generated and uploaded from the release workflow; they
-are not committed to the repository. Checksum verification remains mandatory
-for the packaged user install path.
+are not committed to `opencircuit-dev`. `stable-release.yml` builds the
+`.tgz`/`.sha256` pair and pushes it to the public
+`opencircuit-dev/opencircuit` repository via
+`scripts/publish-release-artifacts.sh` (in this repository), gated by the
+`PUBLIC_RELEASE_REPO_TOKEN`
+secret. Checksum verification remains mandatory for the packaged user install
+path.
 
 ## Validation evidence
 

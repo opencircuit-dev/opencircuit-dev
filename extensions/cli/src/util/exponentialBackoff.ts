@@ -1,10 +1,8 @@
-import { BaseLlmApi, isResponsesModel } from "@opencircuit/openai-adapters";
-import type { ChatCompletionCreateParamsStreaming } from "openai/resources.mjs";
-
 import { error, warn } from "../logging.js";
 
 import { formatError } from "./formatError.js";
 import { logger } from "./logger.js";
+import { getRetryAfterDelay } from "./retryDelay.js";
 
 export interface ExponentialBackoffOptions {
   /** Maximum number of retry attempts */
@@ -19,6 +17,8 @@ export interface ExponentialBackoffOptions {
   jitter?: boolean;
   /** Number of retries to hide from logging */
   hiddenRetries?: number;
+  /** Maximum retries for rate-limit responses */
+  maxRateLimitRetries?: number;
 }
 
 const DEFAULT_OPTIONS: Required<ExponentialBackoffOptions> = {
@@ -28,6 +28,7 @@ const DEFAULT_OPTIONS: Required<ExponentialBackoffOptions> = {
   backoffMultiplier: 1.6,
   jitter: true,
   hiddenRetries: 2,
+  maxRateLimitRetries: 2,
 };
 
 /**
@@ -50,6 +51,14 @@ function isNetworkError(error: any): boolean {
 function isRetryableHttpStatus(status: number): boolean {
   // 429 (Too Many Requests), 502 (Bad Gateway), 503 (Service Unavailable), 504 (Gateway Timeout)
   return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function isRateLimitError(error: any): boolean {
+  return (
+    error.status === 429 ||
+    error.statusCode === 429 ||
+    error.type === "rate_limit_exceeded"
+  );
 }
 
 /**
@@ -150,7 +159,13 @@ function isRetryableError(error: any): boolean {
 function calculateDelay(
   attempt: number,
   options: Required<ExponentialBackoffOptions>,
+  error?: unknown,
 ): number {
+  const retryAfterDelay = getRetryAfterDelay(error);
+  if (retryAfterDelay !== undefined) {
+    return retryAfterDelay;
+  }
+
   const baseDelay =
     options.initialDelay * Math.pow(options.backoffMultiplier, attempt);
   const cappedDelay = Math.min(baseDelay, options.maxDelay);
@@ -161,85 +176,6 @@ function calculateDelay(
   }
 
   return cappedDelay;
-}
-
-/**
- * Wrapper around llmApi.chatCompletionStream with exponential backoff retry logic
- */
-export async function chatCompletionStreamWithBackoff(
-  llmApi: BaseLlmApi,
-  params: ChatCompletionCreateParamsStreaming,
-  abortSignal: AbortSignal,
-  options: ExponentialBackoffOptions = {},
-): Promise<AsyncGenerator<any>> {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  let lastError: any;
-
-  for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
-    try {
-      // Check if we should abort before making the request
-      if (abortSignal.aborted) {
-        throw new Error("Request aborted");
-      }
-
-      const useResponses =
-        typeof llmApi.responsesStream === "function" &&
-        isResponsesModel(params.model);
-
-      if (useResponses) {
-        return llmApi.responsesStream!(params, abortSignal);
-      }
-
-      return llmApi.chatCompletionStream(params, abortSignal);
-    } catch (err: any) {
-      lastError = err;
-
-      // Don't retry if the request was aborted
-      if (abortSignal.aborted) {
-        throw err;
-      }
-
-      // Don't retry on the last attempt
-      if (attempt === opts.maxRetries) {
-        break;
-      }
-
-      // Only retry if the error is retryable
-      if (!isRetryableError(err)) {
-        // Log full error details for non-retryable errors
-        logger.error("Non-retryable LLM API error", err, {
-          status: err.status,
-          statusText: err.statusText,
-          message: err.message,
-          error: err.error,
-          model: params.model,
-        });
-        throw err;
-      }
-
-      const delay = calculateDelay(attempt, opts);
-
-      // Only log retry attempts after the first hiddenRetries attempts
-      if (attempt >= opts.hiddenRetries) {
-        warn(
-          `Retrying LLM API call (attempt ${attempt + 1 - opts.hiddenRetries}/${
-            opts.maxRetries + 1 - opts.hiddenRetries
-          }) after ${delay}ms delay. Error: ${err.message}`,
-        );
-      }
-
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  // If we get here, all retries failed
-  error(
-    `LLM API call failed after ${opts.maxRetries + 1} attempts. Last error: ${
-      lastError.message
-    }`,
-  );
-  throw lastError;
 }
 
 /**
@@ -255,6 +191,7 @@ export async function* withExponentialBackoff<T>(
 ): AsyncGenerator<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   let lastError: any;
+  let rateLimitRetries = 0;
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     // Create a new AbortController for this retry attempt
@@ -320,16 +257,29 @@ export async function* withExponentialBackoff<T>(
         throw err;
       }
 
-      const delay = calculateDelay(attempt, opts);
-      logger.debug("Retry attempt", { attempt, delay, error: err.message });
+      if (isRateLimitError(err)) {
+        if (rateLimitRetries >= opts.maxRateLimitRetries) {
+          throw err;
+        }
+        rateLimitRetries++;
+      }
+
+      const delay = calculateDelay(attempt, opts, err);
+      logger.debug("Retry attempt", {
+        attempt,
+        delay,
+        error: err.message,
+        rateLimitRetries,
+      });
 
       // Only log retry attempts after the first opts.hiddenRetries attempts
-      if (attempt >= opts.hiddenRetries) {
-        warn(
-          `Retrying request (${attempt + 1 - opts.hiddenRetries}/${
-            opts.maxRetries + 1 - opts.hiddenRetries
-          }). Error: ${formatError(err)}`,
-        );
+      if (attempt >= opts.hiddenRetries || isRateLimitError(err)) {
+        const retryMessage = isRateLimitError(err)
+          ? `Retrying request after rate limit (${rateLimitRetries}/${opts.maxRateLimitRetries})`
+          : `Retrying request (${attempt + 1 - opts.hiddenRetries}/${
+              opts.maxRetries + 1 - opts.hiddenRetries
+            })`;
+        warn(`${retryMessage}. Error: ${formatError(err)}`);
       }
 
       // Wait before retrying

@@ -1,4 +1,4 @@
-import type { AssistantConfig } from "@opencircuit/sdk";
+import type { AssistantUnrolled as AssistantConfig } from "@opencircuit/config-yaml";
 import { describe, expect, it } from "vitest";
 
 import { getAllSlashCommands } from "./commands.js";

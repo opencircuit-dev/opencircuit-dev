@@ -34,6 +34,26 @@ For local validation, copy `opencircuit-cli-1.0.0.tgz` to the Windows machine an
 npm install --global .\opencircuit-cli-1.0.0.tgz
 ```
 
+After installation, initialize the packaged templates locally:
+
+```bash
+oc init
+```
+
+For hosted Open Circuit access, put the key in the application-scoped file
+`~/.ocircuit/.env`:
+
+```bash
+mkdir -p ~/.ocircuit
+chmod 700 ~/.ocircuit
+printf '%s\n' 'OCIRCUIT_API_KEY=replace-with-your-hosted-api-key' > ~/.ocircuit/.env
+chmod 600 ~/.ocircuit/.env
+```
+
+The CLI also accepts `OCIRCUIT_API_KEY` and `OCIRCUIT_API_BASE` from the
+process environment. Explicitly exported values take precedence over values in
+the file. Never commit `.env` or API keys.
+
 ## Usage
 
 ```bash

@@ -1,8 +1,7 @@
 # Open Circuit agent skills
 
-This repository does not currently publish a product-specific Cisco Agent
-Skill. Add a skill only when it documents a concrete, reusable Open Circuit
-workflow.
+This repository does not currently publish a product-specific agent skill. Add
+a skill only when it documents a concrete, reusable Open Circuit workflow.
 
 ## Skill requirements
 

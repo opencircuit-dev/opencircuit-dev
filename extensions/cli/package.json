@@ -1,6 +1,6 @@
 {
   "name": "@opencircuit/cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Open Circuit command-line coding agent",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -34,7 +34,6 @@
     "check:dependency-policy": "node ../../scripts/check-dependency-policy.mjs",
     "start": "node dist/oc.js",
     "dev": "tsx src/index.ts",
-    "repomix:sdk": "npx repomix node_modules/@opencircuit/sdk --ignore **/api,cli-repomix.xml -o sdk-repomix.xml",
     "repomix:cli": "npx repomix --ignore sdk-repomix.xml -o cli-repomix.xml",
     "lint": "tsc --noEmit && eslint .",
     "lint:fix": "eslint . --fix",
@@ -64,7 +63,7 @@
   "devDependencies": {
     "@opencircuit/config-yaml": "file:../../packages/config-yaml",
     "@opencircuit/openai-adapters": "file:../../packages/openai-adapters",
-    "@opencircuit/sdk": "^0.0.13",
+    "@opencircuit/sdk": "file:../../packages/sdk",
     "@opencircuit/terminal-security": "file:../../packages/terminal-security",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "@opentelemetry/api": "^1.9.0",

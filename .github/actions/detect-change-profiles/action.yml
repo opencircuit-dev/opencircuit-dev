@@ -9,6 +9,10 @@ inputs:
     description: Head revision to compare.
     required: false
     default: ""
+  enable-vsix:
+    description: Enable deferred VSIX and VS Code PR validation.
+    required: false
+    default: "true"
 outputs:
   cli_core:
     description: Whether the CLI/Core profile is required.
@@ -24,6 +28,7 @@ runs:
       env:
         BASE_SHA: ${{ inputs.base-sha }}
         HEAD_SHA: ${{ inputs.head-sha }}
+        ENABLE_VSIX: ${{ inputs.enable-vsix }}
       run: |
         set -euo pipefail
 
@@ -44,6 +49,9 @@ runs:
         while IFS= read -r file; do
           [[ -z "$file" ]] && continue
           case "$file" in
+            packages/sdk/**|.github/workflows/release-sdk.yml)
+              cli_core=true
+              ;;
             core/**|packages/**)
               cli_core=true
               vsix=true
@@ -63,6 +71,11 @@ runs:
               ;;
           esac
         done <<< "$changed_files"
+
+        if [[ "$ENABLE_VSIX" != "true" ]]; then
+          vsix=false
+          echo "VSIX profile deferred; VSIX and VS Code PR validation disabled"
+        fi
 
         echo "cli_core=$cli_core" >> "$GITHUB_OUTPUT"
         echo "vsix=$vsix" >> "$GITHUB_OUTPUT"

@@ -21,14 +21,14 @@ vi.mock("./env.js", () => ({
 describe("CLIPlatformClient", () => {
   let mockApiClient: {
     syncSecrets: ReturnType<typeof vi.fn>;
-    configuration: { accessToken?: string };
+    isAuthenticated: boolean;
   };
 
   beforeEach(() => {
     vi.resetAllMocks();
     mockApiClient = {
       syncSecrets: vi.fn(),
-      configuration: { accessToken: "test-access-token" },
+      isAuthenticated: true,
     };
     // Reset process.env mocks
     vi.unstubAllEnvs();
@@ -287,7 +287,7 @@ describe("CLIPlatformClient", () => {
 
       vi.stubEnv("OPENAI_API_KEY", undefined as unknown as string);
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      mockApiClient.configuration.accessToken = undefined;
+      mockApiClient.isAuthenticated = false;
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       const client = new CLIPlatformClient(null, mockApiClient as any);

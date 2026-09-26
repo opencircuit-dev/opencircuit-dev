@@ -181,6 +181,25 @@ models:
     );
   });
 
+  test("accepts hosted API credentials without prompting for Anthropic", async () => {
+    const originalApiKey = process.env.OCIRCUIT_API_KEY;
+    process.env.OCIRCUIT_API_KEY = "test-hosted-api-key";
+
+    try {
+      await initializeWithOnboarding(mockAuthConfig, undefined);
+
+      expect(fs.existsSync(path.join(tempDir, ".onboarding_complete"))).toBe(
+        true,
+      );
+    } finally {
+      if (originalApiKey === undefined) {
+        delete process.env.OCIRCUIT_API_KEY;
+      } else {
+        process.env.OCIRCUIT_API_KEY = originalApiKey;
+      }
+    }
+  });
+
   test("does not accept an invalid existing local config", async () => {
     fs.writeFileSync(path.join(tempDir, "config.yaml"), "invalid: [yaml");
 

@@ -10,7 +10,7 @@ import {
   unrollAssistant,
   unrollAssistantFromContent,
 } from "@opencircuit/config-yaml";
-import { DefaultApiInterface } from "@opencircuit/sdk/dist/api/dist/index.js";
+import { OpenCircuitClient } from "@opencircuit/sdk";
 import chalk from "chalk";
 
 import { uriToPath, uriToSlug } from "./auth/uriUtils.js";
@@ -43,7 +43,7 @@ export type ConfigSource =
 export async function loadConfiguration(
   authConfig: AuthConfig,
   cliConfigPath: string | undefined,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
   isHeadless: boolean | undefined,
 ): Promise<ConfigLoadResult> {
@@ -106,7 +106,7 @@ async function loadFromSource(
   source: ConfigSource,
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   try {
@@ -192,7 +192,7 @@ async function loadFromCliFlag(
   configPath: string,
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   if (isFilePath(configPath)) {
@@ -223,7 +223,7 @@ async function loadFromSavedUri(
   uri: string,
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   const filePath = uriToPath(uri);
@@ -256,7 +256,7 @@ async function loadFromSavedUri(
  */
 async function loadUserAssistantWithFallback(
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   accessToken: string | null,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
@@ -307,7 +307,7 @@ async function loadUserAssistantWithFallback(
 async function loadLocalConfigYaml(
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   const defaultConfigPath = path.join(env.ocircuitHome, "config.yaml");
@@ -321,16 +321,16 @@ async function loadLocalConfigYaml(
 }
 
 /**
- * Loads the default continuedev/default-config
+ * Loads the Open Circuit default assistant
  */
 async function loadDefaultConfig(
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   accessToken: string | null,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   const resp = await apiClient.getAssistant({
-    ownerSlug: "continuedev",
+    ownerSlug: "opencircuit-dev",
     packageSlug: "default-cli-config",
     organizationId: organizationId ?? undefined,
   });
@@ -358,7 +358,7 @@ export async function unrollPackageIdentifiersAsConfigYaml(
   packageIdentifiers: PackageIdentifier[],
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
 ): Promise<AssistantUnrolled> {
   const unrollResult = await unrollAssistantFromContent(
     {
@@ -393,7 +393,7 @@ async function unrollAssistantWithConfig(
   packageIdentifier: PackageIdentifier,
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   const unrollResult = await unrollAssistant(
@@ -434,7 +434,7 @@ async function loadConfigYaml(
   filePath: string,
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   return await unrollAssistantWithConfig(
@@ -447,13 +447,13 @@ async function loadConfigYaml(
 }
 
 /**
- * Loads an assistant by slug from the Continue platform
+ * Loads an assistant by slug from the Open Circuit platform
  */
 async function loadAssistantSlug(
   slug: string,
   accessToken: string | null,
   organizationId: string | null,
-  apiClient: DefaultApiInterface,
+  apiClient: OpenCircuitClient,
   injectBlocks: PackageIdentifier[],
 ): Promise<AssistantUnrolled> {
   const [ownerSlug, packageSlug] = slug.split("/");
@@ -463,7 +463,7 @@ async function loadAssistantSlug(
     );
   }
   // Unroll locally if not logged in
-  if (!(apiClient as any).configuration.accessToken) {
+  if (!apiClient.isAuthenticated) {
     return await unrollAssistantWithConfig(
       {
         uriType: "slug",

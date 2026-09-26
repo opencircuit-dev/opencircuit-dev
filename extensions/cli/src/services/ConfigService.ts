@@ -4,7 +4,7 @@ import {
   mergeUnrolledAssistants,
   PackageIdentifier,
 } from "@opencircuit/config-yaml";
-import { DefaultApiInterface } from "@opencircuit/sdk/dist/api/dist/index.js";
+import { OpenCircuitClient } from "@opencircuit/sdk";
 import { isStringRule } from "src/hubLoader.js";
 import { loadMarkdownRulesWithMetadata } from "src/systemMessage.js";
 import { getErrorString } from "src/util/error.js";
@@ -39,7 +39,7 @@ const DEFAULT_MODEL_IDENTIFIER: PackageIdentifier = {
 interface ConfigServiceInit {
   authConfig: AuthConfig;
   configPath: string | undefined;
-  apiClient: DefaultApiInterface;
+  apiClient: OpenCircuitClient;
   agentFileState: AgentFileServiceState;
   injectedConfigOptions?: BaseCommandOptions;
   isHeadless?: boolean;
@@ -213,7 +213,7 @@ export class ConfigService
 
   async addDefaultChatModelIfNone(
     config: AssistantUnrolled,
-    apiClient: DefaultApiInterface,
+    apiClient: OpenCircuitClient,
     authConfig: AuthConfig | undefined,
     isHeadless?: boolean,
   ): Promise<AssistantUnrolled> {

@@ -1,4 +1,4 @@
-import type { AssistantConfig } from "@opencircuit/sdk";
+import type { AssistantUnrolled as AssistantConfig } from "@opencircuit/config-yaml";
 import React from "react";
 
 import type {

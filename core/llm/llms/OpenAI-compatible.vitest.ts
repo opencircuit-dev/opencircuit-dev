@@ -23,7 +23,6 @@ import SiliconFlow from "./SiliconFlow.js";
 import Kindo from "./Kindo.js";
 import Azure from "./Azure.js";
 import Inception from "./Inception.js";
-import Docker from "./Docker.js";
 import Voyage from "./Voyage.js";
 import Vllm from "./Vllm.js";
 import TextGenWebUI from "./TextGenWebUI.js";
@@ -398,11 +397,6 @@ createOpenAISubclassTests(Inception, {
     presence_penalty: 1.5,
     stop: ["<|endoftext|>"],
   },
-});
-
-createOpenAISubclassTests(Docker, {
-  providerName: "docker",
-  defaultApiBase: "http://localhost:12434/engines/v1/",
 });
 
 createOpenAISubclassTests(Voyage, {

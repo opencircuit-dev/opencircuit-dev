@@ -8,7 +8,7 @@ import {
 } from "@opencircuit/config-yaml";
 import type { AssistantUnrolled as AssistantConfig } from "@opencircuit/config-yaml";
 import { BaseLlmApi } from "@opencircuit/openai-adapters";
-import { DefaultApiInterface } from "@opencircuit/sdk/dist/api/dist/index.js";
+import { OpenCircuitClient } from "@opencircuit/sdk";
 
 import type { AuthConfig } from "../auth/workos.js";
 import { BaseCommandOptions } from "../commands/BaseCommandOptions.js";
@@ -107,7 +107,7 @@ export interface UpdateServiceState {
 }
 
 export interface ApiClientServiceState {
-  apiClient: DefaultApiInterface | null;
+  apiClient: OpenCircuitClient | null;
 }
 
 export interface StorageSyncServiceState {

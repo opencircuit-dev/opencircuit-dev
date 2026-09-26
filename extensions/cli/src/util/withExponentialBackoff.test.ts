@@ -74,6 +74,76 @@ describe("withExponentialBackoff", () => {
     expect(generatorFactory).toHaveBeenCalledTimes(2);
   });
 
+  it("should stop retrying rate-limit errors after the configured limit", async () => {
+    const rateLimitError = Object.assign(new Error("Too many requests"), {
+      status: 429,
+    });
+    const generatorFactory = vi.fn<
+      (retryAbortSignal: AbortSignal) => Promise<AsyncGenerator<string>>
+    >(async (_retryAbortSignal) => {
+      throw rateLimitError;
+    });
+
+    const generator = withExponentialBackoff(
+      generatorFactory,
+      abortController.signal,
+      {
+        maxRetries: 10,
+        maxRateLimitRetries: 2,
+        initialDelay: 0,
+        maxDelay: 0,
+        jitter: false,
+      },
+    );
+
+    await expect(async () => {
+      for await (const chunk of generator) {
+        // No values are yielded when every request is rate limited.
+      }
+    }).rejects.toBe(rateLimitError);
+
+    expect(generatorFactory).toHaveBeenCalledTimes(3);
+  });
+
+  it("should wait for the provider Retry-After guidance", async () => {
+    vi.useFakeTimers();
+    const rateLimitError = Object.assign(new Error("Too many requests"), {
+      status: 429,
+      headers: { "retry-after": "0.2" },
+    });
+    const generatorFactory = vi
+      .fn<(retryAbortSignal: AbortSignal) => Promise<AsyncGenerator<string>>>()
+      .mockRejectedValueOnce(rateLimitError)
+      .mockImplementation(async (_retryAbortSignal) =>
+        (async function* () {
+          yield "success";
+        })(),
+      );
+    const results: string[] = [];
+    const generator = withExponentialBackoff<string>(
+      generatorFactory,
+      abortController.signal,
+      { maxRetries: 1, initialDelay: 1, jitter: false },
+    );
+
+    try {
+      const consume = (async () => {
+        for await (const chunk of generator) {
+          results.push(chunk);
+        }
+      })();
+
+      await vi.advanceTimersByTimeAsync(199);
+      expect(generatorFactory).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await consume;
+      expect(results).toEqual(["success"]);
+      expect(generatorFactory).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("should not retry on non-retryable errors", async () => {
     const generatorFactory = vi.fn(async (retryAbortSignal: AbortSignal) => {
       const error = new Error("Bad request");
