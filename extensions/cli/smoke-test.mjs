@@ -104,7 +104,7 @@ runTest("Help command", () => {
 });
 
 runTest("Node runtime guard boundaries", () => {
-  for (const version of ["24.19.0", "25.0.0", "26.7.0"]) {
+  for (const version of ["24.19.0", "25.0.0", "26.7.0", "v26.7.0"]) {
     if (!isSupportedNodeVersion(version)) {
       throw new Error("Expected supported runtime: " + version);
     }
@@ -113,7 +113,13 @@ runTest("Node runtime guard boundaries", () => {
     }
   }
 
-  for (const version of ["22.18.0", "24.18.9", "27.0.0", "invalid"]) {
+  for (const version of [
+    "22.18.0",
+    "24.18.9",
+    "27.0.0",
+    "v22.18.0",
+    "invalid",
+  ]) {
     const messages = [];
     if (isSupportedNodeVersion(version)) {
       throw new Error("Expected unsupported runtime: " + version);

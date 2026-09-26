@@ -1,7 +1,9 @@
 export const SUPPORTED_NODE_RANGE = ">=24.19.0 <27";
 
 export function isSupportedNodeVersion(version) {
-  const [majorText, minorText] = String(version).split(".");
+  const [majorText, minorText] = String(version)
+    .replace(/^v/, "")
+    .split(".");
   const major = Number(majorText);
   const minor = Number(minorText);
 
@@ -20,7 +22,7 @@ export function unsupportedNodeVersionMessage(version) {
 }
 
 export function assertSupportedNodeRuntime(
-  version = process.versions.node,
+  version = process.version,
   report = console.error,
 ) {
   if (isSupportedNodeVersion(version)) {
