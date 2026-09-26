@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Publish this repository's release-artifacts/ into a checkout of the public
-# opencircuit-dev/opencircuit repository: sync the tarball + checksum pair,
-# verify every tarball has a matching checksum, mirror the newest tarball and
-# checksum to the destination repository's root as a "latest" convenience
-# download, refresh the versions table in that repository's README.md, and
-# (optionally) commit + push the result.
+# Publish the newest staged tarball + checksum from this repository's
+# release-artifacts/ into a checkout of the public opencircuit-dev/opencircuit
+# repository at its top level, remove any destination staging directory,
+# refresh the release docs, and optionally commit + push the result.
 #
 # Intended to run from a CI job that has already:
 #   1. Built extensions/cli/release-artifacts/v<version>/... in this checkout
@@ -65,30 +63,11 @@ echo "Publishing release artifacts"
 echo "  from: $SRC_ARTIFACTS"
 echo "  to:   $DEST_ARTIFACTS"
 
-mkdir -p "$DEST_ARTIFACTS"
-rsync -a --delete \
-  --exclude ".DS_Store" \
-  "$SRC_ARTIFACTS/" "$DEST_ARTIFACTS/"
-
-# Verify every tarball has a matching sha256 checksum file before publishing.
-missing=0
-while IFS= read -r -d '' tarball; do
-  checksum="${tarball}.sha256"
-  if [ ! -f "$checksum" ]; then
-    echo "error: missing checksum for $tarball" >&2
-    missing=1
-  fi
-done < <(find "$DEST_ARTIFACTS" -type f -name '*.tgz' -print0)
-if [ "$missing" -ne 0 ]; then
-  exit 1
-fi
-
-# Determine the newest version directory and mirror its tarball + checksum to
-# the repository root as a convenience "latest" download that does not
-# require browsing into release-artifacts/<version>/.
-latest_dir="$(find "$DEST_ARTIFACTS" -mindepth 1 -maxdepth 1 -type d | sort -rV | head -n1)"
+# Determine the newest version directory and publish its tarball + checksum
+# directly at the destination repository root.
+latest_dir="$(find "$SRC_ARTIFACTS" -mindepth 1 -maxdepth 1 -type d | sort -rV | head -n1)"
 if [ -z "$latest_dir" ]; then
-  echo "error: no version directories found under $DEST_ARTIFACTS" >&2
+  echo "error: no version directories found under $SRC_ARTIFACTS" >&2
   exit 1
 fi
 latest_version="$(basename "$latest_dir")"
@@ -97,6 +76,16 @@ if [ -z "$latest_tgz" ]; then
   echo "error: no .tgz found in $latest_dir" >&2
   exit 1
 fi
+latest_name="$(basename "$latest_tgz")"
+if [ ! -f "$latest_tgz.sha256" ]; then
+  echo "error: missing checksum for $latest_tgz" >&2
+  exit 1
+fi
+
+# Remove the historical directory from the public distribution repo.
+if [ -e "$DEST_ARTIFACTS" ]; then
+  rm -rf -- "$DEST_ARTIFACTS"
+fi
 
 # Remove any stale top-level tarball/checksum from a previous version before
 # copying the current latest one into place.
@@ -104,7 +93,7 @@ find "$DEST_REPO" -maxdepth 1 -name 'opencircuit-cli-*.tgz' -delete
 find "$DEST_REPO" -maxdepth 1 -name 'opencircuit-cli-*.tgz.sha256' -delete
 cp "$latest_tgz" "$DEST_REPO/"
 cp "$latest_tgz.sha256" "$DEST_REPO/"
-echo "Mirrored latest ($latest_version) artifact to repository root: $(basename "$latest_tgz")"
+echo "Mirrored latest ($latest_version) artifact to repository root: $latest_name"
 
 # Rebuild the versions table between the README markers.
 README="$DEST_REPO/README.md"
@@ -112,13 +101,7 @@ VERSIONS_TABLE=$(
   {
     echo "| Version | Artifact | Checksum |"
     echo "| ------- | -------- | -------- |"
-    find "$DEST_ARTIFACTS" -mindepth 1 -maxdepth 1 -type d | sort -rV | while read -r dir; do
-      version="$(basename "$dir")"
-      tgz="$(find "$dir" -maxdepth 1 -name '*.tgz' | head -n1)"
-      [ -n "$tgz" ] || continue
-      name="$(basename "$tgz")"
-      echo "| \`$version\` | [\`release-artifacts/$version/$name\`](release-artifacts/$version/$name) | [\`$name.sha256\`](release-artifacts/$version/$name.sha256) |"
-    done
+    echo "| \`$latest_version\` | [\`$latest_name\`]($latest_name) | [\`$latest_name.sha256\`]($latest_name.sha256) |"
   }
 )
 
@@ -142,9 +125,56 @@ PY
 
 echo "Updated $README versions table."
 
+python3 - "$README" "$latest_name" <<'PY'
+import sys
+
+readme_path, artifact_name = sys.argv[1], sys.argv[2]
+start_marker = "<!-- LATEST_ARTIFACT_START -->"
+end_marker = "<!-- LATEST_ARTIFACT_END -->"
+with open(readme_path, encoding="utf-8") as f:
+    content = f.read()
+start = content.index(start_marker) + len(start_marker)
+end = content.index(end_marker)
+replacement = (
+    f"\n\n- [`{artifact_name}`]({artifact_name})\n"
+    f"- [`{artifact_name}.sha256`]({artifact_name}.sha256)\n\n"
+)
+content = content[:start] + replacement + content[end:]
+with open(readme_path, "w", encoding="utf-8") as f:
+    f.write(content)
+PY
+
+echo "Updated $README latest artifact links."
+
+QUICKSTART="$DEST_REPO/QUICKSTART.md"
+python3 - "$QUICKSTART" "$latest_name" <<'PY'
+import sys
+
+quickstart_path, artifact_name = sys.argv[1], sys.argv[2]
+start_marker = "<!-- LATEST_ARTIFACT_START -->"
+end_marker = "<!-- LATEST_ARTIFACT_END -->"
+with open(quickstart_path, encoding="utf-8") as f:
+    content = f.read()
+start = content.index(start_marker) + len(start_marker)
+end = content.index(end_marker)
+replacement = (
+    "\n\nFor the newest release, download the root-level bundle and checksum:\n\n"
+    f"- [`{artifact_name}`]({artifact_name})\n"
+    f"- [`{artifact_name}.sha256`]({artifact_name}.sha256)\n\n"
+)
+content = content[:start] + replacement + content[end:]
+with open(quickstart_path, "w", encoding="utf-8") as f:
+    f.write(content)
+PY
+
+echo "Updated $QUICKSTART latest artifact links."
+
 if [ "$DO_COMMIT" -eq 1 ]; then
   cd "$DEST_REPO"
-  git add -A release-artifacts README.md '*.tgz' '*.tgz.sha256'
+  git add -A -- ./
+  # The destination checkout is dedicated to published artifacts; stage the
+  # whole tree so removal of a previously tracked release-artifacts/ directory
+  # is included even after the directory no longer exists.
   if ! git diff --cached --quiet; then
     git commit -m "Publish release artifacts ${latest_version:-update}"
     echo "Committed release artifact publish."

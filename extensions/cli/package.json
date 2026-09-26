@@ -1,6 +1,6 @@
 {
   "name": "@opencircuit/cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Open Circuit command-line coding agent",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
