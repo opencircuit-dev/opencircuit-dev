@@ -97,17 +97,18 @@ const require = __createRequire(import.meta.url);`,
   writeFileSync(
     "dist/oc.js",
     `#!/usr/bin/env node
-const [major, minor] = process.versions.node.split(".").map(Number);
-if (major < 24 || (major === 24 && minor < 19) || major >= 27) {
-  console.error(
-    "Open Circuit CLI requires Node.js >=24.19.0 <27. Detected " +
-      process.version +
-      ". Select a supported version (for example, run 'nvm use 24').",
-  );
+import { assertSupportedNodeRuntime } from "./runtime-version.mjs";
+
+if (!assertSupportedNodeRuntime()) {
   process.exit(1);
 }
+
 import("./index.js").then(({ runCli }) => runCli());
 `,
+  );
+  copyFileSync(
+    resolve(__dirname, "runtime-version.mjs"),
+    resolve(__dirname, "dist/runtime-version.mjs"),
   );
   // Copy worker files needed by JSDOM
   const workerSource = resolve(

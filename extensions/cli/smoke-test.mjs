@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-import { execSync, spawnSync } from "child_process";
+import { execSync } from "child_process";
+import {
+  assertSupportedNodeRuntime,
+  isSupportedNodeVersion,
+  unsupportedNodeVersionMessage,
+} from "./runtime-version.mjs";
 import { existsSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -50,6 +55,9 @@ runTest("Bundle file exists", () => {
   if (!existsSync(resolve(__dirname, "dist/oc.js"))) {
     throw new Error("dist/oc.js not found");
   }
+  if (!existsSync(resolve(__dirname, "dist/runtime-version.mjs"))) {
+    throw new Error("dist/runtime-version.mjs not found");
+  }
 });
 
 // Test 2: Check if wrapper script is executable
@@ -95,40 +103,31 @@ runTest("Help command", () => {
   }
 });
 
-const unsupportedNode = process.env.OCIRCUIT_TEST_UNSUPPORTED_NODE;
-if (unsupportedNode) {
-  runTest("Unsupported Node runtime has an actionable diagnostic", () => {
-    const versionResult = spawnSync(unsupportedNode, ["--version"], {
-      cwd: __dirname,
-      encoding: "utf8",
-    });
-    if (versionResult.error) {
-      throw versionResult.error;
+runTest("Node runtime guard boundaries", () => {
+  for (const version of ["24.19.0", "25.0.0", "26.7.0"]) {
+    if (!isSupportedNodeVersion(version)) {
+      throw new Error("Expected supported runtime: " + version);
     }
-    const detectedVersion = versionResult.stdout.trim();
-    const cliResult = spawnSync(
-      unsupportedNode,
-      ["dist/oc.js", "--version"],
-      { cwd: __dirname, encoding: "utf8" },
-    );
-    if (cliResult.error) {
-      throw cliResult.error;
+    if (!assertSupportedNodeRuntime(version, () => {})) {
+      throw new Error("Expected runtime assertion to pass: " + version);
     }
-    const output = `${cliResult.stdout}${cliResult.stderr}`;
-    if (cliResult.status === 0) {
-      throw new Error("CLI unexpectedly accepted an unsupported Node runtime");
+  }
+
+  for (const version of ["22.18.0", "24.18.9", "27.0.0", "invalid"]) {
+    const messages = [];
+    if (isSupportedNodeVersion(version)) {
+      throw new Error("Expected unsupported runtime: " + version);
     }
     if (
-      !output.includes("requires Node.js >=24.19.0 <27") ||
-      !output.includes(`Detected ${detectedVersion}.`)
+      assertSupportedNodeRuntime(version, (message) => messages.push(message))
     ) {
-      throw new Error(`Runtime diagnostic missing required details: ${output}`);
+      throw new Error("Expected runtime assertion to fail: " + version);
     }
-    if (output.includes("SyntaxError")) {
-      throw new Error(`Launcher failed to parse on the old runtime: ${output}`);
+    if (messages[0] !== unsupportedNodeVersionMessage(version)) {
+      throw new Error("Unexpected runtime diagnostic for " + version);
     }
-  });
-}
+  }
+});
 
 // Test 5: Check bundle size
 runTest("Bundle size is reasonable", () => {
