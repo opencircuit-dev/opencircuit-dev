@@ -96,7 +96,19 @@ const require = __createRequire(import.meta.url);`,
   // Note: We must call runCli(); a plain dynamic import will not execute the CLI.
   writeFileSync(
     "dist/oc.js",
-    "#!/usr/bin/env node\nimport { runCli } from './index.js';\nawait runCli();\n",
+    `#!/usr/bin/env node
+import { assertSupportedNodeRuntime } from "./runtime-version.mjs";
+
+if (!assertSupportedNodeRuntime()) {
+  process.exit(1);
+}
+
+import("./index.js").then(({ runCli }) => runCli());
+`,
+  );
+  copyFileSync(
+    resolve(__dirname, "runtime-version.mjs"),
+    resolve(__dirname, "dist/runtime-version.mjs"),
   );
   // Copy worker files needed by JSDOM
   const workerSource = resolve(
