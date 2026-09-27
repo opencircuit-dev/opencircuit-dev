@@ -108,7 +108,7 @@ function convertContext(configJson: ConfigJson): ContextYaml[] {
         };
       }
       return {
-        uses: `continuedev/${ctx.name === "open" ? "open-files" : ctx.name}-context`,
+        uses: `opencircuit-dev/${ctx.name === "open" ? "open-files" : ctx.name}-context`,
         with: ctx.params,
       };
     }) ?? [];

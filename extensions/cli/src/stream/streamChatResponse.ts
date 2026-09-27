@@ -1,5 +1,5 @@
 import { ModelConfig } from "@opencircuit/config-yaml";
-import { BaseLlmApi } from "@opencircuit/openai-adapters";
+import { BaseLlmApi, isResponsesModel } from "@opencircuit/openai-adapters";
 import type { ChatHistoryItem } from "core/index.js";
 import { convertFromUnifiedHistoryWithSystemMessage } from "core/messageConversion.js";
 import * as dotenv from "dotenv";
@@ -13,8 +13,8 @@ import { services } from "../services/index.js";
 import { telemetryService } from "../telemetry/telemetryService.js";
 import { applyChatCompletionToolOverrides } from "../tools/applyToolOverrides.js";
 import { ToolCall } from "../tools/index.js";
+import { getChatCompletionToolName } from "../util/chatCompletionTool.js";
 import {
-  chatCompletionStreamWithBackoff,
   isContextLengthError,
   withExponentialBackoff,
 } from "../util/exponentialBackoff.js";
@@ -262,17 +262,22 @@ export async function processStreamingResponse(
       messageCount: chatHistory.length,
       toolCount: tools?.length || 0,
     });
-    return await chatCompletionStreamWithBackoff(
-      llmApi,
-      {
-        model: model.model,
-        messages: openaiChatHistory,
-        stream: true,
-        tools,
-        ...getDefaultCompletionOptions(model.defaultCompletionOptions),
-      },
-      retryAbortSignal,
-    );
+    const params = {
+      model: model.model,
+      messages: openaiChatHistory,
+      stream: true as const,
+      tools,
+      ...getDefaultCompletionOptions(model.defaultCompletionOptions),
+    };
+
+    if (
+      typeof llmApi.responsesStream === "function" &&
+      isResponsesModel(params.model)
+    ) {
+      return llmApi.responsesStream(params, retryAbortSignal);
+    }
+
+    return llmApi.chatCompletionStream(params, retryAbortSignal);
   };
 
   let aiResponse = "";
@@ -474,7 +479,7 @@ export async function streamChatResponse(
 
     logger.debug("Tools prepared", {
       toolCount: tools.length,
-      toolNames: tools.map((t) => t.function.name),
+      toolNames: tools.map(getChatCompletionToolName),
     });
 
     // Get response from LLM

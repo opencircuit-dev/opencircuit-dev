@@ -38,7 +38,7 @@ describe("asciiArt", () => {
 
       expect(result).toContain("██████╗  ██████╗");
       expect(result).toContain("╚═════╝  ╚═════╝");
-      expect(result).toContain("v1.0.0");
+      expect(result).toContain("v1.0.1");
       expect(result).not.toBe(OCIRCUIT_ASCII_ART);
     });
 

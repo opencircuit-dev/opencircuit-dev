@@ -13,7 +13,7 @@ jobs:
   run-oc-task:
     runs-on: ubuntu-latest
     # Only run this workflow on the canonical repository.
-    if: github.repository == 'brettconnor/opencircuit-dev'
+    if: github.repository == 'brettconnor/opencircuit-dev' && vars.OCIRCUIT_SNYK_AGENT != ''
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -30,7 +30,8 @@ jobs:
         run: npm install -g @opencircuit/cli@1.0.0
 
       - name: Run Snyk Agent
-        run: cd extensions/cli && oc -p --agent continuedev/snyk-code-scan-agent "The current directory"
+        run: cd extensions/cli && oc -p --agent "$OCIRCUIT_SNYK_AGENT" "The current directory"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           OCIRCUIT_API_KEY: ${{ secrets.OCIRCUIT_API_KEY }}
+          OCIRCUIT_SNYK_AGENT: ${{ vars.OCIRCUIT_SNYK_AGENT }}

@@ -7,6 +7,7 @@ import {
   serviceContainer,
 } from "../services/index.js";
 import type { ToolPermissionServiceState } from "../services/ToolPermissionService.js";
+import { isFunctionChatCompletionTool } from "../util/chatCompletionTool.js";
 
 import { getRequestTools } from "./handleToolCalls.js";
 
@@ -39,7 +40,9 @@ describe("getRequestTools - Tool Filtering", () => {
 
     // Get available tools - this should include Bash in plan mode
     const tools = await getRequestTools(false);
-    const toolNames = tools.map((t) => t.function.name);
+    const toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // Bash should be allowed in plan mode
     expect(toolNames).toContain("Bash");
@@ -73,7 +76,9 @@ describe("getRequestTools - Tool Filtering", () => {
 
     // Get available tools - Bash should be available in normal mode
     const tools = await getRequestTools(false);
-    const toolNames = tools.map((t) => t.function.name);
+    const toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // All tools should be available in normal mode
     expect(toolNames).toContain("Bash");
@@ -100,7 +105,9 @@ describe("getRequestTools - Tool Filtering", () => {
 
     // Get available tools - all tools should be available in auto mode
     const tools = await getRequestTools(false);
-    const toolNames = tools.map((t) => t.function.name);
+    const toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // All tools should be available in auto mode
     expect(toolNames).toContain("Bash");
@@ -120,7 +127,9 @@ describe("getRequestTools - Tool Filtering", () => {
     });
 
     const tools = await getRequestTools(false);
-    const toolNames = tools.map((t) => t.function.name);
+    const toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // Read should be excluded due to explicit exclude
     expect(toolNames).not.toContain("Read");
@@ -143,7 +152,9 @@ describe("getRequestTools - Tool Filtering", () => {
     });
 
     const tools = await getRequestTools(false);
-    const toolNames = tools.map((t) => t.function.name);
+    const toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // Plan mode should still exclude write tools despite --allow flags
     // This tests that plan mode policies have absolute precedence

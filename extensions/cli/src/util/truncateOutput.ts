@@ -80,6 +80,34 @@ export function truncateOutputFromStart(
   return { output, wasTruncated: false };
 }
 
+/** Appends output while retaining only the most recent content within limits. */
+export function appendAndTruncateOutputFromStart(
+  currentOutput: string,
+  newOutput: string,
+  limits: TruncationLimits,
+): TruncationResult {
+  const combinedOutput = currentOutput + newOutput;
+  const lines = combinedOutput.split("\n");
+  let output = combinedOutput;
+  let wasTruncated = false;
+
+  if (lines.length > limits.maxLines) {
+    output = lines.slice(-limits.maxLines).join("\n");
+    wasTruncated = true;
+  }
+
+  if (output.length > limits.maxChars) {
+    output = output.slice(-limits.maxChars);
+    const firstNewline = output.indexOf("\n");
+    if (firstNewline !== -1 && firstNewline < TRUNCATION_LINE_SNAP_THRESHOLD) {
+      output = output.slice(firstNewline + 1);
+    }
+    wasTruncated = true;
+  }
+
+  return { output, wasTruncated };
+}
+
 /**
  * Truncates output from the end to fit within a character limit, preserving the beginning.
  * Useful for content where the beginning is most important (e.g., file content, diffs).

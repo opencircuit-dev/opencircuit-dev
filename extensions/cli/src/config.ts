@@ -4,10 +4,7 @@ import {
   constructLlmApi,
   LLMConfig,
 } from "@opencircuit/openai-adapters";
-import {
-  Configuration,
-  DefaultApi,
-} from "@opencircuit/sdk/dist/api/dist/index.js";
+import { OpenCircuitClient } from "@opencircuit/sdk";
 
 import { AuthConfig } from "./auth/workos.js";
 import { env } from "./env.js";
@@ -89,11 +86,9 @@ export function getLlmApi(
 
 export function getApiClient(
   accessToken: string | undefined | null,
-): DefaultApi {
-  return new DefaultApi(
-    new Configuration({
-      basePath: env.apiBase.replace(/\/$/, ""),
-      accessToken: accessToken ?? undefined,
-    }),
-  );
+): OpenCircuitClient {
+  return new OpenCircuitClient({
+    baseUrl: env.apiBase,
+    accessToken: accessToken ?? process.env.OCIRCUIT_API_KEY ?? undefined,
+  });
 }

@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
 import { execSync } from "child_process";
+import {
+  assertSupportedNodeRuntime,
+  isSupportedNodeVersion,
+  unsupportedNodeVersionMessage,
+} from "./runtime-version.mjs";
 import { existsSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -50,6 +55,9 @@ runTest("Bundle file exists", () => {
   if (!existsSync(resolve(__dirname, "dist/oc.js"))) {
     throw new Error("dist/oc.js not found");
   }
+  if (!existsSync(resolve(__dirname, "dist/runtime-version.mjs"))) {
+    throw new Error("dist/runtime-version.mjs not found");
+  }
 });
 
 // Test 2: Check if wrapper script is executable
@@ -92,6 +100,38 @@ runTest("Help command", () => {
     !output.includes("init")
   ) {
     throw new Error("Help output missing expected content");
+  }
+});
+
+runTest("Node runtime guard boundaries", () => {
+  for (const version of ["24.19.0", "25.0.0", "26.7.0", "v26.7.0"]) {
+    if (!isSupportedNodeVersion(version)) {
+      throw new Error("Expected supported runtime: " + version);
+    }
+    if (!assertSupportedNodeRuntime(version, () => {})) {
+      throw new Error("Expected runtime assertion to pass: " + version);
+    }
+  }
+
+  for (const version of [
+    "22.18.0",
+    "24.18.9",
+    "27.0.0",
+    "v22.18.0",
+    "invalid",
+  ]) {
+    const messages = [];
+    if (isSupportedNodeVersion(version)) {
+      throw new Error("Expected unsupported runtime: " + version);
+    }
+    if (
+      assertSupportedNodeRuntime(version, (message) => messages.push(message))
+    ) {
+      throw new Error("Expected runtime assertion to fail: " + version);
+    }
+    if (messages[0] !== unsupportedNodeVersionMessage(version)) {
+      throw new Error("Unexpected runtime diagnostic for " + version);
+    }
   }
 });
 

@@ -89,6 +89,13 @@ export async function runOnboardingFlow(
     return true;
   }
 
+  if (process.env.OCIRCUIT_API_KEY) {
+    console.log(
+      chalk.blue("✓ Using OCIRCUIT_API_KEY for Open Circuit API access"),
+    );
+    return true;
+  }
+
   // Step 3: Check if we're in a test/CI environment - if so, skip interactive prompts
   const isTestEnv =
     process.env.NODE_ENV === "test" ||

@@ -308,6 +308,13 @@ program
     });
   });
 
+program
+  .command("init")
+  .description("Install packaged provider templates locally")
+  .action(async () => {
+    await initTemplatesCommand();
+  });
+
 // Serve subcommand
 program
   .command("serve [prompt]", { hidden: true })
@@ -344,14 +351,6 @@ program
   .description("Show CI check statuses for a PR")
   .action(async (action: string | undefined, prUrl: string | undefined) => {
     await checks(action, prUrl);
-  });
-
-// Local-only initialization subcommand
-program
-  .command("init")
-  .description("Install packaged provider templates locally")
-  .action(async () => {
-    await initTemplatesCommand();
   });
 
 // Review subcommand

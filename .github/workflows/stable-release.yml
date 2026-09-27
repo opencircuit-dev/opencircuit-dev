@@ -19,7 +19,7 @@ jobs:
     name: Stable Release
     runs-on: ubuntu-24.04
     # Only run this workflow on the canonical repository.
-    if: github.repository == 'brettconnor/opencircuit-dev'
+    if: github.repository == 'opencircuit-dev/opencircuit-dev'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -88,6 +88,27 @@ jobs:
             --title "CLI Release v${{ inputs.stable_version }}" \
             --notes "Release v${{ inputs.stable_version }} built and published from the main branch." \
             --latest
+
+      - name: Build CLI release artifact
+        working-directory: extensions/cli
+        run: npm run release:artifact
+
+      - name: Checkout public release-artifacts repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: opencircuit-dev/opencircuit
+          path: public-release-repo
+          token: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
+
+      - name: Publish release artifacts to public repository
+        working-directory: public-release-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          "$GITHUB_WORKSPACE/scripts/publish-release-artifacts.sh" \
+            --source "$GITHUB_WORKSPACE" \
+            --dest "$PWD" \
+            --push
 
       - name: Publish Blueprints to Runloop
         env:

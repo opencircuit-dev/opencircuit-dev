@@ -42,6 +42,8 @@ const requiredFiles = [
   "dist/oc.js",
   "dist/index.js",
   "dist/meta.json",
+  "dist/commands/initTemplates.d.ts",
+  "dist/templateInstaller.d.ts",
   "templates/config-openai.yaml",
   "templates/config-anthropic.yaml",
   "templates/config-gemini.yaml",

@@ -9,10 +9,9 @@ on:
         type: string
         default: ""
       agent:
-        description: "The agent to use (e.g., continuedev/github-pr-agent)"
+        description: "The Open Circuit agent slug to use"
         required: true
         type: string
-        default: "continuedev/github-pr-agent"
       branch_name:
         description: "The base branch name to work from"
         required: false

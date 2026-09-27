@@ -1,3 +1,7 @@
+import { vi } from "vitest";
+
+import { services } from "../services/index.js";
+
 import {
   isRunningInWsl,
   runTerminalCommandTool,
@@ -78,6 +82,42 @@ describe("runTerminalCommandTool", () => {
       );
     });
   });
+
+  it.skipIf(isWindows)(
+    "should bound streamed output while a command is running",
+    async () => {
+      const maxChars = 64;
+      const envVar = "OCIRCUIT_CLI_BASH_MAX_OUTPUT_CHARS";
+      const originalLimit = process.env[envVar];
+      process.env[envVar] = String(maxChars);
+      const addToolResultSpy = vi
+        .spyOn(services.chatHistory, "addToolResult")
+        .mockImplementation(() => {});
+
+      try {
+        await runTerminalCommandTool.run(
+          { command: `node -e 'process.stdout.write("x".repeat(100000))'` },
+          { toolCallId: "streamed-output-test" } as any,
+        );
+
+        const streamedOutputs = addToolResultSpy.mock.calls
+          .filter(([, , status]) => status === "calling")
+          .map(([, output]) => output);
+        expect(streamedOutputs.length).toBeGreaterThan(0);
+        expect(streamedOutputs.every((output) => output.length <= 128)).toBe(
+          true,
+        );
+        expect(streamedOutputs.at(-1)).toContain("previous output truncated");
+      } finally {
+        addToolResultSpy.mockRestore();
+        if (originalLimit === undefined) {
+          delete process.env[envVar];
+        } else {
+          process.env[envVar] = originalLimit;
+        }
+      }
+    },
+  );
 
   describe("platform-specific features", () => {
     if (isWindows) {

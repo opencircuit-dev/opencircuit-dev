@@ -15,7 +15,9 @@ global.fetch = vi
     const urlString = url.toString();
 
     // Mock the default config API call
-    if (urlString.includes("get-assistant/continuedev/default-cli-config")) {
+    if (
+      urlString.includes("get-assistant/opencircuit-dev/default-cli-config")
+    ) {
       return {
         ok: true,
         status: 200,

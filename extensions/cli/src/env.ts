@@ -8,6 +8,8 @@ const ocircuitHome =
   process.env.OCIRCUIT_GLOBAL_DIR || path.join(os.homedir(), ".ocircuit");
 const globalEnvPath = path.join(ocircuitHome, ".env");
 
+// Load application-scoped secrets without overriding explicitly exported values.
+// The existence check avoids dotenv's missing-file diagnostic on first run.
 if (fs.existsSync(globalEnvPath)) {
   dotenv.config({ path: globalEnvPath });
 }

@@ -6,6 +6,7 @@ import {
   serviceContainer,
   services,
 } from "../services/index.js";
+import { isFunctionChatCompletionTool } from "../util/chatCompletionTool.js";
 
 import { getRequestTools } from "./handleToolCalls.js";
 
@@ -31,7 +32,9 @@ describe("streamChatResponse - Mode Switch During Streaming", () => {
   test("should recompute tools on each iteration to handle mode switches", async () => {
     // Start in normal mode
     let tools = await getRequestTools(false);
-    let toolNames = tools.map((t) => t.function.name);
+    let toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // Should include write tools in normal mode
     expect(toolNames).toContain("Write");
@@ -46,7 +49,9 @@ describe("streamChatResponse - Mode Switch During Streaming", () => {
 
     // Recompute tools - should now exclude write tools
     tools = await getRequestTools(true);
-    toolNames = tools.map((t) => t.function.name);
+    toolNames = tools
+      .filter(isFunctionChatCompletionTool)
+      .map((t) => t.function.name);
 
     // Should exclude write tools in plan mode
     expect(toolNames).not.toContain("Write");
@@ -62,7 +67,9 @@ describe("streamChatResponse - Mode Switch During Streaming", () => {
     // Start in normal mode
     expect(toolPermissionService.getCurrentMode()).toBe("normal");
     let tools = await getRequestTools(false);
-    expect(tools.map((t) => t.function.name)).toContain("Write");
+    expect(
+      tools.filter(isFunctionChatCompletionTool).map((t) => t.function.name),
+    ).toContain("Write");
 
     // Switch to plan mode
     toolPermissionService.switchMode("plan");
@@ -72,7 +79,9 @@ describe("streamChatResponse - Mode Switch During Streaming", () => {
 
     // getRequestTools should immediately reflect the new mode
     tools = await getRequestTools(false);
-    expect(tools.map((t) => t.function.name)).not.toContain("Write");
+    expect(
+      tools.filter(isFunctionChatCompletionTool).map((t) => t.function.name),
+    ).not.toContain("Write");
 
     // Switch to auto mode
     toolPermissionService.switchMode("auto");
@@ -82,9 +91,15 @@ describe("streamChatResponse - Mode Switch During Streaming", () => {
 
     // getRequestTools should immediately reflect auto mode (all tools allowed)
     tools = await getRequestTools(false);
-    expect(tools.map((t) => t.function.name)).toContain("Write");
-    expect(tools.map((t) => t.function.name)).toContain("MultiEdit");
-    expect(tools.map((t) => t.function.name)).toContain("Read");
+    expect(
+      tools.filter(isFunctionChatCompletionTool).map((t) => t.function.name),
+    ).toContain("Write");
+    expect(
+      tools.filter(isFunctionChatCompletionTool).map((t) => t.function.name),
+    ).toContain("MultiEdit");
+    expect(
+      tools.filter(isFunctionChatCompletionTool).map((t) => t.function.name),
+    ).toContain("Read");
   });
 
   test("demonstrates the fix: no more stale tool lists", async () => {
@@ -152,7 +167,11 @@ describe("streamChatResponse - Mode Switch During Streaming", () => {
 
     // Start in normal mode - tools should include Write
     const initialTools = await getRequestTools(false);
-    expect(initialTools.map((t) => t.function.name)).toContain("Write");
+    expect(
+      initialTools
+        .filter(isFunctionChatCompletionTool)
+        .map((t) => t.function.name),
+    ).toContain("Write");
 
     // During streaming, if mode switches, subsequent iterations should use new tools
     // This is now handled by recomputing tools on each iteration

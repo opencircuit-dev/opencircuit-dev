@@ -104,7 +104,7 @@ describe("normalizeRepoUrl", () => {
     });
 
     it("should handle mixed case in shorthand format", () => {
-      expect(normalizeRepoUrl("OCircuitDev/Continue")).toBe(
+      expect(normalizeRepoUrl("Open-Circuit-Dev/Open-Circuit")).toBe(
         "https://github.com/open-circuit-dev/open-circuit",
       );
     });
@@ -180,19 +180,19 @@ describe("normalizeRepoUrl", () => {
   });
 
   describe("real-world examples", () => {
-    it("should normalize Continue's repository from SSH", () => {
-      expect(normalizeRepoUrl("git@github.com:continuedev/ocircuit.git")).toBe(
+    it("should normalize the Open Circuit repository from SSH", () => {
+      expect(
+        normalizeRepoUrl("git@github.com:open-circuit-dev/open-circuit.git"),
+      ).toBe("https://github.com/open-circuit-dev/open-circuit");
+    });
+
+    it("should normalize the Open Circuit repository from shorthand", () => {
+      expect(normalizeRepoUrl("Open-Circuit-Dev/Open-Circuit")).toBe(
         "https://github.com/open-circuit-dev/open-circuit",
       );
     });
 
-    it("should normalize Continue's repository from shorthand", () => {
-      expect(normalizeRepoUrl("open-circuit-dev/open-circuit")).toBe(
-        "https://github.com/open-circuit-dev/open-circuit",
-      );
-    });
-
-    it("should normalize Continue's repository from HTTPS", () => {
+    it("should normalize the Open Circuit repository from HTTPS", () => {
       expect(
         normalizeRepoUrl(
           "https://github.com/open-circuit-dev/open-circuit.git",
@@ -202,12 +202,12 @@ describe("normalizeRepoUrl", () => {
 
     it("should match repositories regardless of input format", () => {
       const formats = [
-        "git@github.com:continuedev/ocircuit.git",
+        "git@github.com:open-circuit-dev/open-circuit.git",
         "open-circuit-dev/open-circuit",
         "https://github.com/open-circuit-dev/open-circuit",
         "https://github.com/open-circuit-dev/open-circuit.git",
-        "ssh://git@github.com/continuedev/ocircuit.git",
-        "OCircuitDev/Continue",
+        "ssh://git@github.com/open-circuit-dev/open-circuit.git",
+        "Open-Circuit-Dev/Open-Circuit",
       ];
 
       const expected = "https://github.com/open-circuit-dev/open-circuit";

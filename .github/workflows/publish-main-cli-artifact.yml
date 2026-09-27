@@ -1,0 +1,93 @@
+name: Publish Main CLI Artifact
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-main-cli-artifact
+  cancel-in-progress: false
+
+jobs:
+  publish-cli-artifact:
+    name: Publish CLI bundle
+    runs-on: ubuntu-24.04
+    if: github.repository == 'opencircuit-dev/opencircuit-dev'
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+
+      - name: Setup packages
+        uses: ./.github/actions/setup-packages
+
+      - name: Setup core component
+        uses: ./.github/actions/setup-component
+        with:
+          component: core
+          include-root: true
+
+      - name: Build core
+        working-directory: core
+        run: npm run build
+
+      - name: Install CLI dependencies
+        working-directory: extensions/cli
+        run: |
+          npm ci --include=optional
+          npm run check:install-scripts
+          npm run check:dependency-policy
+
+      - name: Build CLI
+        working-directory: extensions/cli
+        run: npm run build
+
+      - name: Test CLI
+        working-directory: extensions/cli
+        run: npm test
+
+      - name: Build release artifact
+        working-directory: extensions/cli
+        run: npm run release:artifact
+
+      - name: Validate release artifact
+        working-directory: extensions/cli
+        run: npm run check:release-artifact
+
+      - name: Require public repository credentials
+        env:
+          PUBLIC_RELEASE_REPO_TOKEN: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
+        run: |
+          if [[ -z "$PUBLIC_RELEASE_REPO_TOKEN" ]]; then
+            echo "::error::PUBLIC_RELEASE_REPO_TOKEN is not configured"
+            exit 1
+          fi
+
+      - name: Checkout public release repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: opencircuit-dev/opencircuit
+          path: public-release-repo
+          token: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
+          fetch-depth: 0
+
+      - name: Publish release artifact
+        working-directory: public-release-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          "$GITHUB_WORKSPACE/scripts/publish-release-artifacts.sh" \
+            --source "$GITHUB_WORKSPACE" \
+            --dest "$PWD" \
+            --push

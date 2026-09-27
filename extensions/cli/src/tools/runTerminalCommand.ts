@@ -16,6 +16,7 @@ import {
 import { backgroundSignalManager } from "../util/backgroundSignalManager.js";
 import { emitBashToolEnded, emitBashToolStarted } from "../util/cli.js";
 import {
+  appendAndTruncateOutputFromStart,
   parseEnvNumber,
   truncateOutputFromStart,
 } from "../util/truncateOutput.js";
@@ -192,6 +193,8 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
       const child = spawn(shell, args);
       let stdout = "";
       let stderr = "";
+      let stdoutWasTruncated = false;
+      let stderrWasTruncated = false;
       let timeoutId: NodeJS.Timeout;
       let isResolved = false;
 
@@ -222,6 +225,25 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
         return output;
       };
 
+      const getCurrentOutput = (includeStderr = true): string => {
+        const output =
+          stdout + (includeStderr && stderr ? `\nStderr: ${stderr}` : "");
+        const truncationResult = truncateOutputFromStart(output, {
+          maxChars,
+          maxLines,
+        });
+
+        if (truncationResult.wasTruncated) {
+          return truncationResult.output;
+        }
+
+        const outputWasTruncated =
+          stdoutWasTruncated || (includeStderr && stderrWasTruncated);
+        return outputWasTruncated
+          ? `(previous output truncated)\n\n${truncationResult.output}`
+          : truncationResult.output;
+      };
+
       const moveToBackground = () => {
         if (isResolved) return;
         isResolved = true;
@@ -240,23 +262,17 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
         const job = backgroundJobService.createJobWithProcess(
           command,
           child as ChildProcess,
-          stdout,
+          getCurrentOutput(false),
         );
 
         if (job) {
-          const truncationResult = truncateOutputFromStart(stdout, {
-            maxChars,
-            maxLines,
-          });
-          const outputSoFar = truncationResult.wasTruncated
-            ? appendParallelLimitNote(truncationResult.output)
-            : truncationResult.output;
+          const outputSoFar = appendParallelLimitNote(getCurrentOutput(false));
           resolve(
             `Command moved to background. Job ID: ${job.id}\nOutput so far:\n${outputSoFar}\nUse CheckBackgroundJob("${job.id}") to check status.`,
           );
         } else {
           resolve(
-            `Failed to move to background (job limit reached). Command continues in foreground.\nOutput so far: ${stdout}`,
+            `Failed to move to background (job limit reached). Command continues in foreground.\nOutput so far: ${getCurrentOutput(false)}`,
           );
         }
       };
@@ -271,7 +287,7 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
           if (isResolved) return;
           isResolved = true;
           child.kill();
-          let output = stdout + (stderr ? `\nStderr: ${stderr}` : "");
+          let output = getCurrentOutput();
           output += `\n\n[Command timed out after ${TIMEOUT_MS / 1000} seconds of no output]`;
 
           const truncationResult = truncateOutputFromStart(output, {
@@ -288,10 +304,9 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
       const showCurrentOutput = () => {
         if (!context?.toolCallId) return;
         try {
-          const currentOutput = stdout + (stderr ? `\nStderr: ${stderr}` : "");
           services.chatHistory.addToolResult(
             context.toolCallId,
-            currentOutput,
+            getCurrentOutput(),
             "calling",
           );
         } catch {
@@ -303,13 +318,25 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
       resetTimeout();
 
       const onStdout = (data: Buffer) => {
-        stdout += data.toString();
+        const result = appendAndTruncateOutputFromStart(
+          stdout,
+          data.toString(),
+          { maxChars, maxLines },
+        );
+        stdout = result.output;
+        stdoutWasTruncated ||= result.wasTruncated;
         resetTimeout();
         showCurrentOutput();
       };
 
       const onStderr = (data: Buffer) => {
-        stderr += data.toString();
+        const result = appendAndTruncateOutputFromStart(
+          stderr,
+          data.toString(),
+          { maxChars, maxLines },
+        );
+        stderr = result.output;
+        stderrWasTruncated ||= result.wasTruncated;
         resetTimeout();
         showCurrentOutput();
       };
@@ -345,12 +372,7 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
           }
         }
 
-        let output = stdout;
-        if (stderr) {
-          output = stdout + `\nStderr: ${stderr}`;
-        }
-
-        const truncationResult = truncateOutputFromStart(output, {
+        const truncationResult = truncateOutputFromStart(getCurrentOutput(), {
           maxChars,
           maxLines,
         });

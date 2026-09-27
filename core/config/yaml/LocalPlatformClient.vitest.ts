@@ -93,6 +93,11 @@ describe("LocalPlatformClient", () => {
   });
 
   describe("should be able to get secrets from workspace .env files", () => {
+    beforeEach(async () => {
+      const utilPaths = await import("../../util/paths");
+      utilPaths.getOCircuitDotEnv = vi.fn(() => ({}));
+    });
+
     test("should get secrets from <workspace>/.ocircuit/.env and <workspace>/.env", async () => {
       const originalIdeFileExists = testIde.fileExists;
       testIde.fileExists = vi.fn(async (fileUri: string) =>

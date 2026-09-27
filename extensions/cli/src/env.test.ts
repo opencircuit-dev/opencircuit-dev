@@ -33,7 +33,7 @@ describe("environment loading", () => {
     vi.resetModules();
   });
 
-  test("loads application-scoped settings from the global .env file", async () => {
+  test("loads hosted API settings from ~/.ocircuit/.env", async () => {
     temporaryHome = fs.mkdtempSync(path.join(os.tmpdir(), "ocircuit-env-"));
     fs.writeFileSync(
       path.join(temporaryHome, ".env"),
@@ -52,7 +52,7 @@ describe("environment loading", () => {
     expect(env.ocircuitHome).toBe(temporaryHome);
   });
 
-  test("preserves explicitly exported settings", async () => {
+  test("preserves explicitly exported hosted API settings", async () => {
     temporaryHome = fs.mkdtempSync(path.join(os.tmpdir(), "ocircuit-env-"));
     fs.writeFileSync(
       path.join(temporaryHome, ".env"),

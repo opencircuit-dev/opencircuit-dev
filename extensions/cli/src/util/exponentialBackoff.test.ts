@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 
 import { ExponentialBackoffOptions } from "./exponentialBackoff.js";
+import { getRetryAfterDelay } from "./retryDelay.js";
 
 // Since the functions are not exported, we need to recreate them for testing
 function isRetryableError(error: any): boolean {
@@ -234,6 +235,7 @@ describe("exponentialBackoff utilities", () => {
       backoffMultiplier: 2,
       jitter: false,
       hiddenRetries: 2,
+      maxRateLimitRetries: 2,
     };
 
     it("should calculate exponential backoff without jitter", () => {
@@ -349,5 +351,30 @@ describe("exponentialBackoff utilities", () => {
       const options = { ...defaultOptions, maxDelay: 60000 };
       expect(calculateDelay(10, options)).toBe(60000); // Should be capped
     });
+  });
+});
+
+describe("getRetryAfterDelay", () => {
+  it("preserves Retry-After seconds from the provider", () => {
+    expect(getRetryAfterDelay({ headers: { "Retry-After": "15.5" } })).toBe(
+      15500,
+    );
+  });
+
+  it("parses millisecond guidance in provider error messages", () => {
+    expect(
+      getRetryAfterDelay({
+        message: "Please retry after 15168.2 milliseconds.",
+      }),
+    ).toBe(15168.2);
+  });
+
+  it("supports Fetch Headers", () => {
+    const headers = new Headers({ "Retry-After": "60" });
+    expect(getRetryAfterDelay({ headers })).toBe(60000);
+  });
+
+  it("returns undefined when no retry guidance is present", () => {
+    expect(getRetryAfterDelay({ message: "rate limited" })).toBe(undefined);
   });
 });

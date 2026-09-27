@@ -1,9 +1,18 @@
 import type { ChatCompletionTool } from "openai/resources.mjs";
 import { describe, expect, it } from "vitest";
 
+import { isFunctionChatCompletionTool } from "../util/chatCompletionTool.js";
+
 import { applyChatCompletionToolOverrides } from "./applyToolOverrides.js";
 
 describe("applyChatCompletionToolOverrides", () => {
+  const functionTool = (tool: ChatCompletionTool) => {
+    if (!isFunctionChatCompletionTool(tool)) {
+      throw new Error("Expected a function tool in this test fixture");
+    }
+    return tool;
+  };
+
   const mockTools: ChatCompletionTool[] = [
     {
       type: "function",
@@ -26,8 +35,10 @@ describe("applyChatCompletionToolOverrides", () => {
     const result = applyChatCompletionToolOverrides(mockTools, {
       read_file: { description: "Custom read description" },
     });
-    expect(result[0].function.description).toBe("Custom read description");
-    expect(result[1].function.description).toBe("Write a file");
+    expect(functionTool(result[0]).function.description).toBe(
+      "Custom read description",
+    );
+    expect(functionTool(result[1]).function.description).toBe("Write a file");
   });
 
   it("filters out disabled tools", () => {
@@ -35,7 +46,7 @@ describe("applyChatCompletionToolOverrides", () => {
       read_file: { disabled: true },
     });
     expect(result).toHaveLength(1);
-    expect(result[0].function.name).toBe("write_file");
+    expect(functionTool(result[0]).function.name).toBe("write_file");
   });
 
   it("handles multiple overrides", () => {
@@ -43,8 +54,8 @@ describe("applyChatCompletionToolOverrides", () => {
       read_file: { description: "Custom read" },
       write_file: { description: "Custom write" },
     });
-    expect(result[0].function.description).toBe("Custom read");
-    expect(result[1].function.description).toBe("Custom write");
+    expect(functionTool(result[0]).function.description).toBe("Custom read");
+    expect(functionTool(result[1]).function.description).toBe("Custom write");
   });
 
   it("ignores overrides for non-existent tools", () => {
@@ -55,10 +66,12 @@ describe("applyChatCompletionToolOverrides", () => {
   });
 
   it("does not mutate original tools", () => {
-    const originalDescription = mockTools[0].function.description;
+    const originalDescription = functionTool(mockTools[0]).function.description;
     applyChatCompletionToolOverrides(mockTools, {
       read_file: { description: "Modified description" },
     });
-    expect(mockTools[0].function.description).toBe(originalDescription);
+    expect(functionTool(mockTools[0]).function.description).toBe(
+      originalDescription,
+    );
   });
 });

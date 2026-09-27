@@ -34,6 +34,9 @@ Secrets are supplied by the CI environment and must never be committed:
   `opencircuit-dev/opencircuit-internal`)
 - `VSCE_TOKEN`, `VSX_REGISTRY_TOKEN`
 - `SNYK_TOKEN`, `RUNLOOP_API_KEY`
+- `PUBLIC_RELEASE_REPO_TOKEN` (a PAT with `contents: write` on
+  `opencircuit-dev/opencircuit`, used by `stable-release.yml` to publish
+  packaged CLI release artifacts to that public repository)
 - `GH_ACTIONS_SSH_TEST_KEY_PEM`, `GH_ACTIONS_SSH_TEST_DNS_NAME`
 - `CHROMA_CLOUD_API_KEY`, `CHROMA_TENANT`, `CHROMA_DATABASE`
 - `ISSUE_PR_METRICS_SLACK_WEBHOOK_URL`

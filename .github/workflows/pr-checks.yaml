@@ -25,6 +25,7 @@ jobs:
         with:
           base-sha: ${{ github.event.pull_request.base.sha || github.event.before }}
           head-sha: ${{ github.sha }}
+          enable-vsix: false
 
   track-rerun:
     runs-on: ubuntu-latest
@@ -375,5 +376,6 @@ jobs:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35
         with:
+          # VSIX/VS Code validation is explicitly deferred and must remain skippable.
           allowed-skips: changes,core-checks,binary-checks,vscode-checks,packages-checks,vscode-get-test-file-matrix,vscode-package-extension-linux,vscode-e2e-tests
           jobs: ${{ toJSON(needs) }}
