@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import { createMinimalTestContext } from "../test-helpers/ui-test-context.js";
 
 import { withExponentialBackoff } from "./exponentialBackoff.js";
+import { ProviderRequestThrottle } from "./providerRequestThrottle.js";
 
 describe("withExponentialBackoff", () => {
   let context: any;
@@ -127,6 +128,57 @@ describe("withExponentialBackoff", () => {
     );
 
     try {
+      const consume = (async () => {
+        for await (const chunk of generator) {
+          results.push(chunk);
+        }
+      })();
+
+      await vi.advanceTimersByTimeAsync(199);
+      expect(generatorFactory).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await consume;
+      expect(results).toEqual(["success"]);
+      expect(generatorFactory).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shares provider cooldowns with subsequent requests", async () => {
+    vi.useFakeTimers();
+    try {
+      const throttle = new ProviderRequestThrottle({
+        minIntervalMs: 0,
+        jitterRatio: 0,
+      });
+      const rateLimitError = Object.assign(
+        new Error("Please retry after 0.2 seconds."),
+        { status: 429 },
+      );
+      const generatorFactory = vi
+        .fn<
+          (retryAbortSignal: AbortSignal) => Promise<AsyncGenerator<string>>
+        >()
+        .mockRejectedValueOnce(rateLimitError)
+        .mockImplementation(async (_retryAbortSignal) =>
+          (async function* () {
+            yield "success";
+          })(),
+        );
+      const results: string[] = [];
+      const generator = withExponentialBackoff<string>(
+        generatorFactory,
+        abortController.signal,
+        {
+          maxRetries: 1,
+          initialDelay: 1,
+          jitter: false,
+          throttle,
+          throttleKey: "openai/gpt-4o-mini",
+        },
+      );
+
       const consume = (async () => {
         for await (const chunk of generator) {
           results.push(chunk);

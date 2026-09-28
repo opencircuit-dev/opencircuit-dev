@@ -2,6 +2,10 @@ import { error, warn } from "../logging.js";
 
 import { formatError } from "./formatError.js";
 import { logger } from "./logger.js";
+import {
+  providerRequestThrottle,
+  ProviderRequestThrottle,
+} from "./providerRequestThrottle.js";
 import { getRetryAfterDelay } from "./retryDelay.js";
 
 export interface ExponentialBackoffOptions {
@@ -19,6 +23,13 @@ export interface ExponentialBackoffOptions {
   hiddenRetries?: number;
   /** Maximum retries for rate-limit responses */
   maxRateLimitRetries?: number;
+}
+
+export interface ExponentialBackoffThrottleOptions {
+  /** Shared throttle used for provider/model request serialization. */
+  throttle?: ProviderRequestThrottle;
+  /** Provider/model identity used by the shared throttle. */
+  throttleKey?: string;
 }
 
 const DEFAULT_OPTIONS: Required<ExponentialBackoffOptions> = {
@@ -182,18 +193,22 @@ function calculateDelay(
  * Wraps an async generator with exponential backoff retry logic.
  * If the generator throws an error during iteration, it will retry the entire generator.
  */
+// eslint-disable-next-line max-statements
 export async function* withExponentialBackoff<T>(
   generatorFactory: (
     retryAbortSignal: AbortSignal,
   ) => Promise<AsyncGenerator<T>>,
   abortSignal: AbortSignal,
-  options: ExponentialBackoffOptions = {},
+  options: ExponentialBackoffOptions & ExponentialBackoffThrottleOptions = {},
 ): AsyncGenerator<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   let lastError: any;
   let rateLimitRetries = 0;
+  const throttle = opts.throttle ?? providerRequestThrottle;
+  const throttleKey = opts.throttleKey;
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
+    let releaseThrottle: (() => void) | undefined;
     // Create a new AbortController for this retry attempt
     // This prevents accumulating listeners on the original signal
     const retryAbortController = new AbortController();
@@ -210,6 +225,13 @@ export async function* withExponentialBackoff<T>(
     }
 
     try {
+      if (throttleKey) {
+        releaseThrottle = await throttle.acquire(
+          throttleKey,
+          retryAbortController.signal,
+        );
+      }
+
       // Check if we should abort before creating the generator
       if (abortSignal.aborted) {
         throw new Error("Request aborted");
@@ -236,6 +258,13 @@ export async function* withExponentialBackoff<T>(
       return;
     } catch (err: any) {
       lastError = err;
+      const rateLimitError = isRateLimitError(err);
+      const rateLimitDelay = rateLimitError
+        ? calculateDelay(attempt, opts, err)
+        : undefined;
+      if (throttleKey && rateLimitError && rateLimitDelay !== undefined) {
+        throttle.recordRateLimit(throttleKey, rateLimitDelay);
+      }
 
       // Clean up the abort listener
       if (typeof abortSignal.removeEventListener === "function") {
@@ -257,14 +286,13 @@ export async function* withExponentialBackoff<T>(
         throw err;
       }
 
-      if (isRateLimitError(err)) {
+      const delay = rateLimitDelay ?? calculateDelay(attempt, opts, err);
+      if (rateLimitError) {
         if (rateLimitRetries >= opts.maxRateLimitRetries) {
           throw err;
         }
         rateLimitRetries++;
       }
-
-      const delay = calculateDelay(attempt, opts, err);
       logger.debug("Retry attempt", {
         attempt,
         delay,
@@ -284,7 +312,13 @@ export async function* withExponentialBackoff<T>(
 
       // Wait before retrying
       logger.debug("Waiting before retry", { delayMs: delay });
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      releaseThrottle?.();
+      releaseThrottle = undefined;
+      if (!(throttleKey && rateLimitError)) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    } finally {
+      releaseThrottle?.();
     }
   }
 

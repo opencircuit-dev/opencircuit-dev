@@ -19,6 +19,7 @@ import {
   withExponentialBackoff,
 } from "../util/exponentialBackoff.js";
 import { logger } from "../util/logger.js";
+import { providerRequestThrottle } from "../util/providerRequestThrottle.js";
 import { validateContextLength } from "../util/tokenizer.js";
 
 import { getRequestTools, handleToolCalls } from "./handleToolCalls.js";
@@ -293,6 +294,13 @@ export async function processStreamingResponse(
     const streamWithBackoff = withExponentialBackoff(
       streamFactory,
       abortController.signal,
+      {
+        // Keep provider rate-limit retries bounded; the shared throttle handles
+        // serialization, spacing, and provider-directed cooldowns.
+        maxRateLimitRetries: 2,
+        throttle: providerRequestThrottle,
+        throttleKey: `${model.provider}/${model.model}`,
+      },
     );
 
     let chunkCount = 0;
