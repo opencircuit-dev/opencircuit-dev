@@ -37,9 +37,9 @@ New to Open Circuit? Follow the beginner guide:
 | Packages   | `packages/`             | Fetching, model information, adapters, and security         |
 | Validation | `tests/` and `scripts/` | Builds, smoke tests, release checks, and runtime boundaries |
 
-The retained product path is the CLI and Core runtime. The VS Code extension,
-binary packaging, and other UI surfaces are maintained separately and have
-separate validation requirements.
+The retained product path is the CLI and Core runtime. Standalone VS Code
+extension and public VSIX Marketplace distribution have been retired. Native
+OVSCode integration is maintained separately.
 
 ## Architecture
 
@@ -223,7 +223,6 @@ Start changes in the layer that owns the behavior:
 | File editing and diffs                | `core/edit/` and `core/diff/`                                    |
 | Tools and permissions                 | `core/tools/` and `packages/terminal-security/`                  |
 | Configuration                         | `core/config/` and `packages/config-yaml/`                       |
-| VS Code integration                   | `extensions/vscode/`                                             |
 | Binary packaging                      | `binary/`                                                        |
 
 Read the neighboring tests before changing behavior. Run Core validation for

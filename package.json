@@ -1,8 +1,7 @@
 {
   "name": "ocircuit",
   "scripts": {
-    "tsc:watch": "concurrently -n vscode,core,binary -c magenta,yellow,green \"npm run tsc:watch:vscode\" \"npm run tsc:watch:core\" \"npm run tsc:watch:binary\"",
-    "tsc:watch:vscode": "tsc --project extensions/vscode/tsconfig.json --watch --noEmit --pretty",
+    "tsc:watch": "concurrently -n core,binary -c yellow,green \"npm run tsc:watch:core\" \"npm run tsc:watch:binary\"",
     "tsc:watch:core": "tsc --project core/tsconfig.json --watch --noEmit --pretty",
     "tsc:watch:binary": "tsc --project binary/tsconfig.json --watch --noEmit --pretty",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .gitignore --ignore-path .prettierignore",

@@ -1,7 +1,7 @@
 # Build Dependencies and CI Secrets
 
 This document catalogs CI secrets and environment variables used by Open
-Circuit's retained CLI/Core repository and deferred VS Code workflows.
+Circuit's retained CLI/Core repository.
 
 ## Retained-closure validation
 
@@ -30,7 +30,6 @@ Secrets are supplied by the CI environment and must never be committed:
 - `GITHUB_TOKEN`, `CI_GITHUB_TOKEN`
 - `SEMANTIC_RELEASE_GITHUB_TOKEN`, `SEMANTIC_RELEASE_NPM_TOKEN`,
   `SEMANTIC_RELEASE_TOKEN`
-- `VSCE_TOKEN`, `VSX_REGISTRY_TOKEN`
 - `SNYK_TOKEN`, `RUNLOOP_API_KEY`
 - `PUBLIC_RELEASE_REPO_TOKEN` (a PAT with `contents: write` on
   `opencircuit-dev/opencircuit`, used by `stable-release.yml` to publish

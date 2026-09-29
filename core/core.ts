@@ -302,6 +302,10 @@ export class Core {
     });
 
     // History
+    on("history/create", (msg) => {
+      return historyManager.create(msg.data);
+    });
+
     on("history/list", async (msg) => {
       const sessions = historyManager.list(msg.data);
       const limit = msg.data?.limit ?? 100;

@@ -15,8 +15,6 @@ const bundleMetadataPath = path.join(cliRoot, "dist/meta.json");
 
 const deniedRepositoryPaths = [
   "extensions/cli/",
-  "extensions/vscode/",
-  "gui/",
   "binary/",
 ];
 const deniedPackages = ["vscode", "@vscode/", "electron"];

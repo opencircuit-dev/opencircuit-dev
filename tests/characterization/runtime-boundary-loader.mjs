@@ -1,7 +1,7 @@
 import fs from "node:fs";
 
 const reportPath = process.env.PHASE0_RUNTIME_BOUNDARY_REPORT;
-const deniedFragments = ["/extensions/vscode/", "/gui/", "/binary/"];
+const deniedFragments = ["/binary/"];
 const deniedPackages = ["vscode", "@vscode/", "electron"];
 const resolved = [];
 const violations = [];

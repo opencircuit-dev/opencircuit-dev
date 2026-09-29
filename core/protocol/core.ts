@@ -60,6 +60,19 @@ export interface ListHistoryOptions {
   workspaceDirectory?: string;
 }
 
+export interface CreateSessionOptions {
+  title?: string;
+  workspaceDirectory: string;
+  chatModelTitle?: string | null;
+  /** Stable across retries of the same logical create request. */
+  idempotencyKey: string;
+}
+
+export interface CreatedSession {
+  session: Session;
+  metadata: BaseSessionMetadata;
+}
+
 export type ToCoreFromIdeOrWebviewProtocol = {
   // Special
   ping: [string, string];
@@ -67,6 +80,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   cancelApply: [undefined, void];
 
   // History
+  "history/create": [CreateSessionOptions, CreatedSession];
   "history/list": [ListHistoryOptions, BaseSessionMetadata[]];
   "history/delete": [{ id: string }, void];
   "history/load": [{ id: string }, Session];

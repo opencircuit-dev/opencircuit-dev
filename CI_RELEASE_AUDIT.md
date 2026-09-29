@@ -14,8 +14,8 @@ Canonical repository: `open-circuit-dev/open-circuit`
 
 ## Deferred references
 
-- VS Code, binary, and other non-retained workflows remain in the repository
-  but are explicitly separate surfaces in `README.md` and `CONTRIBUTING.md`.
+- Standalone VS Code extension and VSIX release workflows have been retired.
+- Binary packaging remains a separate product surface.
 - Credentialed provider workflows remain opt-in and are not part of the
   deterministic default validation path.
 

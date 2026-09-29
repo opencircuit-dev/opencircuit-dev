@@ -77,8 +77,9 @@ packaging, and validation explanation in the pull request. Follow
 
 ## Scope and compatibility
 
-The retained product is the CLI, Core, and their shared packages. The VS Code
-extension and VSIX are deferred surfaces with separate validation scope.
+The retained product is the CLI, Core, and their shared packages. Standalone
+VS Code extension and public VSIX Marketplace distribution have been retired.
+Native OVSCode integration is maintained separately.
 Preserve `@opencircuit/*` package names and `OCIRCUIT_*` environment variables
 when compatibility requires them.
 

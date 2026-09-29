@@ -165,7 +165,6 @@ extensions/intellij/.idea/**
 extensions/intellij/bin
 extensions/.continue-debug/
 
-*.vsix
 
 # intellij module library files
 *.iml

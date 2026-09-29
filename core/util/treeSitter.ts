@@ -184,7 +184,7 @@ export async function getQueryForFile(
     process.env.NODE_ENV === "test" ? process.cwd() : __dirname,
     "..",
     ...(process.env.NODE_ENV === "test"
-      ? ["extensions", "vscode", "tree-sitter"]
+      ? ["core", "tree-sitter"]
       : ["tree-sitter"]),
     queryPath,
   );

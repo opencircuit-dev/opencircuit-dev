@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cli_core: ${{ steps.profiles.outputs.cli_core }}
-      vsix: ${{ steps.profiles.outputs.vsix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -25,7 +24,6 @@ jobs:
         with:
           base-sha: ${{ github.event.pull_request.base.sha || github.event.before }}
           head-sha: ${{ github.sha }}
-          enable-vsix: false
 
   track-rerun:
     runs-on: ubuntu-latest
@@ -141,42 +139,6 @@ jobs:
           cd binary
           npx tsc --noEmit
 
-  vscode-checks:
-    needs: changes
-    if: needs.changes.outputs.vsix == 'true'
-    runs-on: ubuntu-latest
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Setup packages
-        uses: ./.github/actions/setup-packages
-      - name: Setup core component
-        uses: ./.github/actions/setup-component
-        with:
-          component: core
-          include-root: true
-      - name: Setup vscode component
-        uses: ./.github/actions/setup-component
-        with:
-          component: vscode
-          include-packages: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
-
-      - name: Type check and lint
-        run: |
-          cd extensions/vscode
-          npm run write-build-timestamp
-          npx tsc --noEmit
-          npm run lint
-
-      - name: Run vitest tests
-        run: |
-          cd extensions/vscode
-          npm run vitest
-
   get-packages-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -229,130 +191,6 @@ jobs:
           RELACE_API_KEY: ${{ secrets.RELACE_API_KEY }}
           INCEPTION_API_KEY: ${{ secrets.INCEPTION_API_KEY }}
 
-  vscode-get-test-file-matrix:
-    needs: changes
-    if: needs.changes.outputs.vsix == 'true'
-    runs-on: ubuntu-latest
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
-    outputs:
-      test_file_matrix: ${{ steps.vscode-get-test-file-matrix.outputs.test_file_matrix }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version-file: ".nvmrc"
-
-      - name: Cache npm
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-cache-matrix-${{ hashFiles('core/package-lock.json', 'extensions/vscode/package-lock.json') }}
-
-      - name: Cache packages node_modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: |
-            packages/*/node_modules
-          key: ${{ runner.os }}-packages-node-modules-${{ hashFiles('packages/*/package-lock.json') }}
-
-      - name: Cache core node modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: core/node_modules
-          key: ${{ runner.os }}-core-node-modules-${{ hashFiles('core/package-lock.json') }}
-
-      - name: Cache vscode extension node modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        id: vscode-cache
-        with:
-          path: extensions/vscode/node_modules
-          key: ${{ runner.os }}-vscode-node-modules-${{ hashFiles('extensions/vscode/package-lock.json') }}
-
-      - name: Build packages and get test files
-        id: vscode-get-test-file-matrix
-        run: |
-          node ./scripts/build-packages.js
-          cd extensions/vscode
-          npm ci
-          npm run e2e:compile
-          if [[ "${{ github.event.pull_request.head.repo.fork }}" == "true" || "${{ github.actor }}" == "dependabot[bot]" ]]; then
-            # Exclude SSH tests for forks
-            FILES=$(ls -1 e2e/_output/tests/*.test.js | grep -v "SSH" | jq -R . | jq -s .)
-          else
-            # Include all tests for non-forks
-            FILES=$(ls -1 e2e/_output/tests/*.test.js | jq -R . | jq -s .)
-          fi
-          echo "test_file_matrix<<EOF" >> $GITHUB_OUTPUT
-          echo "$FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        env:
-          # https://github.com/microsoft/vscode-ripgrep/issues/9#issuecomment-643965333
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
-
-      - name: Debug Outputs
-        run: |
-          echo "Test files: ${{ steps.vscode-get-test-file-matrix.outputs.test_file_matrix }}"
-
-  vscode-package-extension-linux:
-    needs: changes
-    if: needs.changes.outputs.vsix == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 0
-
-      - name: Build VS Code extension
-        uses: ./.github/actions/build-vscode-extension
-        with:
-          platform: linux
-          arch: x64
-          npm_config_arch: x64
-          pre-release: false
-          commit-sha: ${{ github.sha }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: vscode-extension-build-Linux
-          path: extensions/vscode/build
-
-  vscode-e2e-tests:
-    name: ${{ matrix.test_file || 'unknown' }} (${{ matrix.command }})
-    needs:
-      [changes, vscode-get-test-file-matrix, vscode-package-extension-linux]
-    if: >-
-      always() &&
-      needs.changes.outputs.vsix == 'true' &&
-      needs.vscode-get-test-file-matrix.result == 'success' &&
-      needs.vscode-package-extension-linux.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # Tests requiring secrets need approval from maintainers
-    strategy:
-      fail-fast: false
-      matrix:
-        test_file: ${{ fromJson(needs.vscode-get-test-file-matrix.outputs.test_file_matrix || '[]') }}
-        command: ["e2e:ci:run", "e2e:ci:run-yaml"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Run VS Code E2E test
-        uses: ./.github/actions/run-vscode-e2e-test
-        with:
-          test_file: ${{ matrix.test_file }}
-          command: ${{ matrix.command }}
-          ssh_key: ${{ secrets.GH_ACTIONS_SSH_TEST_KEY_PEM }}
-          ssh_host: ${{ secrets.GH_ACTIONS_SSH_TEST_DNS_NAME }}
-          is_fork: ${{ github.event.pull_request.head.repo.fork == true || github.actor == 'dependabot[bot]' }}
-          github_token: ${{ secrets.CI_GITHUB_TOKEN }}
-
   # GitHub does not have a way of requiring that all checks pass (you must manually select each job)
   # This action at least lets us manage the list of required tests via source control
 
@@ -365,17 +203,12 @@ jobs:
       - prettier-check
       - core-checks
       - binary-checks
-      - vscode-checks
       - get-packages-matrix
       - packages-checks
-      - vscode-get-test-file-matrix
-      - vscode-package-extension-linux
-      - vscode-e2e-tests
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35
         with:
-          # VSIX/VS Code validation is explicitly deferred and must remain skippable.
-          allowed-skips: changes,core-checks,binary-checks,vscode-checks,packages-checks,vscode-get-test-file-matrix,vscode-package-extension-linux,vscode-e2e-tests
+          allowed-skips: changes,core-checks,binary-checks,packages-checks
           jobs: ${{ toJSON(needs) }}

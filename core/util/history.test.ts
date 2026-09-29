@@ -1,9 +1,11 @@
+import * as fs from "fs";
+
 import { v4 as uuidv4 } from "uuid";
 
 import { Session } from "..";
-import { NEW_SESSION_TITLE } from "./constants";
-import historyManager from "./history";
-import { getSessionFilePath } from "./paths";
+
+import historyManager, { HistoryManager, SessionHistoryError } from "./history";
+import { getSessionFilePath, getSessionsListPath } from "./paths";
 
 const sessionId = uuidv4();
 const testSession: Session = {
@@ -15,27 +17,30 @@ const testSession: Session = {
 
 describe("No sessions have been created", () => {
   const testSessionId = "invalid";
-  const testSessionPath = getSessionFilePath(testSessionId);
 
   test("Listing all sessions returns empty list", () => {
     const sessions = historyManager.list({});
     expect(sessions).toEqual([]);
   });
 
-  test("Deleting session throws error", () => {
-    expect(() => {
+  test("Deleting a missing session returns a typed not-found error", () => {
+    try {
       historyManager.delete(testSessionId);
-    }).toThrow(`Session file ${testSessionPath} does not exist`);
+      throw new Error("Expected missing session delete to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(SessionHistoryError);
+      expect((error as SessionHistoryError).code).toBe("HISTORY_NOT_FOUND");
+    }
   });
 
-  test("Loading session returns default session", () => {
-    const session = historyManager.load(testSessionId);
-    expect(session).toEqual({
-      history: [],
-      title: NEW_SESSION_TITLE,
-      workspaceDirectory: "",
-      sessionId: testSessionId,
-    });
+  test("Loading a missing session returns a typed not-found error", () => {
+    try {
+      historyManager.load(testSessionId);
+      throw new Error("Expected missing session to fail to load");
+    } catch (error) {
+      expect(error).toBeInstanceOf(SessionHistoryError);
+      expect((error as SessionHistoryError).code).toBe("HISTORY_NOT_FOUND");
+    }
   });
 });
 
@@ -71,6 +76,95 @@ describe("Full session lifecycle", () => {
       (session) => session?.sessionId !== testSession.sessionId,
     );
     expect(sessionWasDeleted).toEqual(true);
+  });
+});
+
+describe("Explicit Core session creation", () => {
+  beforeEach(() => {
+    historyManager.clearAll();
+  });
+
+  afterAll(() => {
+    historyManager.clearAll();
+  });
+
+  const options = {
+    title: "Native Chat session",
+    workspaceDirectory: "/workspace/project",
+    chatModelTitle: "test-model",
+    idempotencyKey: "native-chat-create-request-1",
+  };
+
+  test("Core creates and lists an empty session with a generated ID", () => {
+    const created = historyManager.create(options);
+
+    expect(created.session.sessionId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(created.session).toMatchObject({
+      title: options.title,
+      workspaceDirectory: options.workspaceDirectory,
+      chatModelTitle: options.chatModelTitle,
+      history: [],
+    });
+    expect(created.metadata.sessionId).toBe(created.session.sessionId);
+    expect(historyManager.list({})[0]).toEqual(created.metadata);
+    expect(historyManager.load(created.session.sessionId)).toEqual(
+      created.session,
+    );
+  });
+
+  test("Repeating an idempotency key returns the original session", () => {
+    const first = historyManager.create(options);
+    const retry = new HistoryManager().create(options);
+
+    expect(retry).toEqual(first);
+    expect(historyManager.list({})).toHaveLength(1);
+  });
+
+  test("A retry repairs the list index after an interrupted create", () => {
+    const first = historyManager.create(options);
+    fs.unlinkSync(getSessionsListPath());
+
+    const retry = historyManager.create(options);
+
+    expect(retry.session.sessionId).toBe(first.session.sessionId);
+    expect(historyManager.list({})).toHaveLength(1);
+  });
+
+  test("Different idempotency keys create different sessions", () => {
+    const first = historyManager.create(options);
+    const second = historyManager.create({
+      ...options,
+      idempotencyKey: "native-chat-create-request-2",
+    });
+
+    expect(second.session.sessionId).not.toBe(first.session.sessionId);
+    expect(historyManager.list({})).toHaveLength(2);
+  });
+
+  test("Reusing an idempotency key with different metadata is rejected", () => {
+    historyManager.create(options);
+    try {
+      historyManager.create({ ...options, title: "Different title" });
+      throw new Error("Expected idempotency metadata conflict");
+    } catch (error) {
+      expect(error).toBeInstanceOf(SessionHistoryError);
+      expect((error as SessionHistoryError).code).toBe(
+        "HISTORY_CREATE_IDEMPOTENCY_CONFLICT",
+      );
+    }
+  });
+
+  test("Corrupt session records return a typed error", () => {
+    const created = historyManager.create(options);
+    fs.writeFileSync(getSessionFilePath(created.session.sessionId), "{invalid");
+
+    try {
+      historyManager.load(created.session.sessionId);
+      throw new Error("Expected corrupt session to fail to load");
+    } catch (error) {
+      expect(error).toBeInstanceOf(SessionHistoryError);
+      expect((error as SessionHistoryError).code).toBe("HISTORY_CORRUPT");
+    }
   });
 });
 

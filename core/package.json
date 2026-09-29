@@ -10,7 +10,7 @@
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage && open ./coverage/lcov-report/index.html",
     "tsc:check": "tsc -p ./ --noEmit",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && tsc -p ./tsconfig.npm.json && node -e \"require('fs').copyFileSync('index.d.ts', 'dist/index.d.ts')\"",
+    "build": "npm run clean && tsc -p ./tsconfig.npm.json && node -e \"require('fs').copyFileSync('index.d.ts', 'dist/index.d.ts')\" && node -e \"require('fs').cpSync('tree-sitter', 'dist/tree-sitter', { recursive: true })\"",
     "build:npm": "npm run build",
     "check:install-scripts": "node ../scripts/check-npm-install-scripts.mjs",
     "check:dependency-policy": "node ../scripts/check-dependency-policy.mjs",

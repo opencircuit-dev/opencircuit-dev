@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cli_core: ${{ steps.profiles.outputs.cli_core }}
-      vsix: ${{ steps.profiles.outputs.vsix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -23,7 +22,6 @@ jobs:
         with:
           base-sha: ${{ github.event.pull_request.base.sha }}
           head-sha: ${{ github.event.pull_request.head.sha }}
-          enable-vsix: false
 
   track-rerun:
     runs-on: ubuntu-latest
