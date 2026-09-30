@@ -277,6 +277,8 @@ export interface SessionUsage extends Usage {
 
 export interface Session {
   sessionId: string;
+  /** Monotonic revision returned by Core; pass it unchanged to history/save. */
+  revision?: number;
   title: string;
   workspaceDirectory: string;
   history: ChatHistoryItem[];

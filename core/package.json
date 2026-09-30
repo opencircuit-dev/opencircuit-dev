@@ -5,6 +5,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "cross-env IGNORE_API_KEY_TESTS=true NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:history-create-race": "npm run build && node ./test/history-create-race.mjs",
+    "test:history-save-race": "npm run build && node ./test/history-save-race.mjs",
     "test:providers": "cross-env IGNORE_API_KEY_TESTS=false NODE_OPTIONS=--experimental-vm-modules jest --runTestsByPath llm/llm.integration.test.ts",
     "vitest": "vitest run",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage && open ./coverage/lcov-report/index.html",
