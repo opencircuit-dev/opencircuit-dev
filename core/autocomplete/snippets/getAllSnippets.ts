@@ -36,7 +36,7 @@ function racePromise<T>(promise: Promise<T[]>, timeout = 100): Promise<T[]> {
   return Promise.race([promise, timeoutPromise]);
 }
 
-// Some IDEs might have special ways of finding snippets (e.g. JetBrains and VS Code have different "LSP-equivalent" systems,
+// Some IDEs might have special ways of finding snippets (e.g. JetBrains and host editor have different "LSP-equivalent" systems,
 // or they might separately track recently edited ranges)
 async function getIdeSnippets(
   helper: HelperVars,

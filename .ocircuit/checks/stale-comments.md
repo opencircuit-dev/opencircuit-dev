@@ -79,7 +79,6 @@ async function complete(config: AutocompleteConfig): Promise<Result> {
 ## Key Files to Check
 
 - `core/` — shared logic across all extensions
-- `extensions/vscode/src/` — VS Code extension source
 - `extensions/cli/src/` — CLI extension source
 - `gui/src/` — React GUI components
 - `packages/` — shared npm packages

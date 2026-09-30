@@ -7,7 +7,7 @@
 ## Where are we right now?
 
 - Users can decide to switch between autocomplete and next edit.
-- Next edit triggers at the same time autocomplete is triggered, via vscode's inline completion provider.
+- Next edit triggers at the same time autocomplete is triggered, via the inline completion provider.
 - The following happens after the trigger:
   - User's current cursor position is captured.
   - We define an editable range, ±5 lines from the current cursor position.

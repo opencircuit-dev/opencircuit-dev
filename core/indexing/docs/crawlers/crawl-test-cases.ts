@@ -8,7 +8,6 @@ export const commonDocsRepos: string[] = [
   //   "https://github.com/facebook/react",
   //   "https://github.com/torvalds/linux",
   //   "https://github.com/nodejs/node",
-  //   "https://github.com/microsoft/vscode",
   //   "https://github.com/ohmyzsh/ohmyzsh",
   //   "https://github.com/kamranahmedse/developer-roadmap",
   //   "https://github.com/electron/electron",

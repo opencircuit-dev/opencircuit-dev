@@ -124,7 +124,7 @@ export class Core {
   }
 
   // TODO: It shouldn't actually need an IDE type, because this can happen
-  // through the messenger (it does in the case of any non-VS Code IDEs already)
+  // through the messenger (it does in the case of any non-host editor IDEs already)
   constructor(
     private readonly messenger: IMessenger<ToCoreProtocol, FromCoreProtocol>,
     private readonly ide: IDE,
@@ -183,7 +183,7 @@ export class Core {
             );
           }
 
-          // update additional submenu context providers registered via VSCode API
+          // update additional submenu context providers registered via the host API
           const additionalProviders =
             this.configHandler.getAdditionalSubmenuContextProviders();
           if (additionalProviders.length > 0) {
@@ -275,8 +275,8 @@ export class Core {
   private registerMessageHandlers(ideSettingsPromise: Promise<IdeSettings>) {
     const on = this.messenger.on.bind(this.messenger);
 
-    // Note, VsCode's in-process messenger doesn't do anything with this
-    // It will only show for jetbrains
+    // The in-process messenger may ignore this.
+    // Host integrations can surface it when appropriate.
     this.messenger.onError((message, err) => {
       // just to prevent duplicate error messages in jetbrains (same logic in webview protocol)
       if (

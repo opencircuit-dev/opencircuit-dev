@@ -4,18 +4,8 @@ declare global {
   import { GetGhTokenArgs } from "./protocol/ide";
   declare global {
     interface Window {
-      ide?: "vscode";
       windowId: string;
       serverUrl: string;
-      vscMachineId: string;
-      vscMediaUrl: string;
-      fullColorTheme?: {
-        rules?: {
-          token?: string;
-          foreground?: string;
-        }[];
-      };
-      colorThemeName?: string;
       workspacePaths?: string[];
       postIntellijMessage?: (
         messageType: string,
@@ -629,7 +619,7 @@ declare global {
     id: number;
   }
   
-  export type IdeType = "vscode" | "jetbrains";
+  export type IdeType = "cli" | "jetbrains";
   
   export interface IdeInfo {
     ideType: IdeType;
@@ -697,7 +687,6 @@ declare global {
   
     openUrl(url: string): Promise<void>;
   
-    getExternalUri?(uri: string): Promise<string>;
   
     runCommand(command: string): Promise<void>;
   

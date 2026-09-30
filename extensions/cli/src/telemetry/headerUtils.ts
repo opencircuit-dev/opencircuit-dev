@@ -16,9 +16,6 @@ export function detectTerminalType(): string | undefined {
   if (process.env.TERM_PROGRAM) {
     return process.env.TERM_PROGRAM;
   }
-  if (process.env.VSCODE_PID) {
-    return "vscode";
-  }
   if (process.env.TMUX) {
     return "tmux";
   }

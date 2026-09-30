@@ -65,7 +65,7 @@ function resolveWorkingDirectory(workspaceDirs: string[]): string {
     }
   }
 
-  // Handle other URI schemes (vscode-remote://wsl, vscode-remote://ssh-remote, etc.)
+  // Handle non-file URI schemes (remote workspaces, virtual filesystems, etc.)
   const remoteWorkspaceDir = workspaceDirs.find(
     (dir) => dir.includes("://") && !dir.startsWith("file:/"),
   );
@@ -102,8 +102,8 @@ const getColorEnv = () => ({
 // runs on the local machine. childProcess.spawn() executes on the extension
 // host, so for any remote workspace it would run commands on the wrong machine
 // (or fail with ENOENT when the local shell doesn't match the remote OS).
-// All remote types delegate to ide.runCommand() which routes through VS Code's
-// integrated terminal and executes in the correct remote environment.
+// All remote types delegate to ide.runCommand(), which executes in the
+// correct remote environment.
 const LOCAL_ONLY = ["", "local"];
 
 export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
@@ -554,7 +554,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
   }
 
   // For remote environments (SSH, WSL, Dev Container, Codespaces, etc.),
-  // delegate to VS Code's integrated terminal which handles remote execution.
+  // delegate to the host terminal which handles remote execution.
   // Note: output capture and waitForCompletion are not yet supported for remotes.
   await extras.ide.runCommand(command);
   return [

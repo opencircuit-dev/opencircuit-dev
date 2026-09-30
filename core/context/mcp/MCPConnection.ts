@@ -477,7 +477,7 @@ Org-level secrets can only be used for MCP by Background Agents (//hub/agents/ov
         if (resolved.startsWith("file://")) {
           return fileURLToPath(resolved);
         }
-        // Remote URIs (e.g. vscode-remote://ssh-remote+host/path) cannot be
+        // Remote URIs (e.g. remote://ssh-remote+host/path) cannot be
         // used as a local cwd for child_process.spawn(). When the extension
         // runs in the Local Extension Host on Windows while connected to a
         // remote workspace, fall back to the user's home directory.

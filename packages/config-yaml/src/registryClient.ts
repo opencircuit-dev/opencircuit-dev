@@ -15,7 +15,7 @@ export class RegistryClient implements Registry {
   }
 
   async getContent(id: PackageIdentifier): Promise<string> {
-    // Return pre-read content if available (for vscode-remote:// URIs in WSL)
+    // Return pre-read content if available (for remote:// URIs in WSL)
     if (id.uriType === "file" && id.content !== undefined) {
       return id.content;
     }

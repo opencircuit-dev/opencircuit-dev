@@ -68,7 +68,7 @@ interface FullSlugIdentifier extends BasePackageIdentifier {
 interface FileIdentifier extends BasePackageIdentifier {
   uriType: "file";
   fileUri: string;
-  /** Pre-read content - bypasses fs.readFileSync for vscode-remote:// URIs in WSL */
+  /** Pre-read content - bypasses fs.readFileSync for remote:// URIs in WSL */
   content?: string;
 }
 

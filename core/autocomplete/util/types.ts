@@ -16,7 +16,7 @@ export interface AutocompleteInput {
   recentlyEditedRanges: RecentlyEditedRange[];
   // Used for notebook files
   manuallyPassFileContents?: string;
-  // Used for VS Code git commit input box
+  // Used for host editor git commit input box
   manuallyPassPrefix?: string;
   selectedCompletionInfo?: {
     text: string;

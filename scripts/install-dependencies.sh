@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# This is used in a task in .vscode/tasks.json
-# Start developing with:
-# - Run Task -> Install Dependencies
-# - Debug -> Extension
 set -e
 
 # Check if node version matches .nvmrc

@@ -70,7 +70,7 @@ beforeEach(() => {
 describe("loadConfigContextProviders", () => {
   describe("with empty or undefined config", () => {
     it("should return only default providers when config is undefined", () => {
-      const result = loadConfigContextProviders(undefined, false, "vscode");
+      const result = loadConfigContextProviders(undefined, false, "cli");
 
       expect(result.errors).toEqual([]);
       expect(result.providers).toHaveLength(6);
@@ -90,7 +90,7 @@ describe("loadConfigContextProviders", () => {
     });
 
     it("should return only default providers when config is empty array", () => {
-      const result = loadConfigContextProviders([], false, "vscode");
+      const result = loadConfigContextProviders([], false, "cli");
 
       expect(result.errors).toEqual([]);
       expect(result.providers).toHaveLength(6);
@@ -122,7 +122,7 @@ describe("loadConfigContextProviders", () => {
   });
 
   it("should return default + docs when has docs is true", () => {
-    const result = loadConfigContextProviders([], true, "vscode");
+    const result = loadConfigContextProviders([], true, "cli");
 
     expect(result.errors).toEqual([]);
     expect(result.providers).toHaveLength(7);
@@ -161,7 +161,7 @@ describe("with valid config", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
     expect(mockedContextProviderClassFromName).toHaveBeenCalledWith(
@@ -213,7 +213,7 @@ describe("with valid config", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
     expect(result.providers).toHaveLength(8); // 2 custom + 6 defaults
@@ -244,7 +244,7 @@ describe("with valid config", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
     expect(mockProvider).toHaveBeenCalledWith({
@@ -266,7 +266,7 @@ describe("with valid config", () => {
       } as any, // Cast to bypass type checking for test
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
     expect(mockProvider).toHaveBeenCalledWith({
@@ -287,7 +287,7 @@ describe("error handling", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([
       {
@@ -319,7 +319,7 @@ describe("error handling", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([
       {
@@ -357,7 +357,7 @@ describe("error handling", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([
       {
@@ -388,7 +388,7 @@ describe("default provider merging", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
 
@@ -422,7 +422,7 @@ describe("default provider merging", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
     expect(result.providers).toHaveLength(7); // 1 custom + 6 defaults
@@ -457,7 +457,7 @@ describe("default provider merging", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.providers[0].description.title).toBe("custom-provider");
 
@@ -492,7 +492,7 @@ describe("edge cases", () => {
       },
     ];
 
-    expect(() => loadConfigContextProviders(config, false, "vscode")).toThrow(
+    expect(() => loadConfigContextProviders(config, false, "cli")).toThrow(
       "Provider construction failed",
     );
   });
@@ -508,7 +508,7 @@ describe("edge cases", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([
       {
@@ -538,7 +538,7 @@ describe("edge cases", () => {
       },
     ];
 
-    const result = loadConfigContextProviders(config, false, "vscode");
+    const result = loadConfigContextProviders(config, false, "cli");
 
     expect(result.errors).toEqual([]);
 
@@ -559,7 +559,7 @@ describe("edge cases", () => {
 
 describe("provider instantiation", () => {
   it("should call default provider constructors with empty options", () => {
-    loadConfigContextProviders([], false, "vscode");
+    loadConfigContextProviders([], false, "cli");
 
     expect(FileContextProvider).toHaveBeenCalledWith({});
     expect(CurrentFileContextProvider).toHaveBeenCalledWith({});
@@ -570,7 +570,7 @@ describe("provider instantiation", () => {
   });
 
   it("should call provider constructors exactly once per provider", () => {
-    loadConfigContextProviders([], false, "vscode");
+    loadConfigContextProviders([], false, "cli");
 
     expect(FileContextProvider).toHaveBeenCalledTimes(1);
     expect(CurrentFileContextProvider).toHaveBeenCalledTimes(1);

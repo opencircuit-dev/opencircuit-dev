@@ -34,7 +34,6 @@ describe("MCPOauth", () => {
     mockIde = {
       openUrl: vi.fn(),
       showToast: vi.fn(),
-      getExternalUri: vi.fn((uri) => Promise.resolve(uri)),
     };
 
     mockMcpServerId = "test-server";
@@ -177,63 +176,6 @@ describe("MCPOauth", () => {
           },
         },
       });
-    });
-  });
-
-  describe("redirect URL handling", () => {
-    test("should use getExternalUri when available for VS Code", async () => {
-      const vscodeIde = {
-        ...mockIde,
-        getExternalUri: vi.fn((uri) =>
-          Promise.resolve("https://vscode.dev/redirect"),
-        ),
-      };
-
-      const { auth } = await import("@modelcontextprotocol/sdk/client/auth.js");
-      const mockAuth = vi.mocked(auth);
-      mockAuth.mockResolvedValue("AUTHORIZED");
-
-      await performAuth(mockMcpServerId, mockMcpServerUrl, vscodeIde);
-
-      expect(vscodeIde.getExternalUri).toHaveBeenCalledWith(
-        "http://localhost:3000",
-      );
-    });
-
-    test("should fallback to localhost when getExternalUri is not available", async () => {
-      const ideWithoutExternalUri = {
-        openUrl: vi.fn(() => Promise.resolve()),
-        showToast: vi.fn(() => Promise.resolve()),
-      };
-
-      const { auth } = await import("@modelcontextprotocol/sdk/client/auth.js");
-      const mockAuth = vi.mocked(auth);
-      mockAuth.mockResolvedValue("AUTHORIZED");
-
-      await performAuth(
-        mockMcpServerId,
-        mockMcpServerUrl,
-        ideWithoutExternalUri as any,
-      );
-
-      // Should still work without getExternalUri
-      expect(mockAuth).toHaveBeenCalled();
-    });
-
-    test("should handle getExternalUri errors gracefully", async () => {
-      const errorIde = {
-        ...mockIde,
-        getExternalUri: vi.fn(() => Promise.reject(new Error("Network error"))),
-      };
-
-      const { auth } = await import("@modelcontextprotocol/sdk/client/auth.js");
-      const mockAuth = vi.mocked(auth);
-      mockAuth.mockResolvedValue("AUTHORIZED");
-
-      // Should not throw, should fallback to localhost
-      await performAuth(mockMcpServerId, mockMcpServerUrl, errorIde);
-
-      expect(mockAuth).toHaveBeenCalled();
     });
   });
 

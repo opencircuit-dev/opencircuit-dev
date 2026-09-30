@@ -10,7 +10,7 @@ const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const result = spawnSync(
   npmCommand,
   ["approve-scripts", "--allow-scripts-pending", "--json"],
-  { encoding: "utf8" },
+  { env: { ...process.env, npm_config_allow_scripts: "" }, encoding: "utf8" },
 );
 
 if (result.error) {

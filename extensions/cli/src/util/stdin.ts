@@ -20,7 +20,7 @@ export function readStdinSync(): string | null {
     }
 
     // Skip stdin reading in headless mode when a prompt is supplied
-    // This prevents blocking on TTY-less environments (like VSCode/IntelliJ terminal tools)
+    // This prevents blocking on TTY-less environments (like integrated terminal hosts)
     if (isHeadlessMode() && hasSuppliedPrompt()) {
       return null;
     }
@@ -30,7 +30,7 @@ export function readStdinSync(): string | null {
       return null;
     }
 
-    // In TTY-less environments (Docker, CI, VSCode/IntelliJ terminal tools),
+    // In TTY-less environments (Docker, CI, or other non-interactive hosts),
     // attempting to read stdin can hang or fail
     // Only attempt to read if we're confident there's piped input
     if (process.env.FORCE_NO_TTY === "true") {

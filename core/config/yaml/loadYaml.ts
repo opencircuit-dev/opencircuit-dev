@@ -53,7 +53,7 @@ async function loadConfigYaml(options: {
 
   // Add local .ocircuit blocks
   // Use "content" field to pass pre-read content directly, avoiding
-  // fs.readFileSync which fails for vscode-remote:// URIs in WSL (#6242, #7810)
+  // fs.readFileSync which fails for remote:// URIs in WSL (#6242, #7810)
   const localBlockPromises = BLOCK_TYPES.map(async (blockType) => {
     const localBlocks = await getAllDotOCircuitDefinitionFiles(
       ide,
@@ -312,16 +312,9 @@ export async function configYamlToOCircuitConfig(options: {
       if (model.roles?.includes("embed")) {
         const { provider } = model;
         if (provider === "transformers.js") {
-          if (ideInfo.ideType === "vscode") {
-            ocircuitConfig.modelsByRole.embed.push(
-              new TransformersJsEmbeddingsProvider(),
-            );
-          } else {
-            localErrors.push({
-              fatal: false,
-              message: `Transformers.js embeddings provider not supported in this IDE.`,
-            });
-          }
+          ocircuitConfig.modelsByRole.embed.push(
+            new TransformersJsEmbeddingsProvider(),
+          );
         } else {
           ocircuitConfig.modelsByRole.embed.push(...llms);
         }
@@ -340,18 +333,6 @@ export async function configYamlToOCircuitConfig(options: {
         message: `Failed to load model:\nName: ${model.name}\nModel: ${model.model}\nProvider: ${model.provider}\n${e instanceof Error ? e.message : e}`,
       });
     }
-  }
-
-  // Add transformers js to the embed models in vs code if not already added
-  if (
-    ideInfo.ideType === "vscode" &&
-    !ocircuitConfig.modelsByRole.embed.find(
-      (m) => m.providerName === "transformers.js",
-    )
-  ) {
-    ocircuitConfig.modelsByRole.embed.push(
-      new TransformersJsEmbeddingsProvider(),
-    );
   }
 
   const { providers, errors: contextErrors } = loadConfigContextProviders(

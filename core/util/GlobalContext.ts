@@ -36,7 +36,7 @@ export type GlobalContextType = {
    * This is needed to handle the case where a JetBrains user has created
    * docs embeddings using one provider, and then updates to a new provider.
    *
-   * For VS Code users, it is unnecessary since we use transformers.js by default.
+   * The CLI manages embeddings explicitly, so it is unnecessary here.
    */
   hasDismissedConfigTsNoticeJetBrains: boolean;
   hasAlreadyCreatedAPromptFile: boolean;

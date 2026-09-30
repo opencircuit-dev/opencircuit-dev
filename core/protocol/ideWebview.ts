@@ -32,12 +32,9 @@ export type ToIdeFromWebviewProtocol = ToIdeFromWebviewOrCoreProtocol & {
       windowId: string;
       serverUrl: string;
       workspacePaths: string[];
-      vscMachineId: string;
-      vscMediaUrl: string;
     },
   ];
   "jetbrains/getColors": [undefined, Record<string, string | null | undefined>];
-  "vscode/openMoveRightMarkdown": [undefined, void];
   acceptDiff: [AcceptOrRejectDiffPayload, void];
   rejectDiff: [AcceptOrRejectDiffPayload, void];
   "edit/sendPrompt": [

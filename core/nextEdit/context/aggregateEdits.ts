@@ -218,7 +218,7 @@ export class EditAggregator {
 
     // initialize a cluster
     if (!suitableCluster) {
-      // Use fileContentsBefore if available (tracked by VS Code extension),
+      // Use fileContentsBefore if available (tracked by host editor extension),
       // otherwise fall back to current content
       const beforeState = edit.fileContentsBefore ?? fileState.currentContent;
 

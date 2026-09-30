@@ -4,7 +4,7 @@
 
 The Open Circuit CLI supports running in TTY-less environments (environments without a terminal/TTY), which is essential for:
 
-- VSCode and IntelliJ extensions using the `run_terminal_command` tool
+- editor integrations using the `run_terminal_command` tool
 - Docker containers without TTY allocation
 - CI/CD pipelines
 - Automated scripts and tools
@@ -103,7 +103,7 @@ Configures output handling for TTY-less environments:
 
 ## Usage Examples
 
-### From VSCode/IntelliJ Extension
+### From an editor terminal tool
 
 ```typescript
 // Using the run_terminal_command tool

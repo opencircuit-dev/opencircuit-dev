@@ -493,7 +493,7 @@ describe("runTerminalCommandImpl", () => {
 
       it("should skip non-file URIs and use the first file:// URI", async () => {
         const workspaceDirs = [
-          "vscode-vfs://github/user/repo",
+          "workspace-vfs://github/user/repo",
           "untitled:/Untitled-1",
           "file:///home/user/workspace",
           "file:///home/user/other-workspace",
@@ -510,7 +510,7 @@ describe("runTerminalCommandImpl", () => {
 
       it("should handle workspace with only non-file URIs", async () => {
         const workspaceDirs = [
-          "vscode-vfs://github/user/repo",
+          "workspace-vfs://github/user/repo",
           "untitled:/Untitled-1",
         ];
         mockGetWorkspaceDirs.mockResolvedValue(workspaceDirs);
@@ -545,18 +545,18 @@ describe("runTerminalCommandImpl", () => {
       });
 
       it("should throw error when trying to convert non-file URI", () => {
-        const nonFileUri = "vscode-vfs://github/user/repo";
+        const nonFileUri = "workspace-vfs://github/user/repo";
 
         // This demonstrates why the fix is needed - fileURLToPath throws on non-file URIs
         expect(() => fileURLToPath(nonFileUri)).toThrow();
       });
 
-      it("should handle vscode-remote URIs by extracting pathname", async () => {
-        // Various remote URI formats that VS Code uses
+      it("should handle remote URIs by extracting pathname", async () => {
+        // Various remote URI formats
         const remoteUris = [
-          "vscode-remote://wsl+Ubuntu/home/user/project",
-          "vscode-remote://ssh-remote+myserver/home/user/project",
-          "vscode-remote://dev-container+abc123/workspace",
+          "remote://wsl+Ubuntu/home/user/project",
+          "remote://ssh-remote+myserver/home/user/project",
+          "remote://dev-container+abc123/workspace",
         ];
 
         for (const uri of remoteUris) {
@@ -575,7 +575,7 @@ describe("runTerminalCommandImpl", () => {
       it("should decode URI-encoded characters in remote workspace paths", async () => {
         // Path with spaces and special characters
         const encodedUri =
-          "vscode-remote://wsl+Ubuntu/home/user/my%20project%20%28test%29";
+          "remote://wsl+Ubuntu/home/user/my%20project%20%28test%29";
         mockGetWorkspaceDirs.mockResolvedValue([encodedUri]);
 
         // Should handle without throwing - decodeURIComponent is applied
@@ -589,7 +589,7 @@ describe("runTerminalCommandImpl", () => {
 
       it("should prefer file:// URIs over remote URIs when both present", async () => {
         const workspaceDirs = [
-          "vscode-remote://wsl+Ubuntu/home/user/remote-project",
+          "remote://wsl+Ubuntu/home/user/remote-project",
           "file:///home/user/local-project",
         ];
         mockGetWorkspaceDirs.mockResolvedValue(workspaceDirs);
@@ -668,7 +668,7 @@ describe("runTerminalCommandImpl", () => {
         process.env.HOME = "/home/testuser";
 
         mockGetWorkspaceDirs.mockResolvedValue([
-          "vscode-vfs://github/user/repo",
+          "workspace-vfs://github/user/repo",
         ]);
 
         try {

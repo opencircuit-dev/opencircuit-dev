@@ -179,7 +179,7 @@ describe("MCPConnection", () => {
     it("should fall back to homedir for remote URIs that cannot be used as local cwd", async () => {
       const ide = {} as any;
       vi.spyOn(ideUtils, "resolveRelativePathInDir").mockResolvedValue(
-        "vscode-remote://ssh-remote+192.168.137.2/home/user/project",
+        "remote://ssh-remote+192.168.137.2/home/user/project",
       );
       const conn = new MCPConnection(baseOptions, { ide });
 

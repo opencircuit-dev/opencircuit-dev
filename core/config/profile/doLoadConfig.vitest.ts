@@ -92,8 +92,8 @@ import doLoadConfig from "./doLoadConfig.js";
 
 const mockIde = {
   getIdeInfo: vi.fn().mockResolvedValue({
-    ideType: "vscode",
-    name: "VS Code",
+    ideType: "cli",
+    name: "CLI",
     version: "1.90.0",
     remoteName: "wsl",
     extensionVersion: "1.3.31",
@@ -114,8 +114,7 @@ describe("doLoadConfig pre-read content bypass", () => {
 
     const packageIdentifier: PackageIdentifier = {
       uriType: "file",
-      fileUri:
-        "vscode-remote://wsl+Ubuntu/home/user/.ocircuit/agents/test.yaml",
+      fileUri: "file:///home/user/.ocircuit/agents/test.yaml",
       content: "name: Test\nversion: 1.0.0\nschema: v1\n",
     };
 
@@ -139,8 +138,7 @@ describe("doLoadConfig pre-read content bypass", () => {
 
     const packageIdentifier: PackageIdentifier = {
       uriType: "file",
-      fileUri:
-        "vscode-remote://wsl+Ubuntu/home/user/.ocircuit/agents/test.yaml",
+      fileUri: "file:///home/user/.ocircuit/agents/test.yaml",
     };
 
     await doLoadConfig({
