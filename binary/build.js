@@ -36,9 +36,13 @@ const assetBackups = [
 ];
 
 let esbuildOnly = false;
+let nativeWorkbenchOnly = false;
 for (let i = 2; i < process.argv.length; i++) {
   if (process.argv[i] === "--esbuild-only") {
     esbuildOnly = true;
+  }
+  if (process.argv[i] === "--native-workbench-only") {
+    nativeWorkbenchOnly = true;
   }
   if (process.argv[i - 1] === "--target") {
     targets = [process.argv[i]];
@@ -77,9 +81,62 @@ async function buildWithEsbuild() {
   });
 }
 
+async function buildNativeWorkbenchWithEsbuild() {
+  console.log("[info] Building native workbench backend...");
+  fs.copyFileSync(
+    "../core/node_modules/jsdom/lib/jsdom/living/xhr/xhr-sync-worker.js",
+    "out/xhr-sync-worker.js",
+  );
+  fs.copyFileSync(
+    "../core/llm/tiktokenWorkerPool.mjs",
+    "out/tiktokenWorkerPool.mjs",
+  );
+  fs.copyFileSync(
+    "../core/llm/llamaTokenizerWorkerPool.mjs",
+    "out/llamaTokenizerWorkerPool.mjs",
+  );
+  fs.copyFileSync("../core/vendor/tree-sitter.wasm", "out/tree-sitter.wasm");
+  fs.cpSync(
+    "../core/node_modules/tree-sitter-wasms/out",
+    "out/tree-sitter-wasms",
+    {
+      recursive: true,
+    },
+  );
+  await esbuild.build({
+    entryPoints: ["src/nativeWorkbenchEntry.ts"],
+    bundle: true,
+    outfile: "out/native-workbench.js",
+    external: [
+      "esbuild",
+      "./xhr-sync-worker.js",
+      "llamaTokenizerWorkerPool.mjs",
+      "tiktokenWorkerPool.mjs",
+      "vscode",
+      "./index.node",
+      "sqlite3",
+      "@lancedb/lancedb",
+      "onnxruntime-node",
+    ],
+    format: "cjs",
+    platform: "node",
+    sourcemap: false,
+    minify: false,
+    treeShaking: true,
+    loader: { ".node": "file" },
+    inject: ["./importMetaUrl.js"],
+    define: { "import.meta.url": "importMetaUrl" },
+  });
+}
+
 (async () => {
+  if (nativeWorkbenchOnly) {
+    await buildNativeWorkbenchWithEsbuild();
+    return;
+  }
   if (esbuildOnly) {
     await buildWithEsbuild();
+    await buildNativeWorkbenchWithEsbuild();
     return;
   }
 
@@ -185,6 +242,7 @@ async function buildWithEsbuild() {
   }
 
   await buildWithEsbuild();
+  await buildNativeWorkbenchWithEsbuild();
 
   // Copy over any worker files
   fs.cpSync(
