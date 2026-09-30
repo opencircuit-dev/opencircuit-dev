@@ -448,11 +448,11 @@ mod tests {
     }
 
     #[test]
-    fn test_on_vscode_extension() {
+    fn test_on_cli_source() {
         let _results = sync(&Tag {
-            dir: Path::new("../extensions/vscode"),
+            dir: Path::new("../extensions/cli"),
             branch: "nate/pyO3",
-            provider_id: "cargo-test-vscode-extension",
+            provider_id: "cargo-test-cli-source",
         });
     }
 

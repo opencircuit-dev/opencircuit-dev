@@ -1,5 +1,5 @@
 name: Detect Change Profiles
-description: Classify changed paths into CLI/Core and VSIX validation profiles.
+description: Classify changed paths into the retained CLI/Core validation profile.
 inputs:
   base-sha:
     description: Base revision to compare against.
@@ -9,17 +9,10 @@ inputs:
     description: Head revision to compare.
     required: false
     default: ""
-  enable-vsix:
-    description: Enable deferred VSIX and VS Code PR validation.
-    required: false
-    default: "true"
 outputs:
   cli_core:
     description: Whether the CLI/Core profile is required.
     value: ${{ steps.classify.outputs.cli_core }}
-  vsix:
-    description: Whether the VSIX profile is required.
-    value: ${{ steps.classify.outputs.vsix }}
 runs:
   using: composite
   steps:
@@ -28,7 +21,6 @@ runs:
       env:
         BASE_SHA: ${{ inputs.base-sha }}
         HEAD_SHA: ${{ inputs.head-sha }}
-        ENABLE_VSIX: ${{ inputs.enable-vsix }}
       run: |
         set -euo pipefail
 
@@ -45,39 +37,14 @@ runs:
         fi
 
         cli_core=false
-        vsix=false
         while IFS= read -r file; do
           [[ -z "$file" ]] && continue
           case "$file" in
-            packages/sdk/**|.github/workflows/release-sdk.yml)
-              cli_core=true
-              ;;
-            core/**|packages/**)
-              cli_core=true
-              vsix=true
-              ;;
-            extensions/cli/**|binary/**|scripts/**|package.json|package-lock.json|.nvmrc|.node-version)
-              cli_core=true
-              ;;
-            extensions/vscode/**|gui/**|.github/actions/build-vscode-extension/**|.github/actions/run-vscode-e2e-test/**|.github/workflows/pr-build-upload-vsix.yaml)
-              vsix=true
-              ;;
-            .github/actions/**|*.lock|**/package-lock.json)
-              cli_core=true
-              vsix=true
-              ;;
-            .github/workflows/**)
+            packages/sdk/**|.github/workflows/release-sdk.yml|core/**|packages/**|extensions/cli/**|binary/**|scripts/**|package.json|package-lock.json|.nvmrc|.node-version|.github/actions/**|*.lock|**/package-lock.json|.github/workflows/**)
               cli_core=true
               ;;
           esac
         done <<< "$changed_files"
 
-        if [[ "$ENABLE_VSIX" != "true" ]]; then
-          vsix=false
-          echo "VSIX profile deferred; VSIX and VS Code PR validation disabled"
-        fi
-
         echo "cli_core=$cli_core" >> "$GITHUB_OUTPUT"
-        echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
         echo "CLI/Core profile required: $cli_core"
-        echo "VSIX profile required: $vsix"

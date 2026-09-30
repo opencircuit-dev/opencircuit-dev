@@ -176,7 +176,7 @@ export default class RerankerRetrievalPipeline extends BaseRetrievalPipeline {
 // because this import causes `tsc` to fail
 // if ((await extras.ide.getIdeInfo()).ideType === "vscode") {
 //   const { expandSnippet } = await import(
-//     "../../../extensions/vscode/src/util/expandSnippet"
+//     "a former editor-specific snippet helper"
 //   );
 //   let expansionResults = (
 //     await Promise.all(

@@ -29,6 +29,6 @@ assets, document in the pull request:
 Maintainers should also update `.gitignore`, the owning package README, and the
 release/retained-closure checks when the asset changes packaging behavior.
 
-The checked-in tokenizer and model-related files under `core/` and
-`extensions/vscode/models/` are therefore treated as deliberate exceptions:
-changes require ownership and packaging evidence, not a blanket asset copy.
+The checked-in tokenizer and model-related files under `core/` are therefore
+treated as deliberate exceptions: changes require ownership and packaging
+evidence, not a blanket asset copy.

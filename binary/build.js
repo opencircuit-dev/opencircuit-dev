@@ -8,7 +8,7 @@ const { ALL_TARGETS, TARGET_TO_LANCEDB } = require("./utils/targets");
 const { fork } = require("child_process");
 const {
   installAndCopyNodeModules,
-} = require("../extensions/vscode/scripts/install-copy-nodemodule");
+} = require("./utils/install-copy-nodemodule");
 const { bundleBinary } = require("./utils/bundle-binary");
 
 const bin = path.join(__dirname, "bin");
@@ -149,7 +149,7 @@ async function buildWithEsbuild() {
   fs.mkdirSync(treeSitterDir);
   await new Promise((resolve, reject) => {
     ncp(
-      path.join(__dirname, "..", "extensions", "vscode", "tree-sitter"),
+      path.join(__dirname, "..", "core", "tree-sitter"),
       treeSitterDir,
       { dereference: true },
       (error) => {
