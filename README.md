@@ -202,6 +202,21 @@ environment variable in `~/.ocircuit/.env`. See the
 [beginner quickstart](QUICKSTART.md) for provider-specific examples. Never
 commit API keys.
 
+## Daily token allowance
+
+The CLI records aggregate input and output token usage locally without storing prompts, credentials, or session IDs. Inspect today and recent days with:
+
+    oc usage
+
+Set or clear an opt-in local daily token allowance with:
+
+    oc usage --set-daily-limit 100000
+    oc usage --clear-daily-limit
+
+Usage state is stored in ~/.ocircuit/usage.json with restrictive permissions. The
+CLI warns at 80% by default and blocks the next request after the allowance is
+reached. Set OCIRCUIT_DAILY_TOKEN_WARNING_PERCENT to change the warning threshold.
+
 ## Stage CLI release assets
 
 This section is for maintainers preparing a GitHub Release asset.

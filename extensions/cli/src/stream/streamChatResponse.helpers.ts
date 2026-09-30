@@ -24,6 +24,7 @@ import {
   validateToolCallArgsPresent,
 } from "../tools/index.js";
 import { PreprocessedToolCall, ToolCall } from "../tools/types.js";
+import { recordDailyUsage } from "../util/dailyUsage.js";
 import { logger } from "../util/logger.js";
 
 import { StreamCallbacks } from "./streamChatResponse.types.js";
@@ -352,6 +353,31 @@ export function recordStreamTelemetry(options: {
 
   telemetryService.recordCost(cost, model.model);
   trackSessionUsage(cost, usage);
+
+  try {
+    const dailyStatus = recordDailyUsage({
+      provider: model.provider,
+      model: model.model,
+      usage,
+      cost,
+    });
+    if (dailyStatus.warning) {
+      logger.warn(
+        "Daily token allowance is " +
+          Math.round(dailyStatus.usedPercent ?? 100) +
+          "% used (" +
+          dailyStatus.totalTokens.toLocaleString() +
+          " / " +
+          dailyStatus.dailyTokenLimit?.toLocaleString() +
+          " tokens).",
+      );
+    }
+  } catch (error) {
+    logger.warn(
+      "Failed to persist daily token usage; continuing with the completed response.",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
 
   telemetryService.recordResponseTime(
     totalDuration,

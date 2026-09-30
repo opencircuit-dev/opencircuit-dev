@@ -11,6 +11,7 @@ import { initTemplatesCommand } from "./commands/initTemplates.js";
 import { listSessionsCommand } from "./commands/ls.js";
 import { review } from "./commands/review.js";
 import { serve } from "./commands/serve.js";
+import { usageCommand } from "./commands/usage.js";
 import {
   handleValidationErrors,
   validateFlags,
@@ -313,6 +314,18 @@ program
   .description("Install packaged provider templates locally")
   .action(async () => {
     await initTemplatesCommand();
+  });
+
+// Daily token usage and allowance subcommand
+program
+  .command("usage")
+  .description("Show daily token usage and manage the local allowance")
+  .option("--json", "Output usage data as JSON")
+  .option("--days <count>", "Number of recent days to show (default: 7)", "7")
+  .option("--set-daily-limit <tokens>", "Set the daily token allowance")
+  .option("--clear-daily-limit", "Remove the daily token allowance")
+  .action(async (options) => {
+    await usageCommand(options);
   });
 
 // Serve subcommand

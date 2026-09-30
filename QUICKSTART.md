@@ -312,6 +312,22 @@ oc init
 configuration, copy it once to `~/.ocircuit/config.yaml`, and do not keep
 multiple provider configs active at the same time.
 
+## Control daily token usage
+
+Open Circuit records token counts locally across sessions. It does not store prompt
+content or credentials. View today and recent usage with:
+
+    oc usage
+
+Set an opt-in daily allowance (for example, 100,000 tokens) and clear it later with:
+
+    oc usage --set-daily-limit 100000
+    oc usage --clear-daily-limit
+
+The CLI warns at 80% and blocks new requests after the allowance is reached. The
+ledger is stored at ~/.ocircuit/usage.json; use OCIRCUIT_DAILY_TOKEN_WARNING_PERCENT
+to change the warning threshold.
+
 Example single-provider bootstrap flow for OpenAI:
 
 ```bash

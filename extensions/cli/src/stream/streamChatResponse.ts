@@ -14,6 +14,7 @@ import { telemetryService } from "../telemetry/telemetryService.js";
 import { applyChatCompletionToolOverrides } from "../tools/applyToolOverrides.js";
 import { ToolCall } from "../tools/index.js";
 import { getChatCompletionToolName } from "../util/chatCompletionTool.js";
+import { assertDailyTokenBudget } from "../util/dailyUsage.js";
 import {
   isContextLengthError,
   withExponentialBackoff,
@@ -258,6 +259,7 @@ export async function processStreamingResponse(
   const requestStartTime = Date.now();
 
   const streamFactory = async (retryAbortSignal: AbortSignal) => {
+    assertDailyTokenBudget();
     logger.debug("Creating chat completion stream", {
       model,
       messageCount: chatHistory.length,
