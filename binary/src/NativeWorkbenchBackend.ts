@@ -47,13 +47,15 @@ interface RpcContext {
 
 interface ActiveRequest {
   readonly controller: AbortController;
-  readonly hostCalls: Map<
-    string,
-    { resolve(value: unknown): void; reject(error: Error): void }
-  >;
   readonly waiters: Array<() => void>;
   credits: number;
   sequence: number;
+}
+
+interface ActiveHostCall {
+  readonly requestId: string;
+  resolve(value: unknown): void;
+  reject(error: Error): void;
 }
 
 function encodeFrame(message: unknown): Uint8Array {
@@ -452,6 +454,7 @@ export async function runNativeWorkbenchBackend(
   const backend = new NativeWorkbenchBackend();
   const decoder = new FrameDecoder();
   const active = new Map<string, ActiveRequest>();
+  const hostCalls = new Map<string, ActiveHostCall>();
   const output = (message: unknown) =>
     new Promise<void>((resolve, reject) => {
       process.stdout.write(encodeFrame(message), (error) =>
@@ -492,10 +495,6 @@ export async function runNativeWorkbenchBackend(
         active.delete(requestId);
         request?.controller.abort();
         request?.waiters.splice(0).forEach((resolve) => resolve());
-        request?.hostCalls.forEach((call) =>
-          call.reject(new Error("Cancelled")),
-        );
-        request?.hostCalls.clear();
       } else if (message.kind === "credit") {
         const request = active.get(requestId);
         if (
@@ -510,13 +509,13 @@ export async function runNativeWorkbenchBackend(
         request.credits += Number(message.credits);
         request.waiters.splice(0).forEach((resolve) => resolve());
       } else if (message.kind === "hostResult") {
-        const request = active.get(requestId);
-        const call = request?.hostCalls.get(String(message.callId));
-        if (!request || !call) {
+        const callId = String(message.callId);
+        const call = hostCalls.get(callId);
+        if (!call || call.requestId !== requestId) {
           failProtocol();
           return;
         }
-        request.hostCalls.delete(String(message.callId));
+        hostCalls.delete(callId);
         if (typeof message.code === "string") {
           call.reject(
             Object.assign(new Error("Host capability failed"), {
@@ -539,7 +538,6 @@ export async function runNativeWorkbenchBackend(
         }
         const request: ActiveRequest = {
           controller: new AbortController(),
-          hostCalls: new Map(),
           waiters: [],
           credits: 0,
           sequence: 0,
@@ -580,37 +578,34 @@ export async function runNativeWorkbenchBackend(
               },
               requestHost: async (method, payload) => {
                 const callId = randomUUID();
+                const hostRequestId = randomUUID();
+                if (hostCalls.size >= 64) {
+                  throw Object.assign(new Error(), { code: "INTERNAL" });
+                }
                 let resolve!: (value: unknown) => void;
                 let reject!: (error: Error) => void;
                 const result = new Promise<unknown>((res, rej) => {
                   resolve = res;
                   reject = rej;
                 });
-                request.hostCalls.set(callId, { resolve, reject });
-                while (
-                  request.credits === 0 &&
-                  !request.controller.signal.aborted
-                ) {
-                  await new Promise<void>((wake) => request.waiters.push(wake));
-                }
-                if (request.controller.signal.aborted) {
-                  throw new Error("Cancelled");
-                }
-                request.credits--;
-                request.sequence++;
-                await output({
-                  protocolVersion: PROTOCOL_VERSION,
-                  kind: "event",
-                  requestId,
-                  sequence: request.sequence,
-                  payload: {
-                    type: "hostRequest",
+                hostCalls.set(callId, {
+                  requestId: hostRequestId,
+                  resolve,
+                  reject,
+                });
+                try {
+                  await output({
+                    protocolVersion: PROTOCOL_VERSION,
+                    kind: "hostRequest",
+                    requestId: hostRequestId,
                     callId,
                     method,
                     payload: payload === undefined ? null : payload,
-                  },
-                });
-                return result;
+                  });
+                  return await result;
+                } finally {
+                  hostCalls.delete(callId);
+                }
               },
             };
             const result = await backend.messengerContext(context, () =>
