@@ -1,6 +1,6 @@
 import type { ChatHistoryItem } from "core/index.js";
 import { convertToUnifiedHistory } from "core/messageConversion.js";
-import { ChatCompletionMessageParam } from "openai/resources.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/index.js";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

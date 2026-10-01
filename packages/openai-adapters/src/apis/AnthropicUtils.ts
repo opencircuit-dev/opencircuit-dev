@@ -8,7 +8,7 @@ import {
 import {
   ChatCompletionTool,
   ChatCompletionToolChoiceOption,
-} from "openai/resources";
+} from "openai/resources/index.js";
 
 export function getAnthropicErrorMessage(response: ErrorResponse): string {
   switch (response.error.type) {

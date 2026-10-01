@@ -1,7 +1,7 @@
 import { Server } from "http";
 
 import express from "express";
-import type { ChatCompletionMessageParam } from "openai/resources.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/index.js";
 import { describe, expect, test } from "vitest";
 
 export interface MockRemoteServerConfig {

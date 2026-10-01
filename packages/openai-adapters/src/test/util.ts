@@ -1,4 +1,4 @@
-import { CompletionUsage } from "openai/resources/completions.mjs";
+import { CompletionUsage } from "openai/resources/completions.js";
 import { BaseLlmApi, constructLlmApi } from "../index.js";
 import { LLMConfig } from "../types.js";
 import { TestConfigOptions } from "./main.test.js";

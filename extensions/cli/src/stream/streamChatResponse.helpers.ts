@@ -4,7 +4,7 @@
 import { OCircuitError, OCircuitErrorReason } from "core/errors.js";
 import type { ToolStatus, Usage } from "core/index.js";
 import { calculateRequestCost } from "core/llm/calculateRequestCost.js";
-import { ChatCompletionToolMessageParam } from "openai/resources/chat/completions.mjs";
+import type { ChatCompletionToolMessageParam } from "openai/resources/index.js";
 import { ToolPermissionServiceState } from "src/services/ToolPermissionService.js";
 
 import { checkToolPermission } from "../permissions/permissionChecker.js";
