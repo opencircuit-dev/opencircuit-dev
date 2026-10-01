@@ -498,11 +498,18 @@ export async function runNativeWorkbenchBackend(
       } else if (message.kind === "credit") {
         const request = active.get(requestId);
         if (
-          !request ||
           !Number.isSafeInteger(message.credits) ||
-          Number(message.credits) <= 0 ||
-          request.credits + Number(message.credits) > EVENT_CREDIT_WINDOW
+          Number(message.credits) <= 0
         ) {
+          failProtocol();
+          return;
+        }
+        // A fast request may complete after the client writes its request but before
+        // the following initial-credit frame is read. Late credit is harmless.
+        if (!request) {
+          continue;
+        }
+        if (request.credits + Number(message.credits) > EVENT_CREDIT_WINDOW) {
           failProtocol();
           return;
         }
