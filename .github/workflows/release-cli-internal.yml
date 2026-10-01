@@ -1,11 +1,26 @@
 name: Release Internal CLI
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-cli-internal.yml"
+      - "core/**"
+      - "extensions/cli/**"
+      - "packages/**"
+      - "scripts/build-packages.js"
+      - "scripts/check-cli-release-artifact.mjs"
+      - "scripts/package-cli-internal.mjs"
+      - "scripts/publish-cli-internal-artifact.sh"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
   workflow_dispatch:
     inputs:
       internal_version:
         description: "Internal CLI version to package (for example, 1.0.1)"
-        required: true
+        required: false
         type: string
 
 permissions:
@@ -45,6 +60,7 @@ jobs:
         run: npm run build
 
       - name: Set internal CLI version
+        if: ${{ inputs.internal_version != '' }}
         working-directory: extensions/cli
         env:
           INTERNAL_VERSION: ${{ inputs.internal_version }}
