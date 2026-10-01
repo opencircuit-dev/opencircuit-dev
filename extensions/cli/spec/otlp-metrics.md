@@ -42,13 +42,13 @@ The Open Circuit CLI should emit metrics that provide insights into:
 
 All metrics and events share these standard attributes:
 
-| Attribute           | Description                                                   | Controlled By                                       |
-| ------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
-| `session.id`        | Unique session identifier                                     | `OTEL_METRICS_INCLUDE_SESSION_ID` (default: true)   |
-| `app.version`       | Current Open Circuit CLI version                              | `OTEL_METRICS_INCLUDE_VERSION` (default: false)     |
-| `organization.id`   | Organization UUID (when authenticated)                        | Always included when available                      |
-| `user.account_uuid` | Account UUID (when authenticated)                             | `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` (default: true) |
-| `terminal.type`     | Terminal type (e.g., `iTerm.app`, `vscode`, `cursor`, `tmux`) | Always included when detected                       |
+| Attribute           | Description                                                | Controlled By                                       |
+| ------------------- | ---------------------------------------------------------- | --------------------------------------------------- |
+| `session.id`        | Unique session identifier                                  | `OTEL_METRICS_INCLUDE_SESSION_ID` (default: true)   |
+| `app.version`       | Current Open Circuit CLI version                           | `OTEL_METRICS_INCLUDE_VERSION` (default: false)     |
+| `organization.id`   | Organization UUID (when authenticated)                     | Always included when available                      |
+| `user.account_uuid` | Account UUID (when authenticated)                          | `OTEL_METRICS_INCLUDE_ACCOUNT_UUID` (default: true) |
+| `terminal.type`     | Terminal type (e.g., `iTerm.app`, `cursor`, `tmux`, `ssh`) | Always included when detected                       |
 
 ## Core Metrics
 

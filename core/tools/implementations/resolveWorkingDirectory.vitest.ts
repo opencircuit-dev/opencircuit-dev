@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 
 // Replicate the resolution logic for testing
 function resolveWorkingDirectory(workspaceDirs: string[]): string {
-  // Handle vscode-remote://wsl+distro/path URIs (WSL2 remote workspaces)
+  // Handle remote://wsl+distro/path URIs (WSL2 remote workspaces)
   const wslWorkspaceDir = workspaceDirs.find((dir) =>
-    dir.startsWith("vscode-remote://wsl"),
+    dir.startsWith("remote://wsl"),
   );
   if (wslWorkspaceDir) {
     try {
@@ -44,56 +44,56 @@ function resolveWorkingDirectory(workspaceDirs: string[]): string {
 }
 
 describe("resolveWorkingDirectory", () => {
-  describe("WSL remote URIs (vscode-remote://wsl+...)", () => {
+  describe("WSL remote URIs (remote://wsl+...)", () => {
     it("should parse basic WSL URI", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/project",
+        "remote://wsl+Ubuntu/home/user/project",
       ]);
       expect(result).toBe("/home/user/project");
     });
 
     it("should decode URL-encoded spaces in path", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/my%20project",
+        "remote://wsl+Ubuntu/home/user/my%20project",
       ]);
       expect(result).toBe("/home/user/my project");
     });
 
     it("should decode URL-encoded special characters", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/path%23with%23hashes",
+        "remote://wsl+Ubuntu/home/user/path%23with%23hashes",
       ]);
       expect(result).toBe("/home/user/path#with#hashes");
     });
 
     it("should decode URL-encoded unicode characters", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/%E4%B8%AD%E6%96%87%E8%B7%AF%E5%BE%84",
+        "remote://wsl+Ubuntu/home/user/%E4%B8%AD%E6%96%87%E8%B7%AF%E5%BE%84",
       ]);
       expect(result).toBe("/home/user/中文路径");
     });
 
     it("should handle different WSL distro names", () => {
       const ubuntu = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu-22.04/home/user/project",
+        "remote://wsl+Ubuntu-22.04/home/user/project",
       ]);
       expect(ubuntu).toBe("/home/user/project");
 
       const debian = resolveWorkingDirectory([
-        "vscode-remote://wsl+Debian/home/user/project",
+        "remote://wsl+Debian/home/user/project",
       ]);
       expect(debian).toBe("/home/user/project");
     });
 
     it("should handle root path", () => {
-      const result = resolveWorkingDirectory(["vscode-remote://wsl+Ubuntu/"]);
+      const result = resolveWorkingDirectory(["remote://wsl+Ubuntu/"]);
       expect(result).toBe("/");
     });
 
     it("should prioritize WSL URIs over file:// URIs", () => {
       const result = resolveWorkingDirectory([
         "file:///c:/Users/user/project",
-        "vscode-remote://wsl+Ubuntu/home/user/project",
+        "remote://wsl+Ubuntu/home/user/project",
       ]);
       expect(result).toBe("/home/user/project");
     });
@@ -149,9 +149,9 @@ describe("resolveWorkingDirectory", () => {
       expect(typeof result).toBe("string");
     });
 
-    it("should handle malformed vscode-remote URI", () => {
+    it("should handle malformed remote URI", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu", // Missing path
+        "remote://wsl+Ubuntu", // Missing path
       ]);
       // new URL() should still parse this, pathname would be empty or "/"
       expect(typeof result).toBe("string");
@@ -162,21 +162,21 @@ describe("resolveWorkingDirectory", () => {
     it("should handle plus signs (not spaces)", () => {
       // In URL encoding, + is literal plus, %2B is encoded plus, %20 is space
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/c%2B%2B-project",
+        "remote://wsl+Ubuntu/home/user/c%2B%2B-project",
       ]);
       expect(result).toBe("/home/user/c++-project");
     });
 
     it("should handle percent sign itself", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/100%25-complete",
+        "remote://wsl+Ubuntu/home/user/100%25-complete",
       ]);
       expect(result).toBe("/home/user/100%-complete");
     });
 
     it("should handle mixed encoded and unencoded characters", () => {
       const result = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/normal-path/with%20space/more",
+        "remote://wsl+Ubuntu/home/user/normal-path/with%20space/more",
       ]);
       expect(result).toBe("/home/user/normal-path/with space/more");
     });
@@ -186,7 +186,7 @@ describe("resolveWorkingDirectory", () => {
     it("should match fileURLToPath decoding for equivalent paths", () => {
       const fileResult = fileURLToPath("file:///home/user/my%20project");
       const wslResult = resolveWorkingDirectory([
-        "vscode-remote://wsl+Ubuntu/home/user/my%20project",
+        "remote://wsl+Ubuntu/home/user/my%20project",
       ]);
 
       // Both should decode %20 to space

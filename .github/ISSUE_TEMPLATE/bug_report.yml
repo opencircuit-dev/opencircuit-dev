@@ -21,13 +21,11 @@ body:
 
         - **OS**: macOS
         - **Open Circuit version**: v0.9.4
-        - **IDE version**:  VSCode 1.85.1
         - Model: Claude Sonnet 4.5
         - Agent configuration
       value: |
         - OS:
         - Open Circuit version:
-        - IDE version:
         - Model:
         - config:
           ```yaml

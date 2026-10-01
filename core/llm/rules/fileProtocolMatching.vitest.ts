@@ -3,7 +3,7 @@ import { RuleWithSource } from "../..";
 import { shouldApplyRule } from "./getSystemMessageWithRules";
 
 describe("File Path Protocol Matching", () => {
-  // Test rule with a file:// protocol in the path - simulating what happens in VSCode
+  // Test a rule containing a file:// protocol in the path.
   const ruleWithFileProtocol: RuleWithSource = {
     name: "Rule with file:// protocol",
     rule: "This is a test rule",

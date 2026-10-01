@@ -95,7 +95,7 @@ describe("DataLogger", () => {
     } as IdeSettings);
 
     dataLogger.ideInfoPromise = Promise.resolve({
-      name: "VSCode",
+      name: "CLI",
       version: "1.0.0",
       extensionVersion: "0.1.0",
     } as IdeInfo);
@@ -134,7 +134,7 @@ describe("DataLogger", () => {
         eventName: "testEvent",
         timestamp: expect.any(String),
         schema: SCHEMA,
-        userAgent: "VSCode/1.0.0 (OpenCircuit/0.1.0)",
+        userAgent: "CLI/1.0.0 (OpenCircuit/0.1.0)",
         selectedProfileId: "test-profile-id",
         userId: "test-user-token",
       });

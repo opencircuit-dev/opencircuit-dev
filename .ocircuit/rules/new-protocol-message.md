@@ -24,8 +24,8 @@ Implement the message in the appropriate location:
 
 - **Messages to core**: `core/core.ts`
 - **Messages to GUI**: `useWebviewListener` hook
-- **Messages to VS Code IDE**: `VsCodeMessenger.ts`
+- **Messages to a host integration**: the owning host messenger implementation
 
 ## 5. Test the implementation
 
-Verify that your message works correctly in VS Code.
+Verify that your message works correctly in the retained host/runtime tests.

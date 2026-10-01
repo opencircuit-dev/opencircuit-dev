@@ -169,29 +169,5 @@ export default class RerankerRetrievalPipeline extends BaseRetrievalPipeline {
   }
 }
 
-// Source: expansion with code graph
-// consider doing this after reranking? Or just having a lower reranking threshold
-// This is VS Code only until we use PSI for JetBrains or build our own general solution
-// TODO: Need to pass in the expandSnippet function as a function argument
-// because this import causes `tsc` to fail
-// if ((await extras.ide.getIdeInfo()).ideType === "vscode") {
-//   const { expandSnippet } = await import(
-//     "a former editor-specific snippet helper"
-//   );
-//   let expansionResults = (
-//     await Promise.all(
-//       extras.selectedCode.map(async (rif) => {
-//         return expandSnippet(
-//           rif.filepath,
-//           rif.range.start.line,
-//           rif.range.end.line,
-//           extras.ide,
-//         );
-//       }),
-//     )
-//   ).flat() as Chunk[];
-//   retrievalResults.push(...expansionResults);
-// }
-
 // Source: Open file exact match
 // Source: Class/function name exact match

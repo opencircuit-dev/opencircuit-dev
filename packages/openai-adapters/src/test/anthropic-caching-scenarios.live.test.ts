@@ -154,7 +154,7 @@ const SYSTEM_MESSAGE = `You are an AI coding assistant integrated into a develop
 
 - Operating System: macOS 14.0
 - Shell: zsh
-- IDE: VS Code 1.95.0
+- Host: CLI
 - Working Directory: /Users/developer/projects/my-app
 - Git Branch: feature/user-management
 - Node.js: v20.11.0

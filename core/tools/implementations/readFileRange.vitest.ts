@@ -47,7 +47,6 @@ test("readFileRange parses negative numbers (validation happens in implementatio
 
 test("readFileRange handles out-of-bounds ranges gracefully", () => {
   // IDE implementations handle out-of-bounds gracefully:
-  // - VS Code: Uses array.slice() which handles out-of-bounds gracefully
   // - IntelliJ: Uses lines.getOrNull() which returns null for out-of-bounds
   // Both return empty content or available content without throwing errors
 

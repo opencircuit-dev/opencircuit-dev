@@ -133,7 +133,7 @@ class FileSystemIde implements IDE {
 
   getIdeInfo(): Promise<IdeInfo> {
     return Promise.resolve({
-      ideType: "vscode",
+      ideType: "cli",
       name: "na",
       version: "0.1",
       remoteName: "na",

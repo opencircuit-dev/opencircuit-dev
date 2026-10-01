@@ -20,7 +20,7 @@ describe("LocalProfileLoader", () => {
 
   it("should pass pre-read content in packageIdentifier for override files", async () => {
     const overrideFile = {
-      path: "vscode-remote://wsl+Ubuntu/home/user/.ocircuit/agents/test.yaml",
+      path: "file:///home/user/.ocircuit/agents/test.yaml",
       content: "name: Test\nversion: 1.0.0\nschema: v1\n",
     };
 

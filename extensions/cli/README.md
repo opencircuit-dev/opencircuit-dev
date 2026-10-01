@@ -77,7 +77,7 @@ Headless mode (`-p` flag) runs without an interactive terminal UI, making it per
 - Scripts and automation
 - CI/CD pipelines
 - Docker containers
-- VSCode/IntelliJ extension integration
+- other editor integrations
 - Environments without a TTY
 
 ```bash
@@ -94,7 +94,7 @@ oc -p "Analyze the code" --format json
 oc -p "Write a README" --silent
 ```
 
-**TTY-less Environments**: Headless mode is designed to work in environments without a terminal (TTY), such as when called from VSCode/IntelliJ extensions using terminal commands. The CLI will not attempt to read stdin or initialize the interactive UI when running in headless mode with a supplied prompt.
+**TTY-less Environments**: Headless mode is designed to work in environments without a terminal (TTY), such as when called by another tool using terminal commands. The CLI will not attempt to read stdin or initialize the interactive UI when running in headless mode with a supplied prompt.
 
 ### Session Management
 
@@ -151,7 +151,7 @@ docker run --rm my-image oc -p "Generate docs"
 # From CI/CD pipeline
 oc -p "Review changes" --format json
 
-# From VSCode/IntelliJ extension terminal tool
+# From an editor or automation terminal tool
 oc -p "Analyze code" --silent
 ```
 

@@ -183,8 +183,6 @@ export const ADDITIONAL_INDEXING_IGNORE_DIRS = [
 
   ".venv/",
   "venv/",
-
-  ".vscode/",
   ".idea/",
   ".vs/",
 ];

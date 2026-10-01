@@ -421,9 +421,6 @@ async function intermediateToFinalConfig({
         }
       }
     }
-    if (ideInfo.ideType === "vscode") {
-      return new TransformersJsEmbeddingsProvider();
-    }
     return null;
   }
   const newEmbedder = getEmbeddingsILLM(config.embeddingsProvider);
@@ -578,18 +575,6 @@ async function intermediateToFinalConfig({
         message: `experimental.modelRoles.applyCodeBlock model title ${inlineEditModel} not found in models array`,
       });
     }
-  }
-
-  // Add transformers JS to the embed models list if not already added
-  if (
-    ideInfo.ideType === "vscode" &&
-    !ocircuitConfig.modelsByRole.embed.find(
-      (m) => m.providerName === "transformers.js",
-    )
-  ) {
-    ocircuitConfig.modelsByRole.embed.push(
-      new TransformersJsEmbeddingsProvider(),
-    );
   }
 
   return { config: ocircuitConfig, errors };

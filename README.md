@@ -38,9 +38,9 @@ New to Open Circuit? Follow the beginner guide:
 | Packages   | `packages/`             | Fetching, model information, adapters, and security         |
 | Validation | `tests/` and `scripts/` | Builds, smoke tests, release checks, and runtime boundaries |
 
-The retained product path is the CLI and Core runtime. Standalone VS Code
-extension and public VSIX Marketplace distribution have been retired. Native
-OVSCode integration is maintained separately.
+The retained product path is the CLI and Core runtime. Editor extension and
+VSIX packaging are deferred and outside this repository's supported product
+surface.
 
 ## Architecture
 
@@ -50,7 +50,7 @@ Open Circuit follows this runtime path:
 
 The CLI owns command-line behavior, interactive and headless execution, session
 management, and terminal presentation. Core provides reusable agent capabilities
-for the CLI and IDE integrations, including model providers, configuration,
+for the CLI and retained host integrations, including model providers, configuration,
 codebase indexing, editing, autocomplete, MCP tools, and protocol communication.
 
 A typical CLI request works as follows:

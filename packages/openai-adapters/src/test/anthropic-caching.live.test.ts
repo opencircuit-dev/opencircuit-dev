@@ -191,7 +191,7 @@ const REALISTIC_SYSTEM_MESSAGE = `You are an AI coding assistant integrated into
 
 - Operating System: macOS 14.0
 - Shell: zsh
-- IDE: VS Code 1.95.0
+- Host: CLI
 - Working Directory: /Users/developer/projects/my-app
 - Git Branch: main
 - Node.js: v20.11.0
@@ -222,7 +222,7 @@ my-app/
 │   │   ├── feature_request.md
 │   │   └── config.yml
 │   └── dependabot.yml
-├── .vscode/
+├── .editor/
 │   ├── settings.json
 │   ├── extensions.json
 │   ├── launch.json

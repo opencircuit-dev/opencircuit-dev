@@ -12,18 +12,8 @@ import { LLMConfigurationStatuses } from "./llm/constants";
 
 declare global {
   interface Window {
-    ide?: "vscode";
     windowId: string;
     serverUrl: string;
-    vscMachineId: string;
-    vscMediaUrl: string;
-    fullColorTheme?: {
-      rules?: {
-        token?: string;
-        foreground?: string;
-      }[];
-    };
-    colorThemeName?: string;
     workspacePaths?: string[];
     postIntellijMessage?: (
       messageType: string,
@@ -782,7 +772,7 @@ export interface Thread {
   id: number;
 }
 
-export type IdeType = "vscode" | "jetbrains";
+export type IdeType = "cli" | "jetbrains";
 
 export interface IdeInfo {
   ideType: IdeType;
@@ -866,8 +856,6 @@ export interface IDE {
   openFile(path: string): Promise<void>;
 
   openUrl(url: string): Promise<void>;
-
-  getExternalUri?(uri: string): Promise<string>;
 
   runCommand(command: string, options?: TerminalOptions): Promise<void>;
 
@@ -1976,7 +1964,7 @@ export interface MessageOption {
 /* LSP-specific interfaces. */
 
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#symbolKind.
-// We shift this one index down to match vscode.SymbolKind.
+// We shift this one index down to match editor symbol kinds.
 export enum SymbolKind {
   File = 0,
   Module = 1,

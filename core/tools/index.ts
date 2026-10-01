@@ -42,7 +42,7 @@ export const getConfigDependentToolDefinitions = async (
     tools.push(toolDefinitions.singleFindAndReplaceTool);
   }
 
-  // missing support for remote os calls: https://github.com/microsoft/vscode/issues/252269
+  // Remote OS calls are not supported by this retained host surface.
   if (!isRemote) {
     tools.push(toolDefinitions.grepSearchTool);
   }

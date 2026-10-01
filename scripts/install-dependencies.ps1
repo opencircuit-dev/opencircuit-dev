@@ -1,8 +1,3 @@
-# This is used in a task in .vscode/tasks.json when on windows
-# Start developing with:
-# - Run Task -> Install Dependencies
-# - Debug -> Extension
-
 # Everything needs node and npm
 Write-Host "`nChecking for dependencies that may require manual installation...`n" -ForegroundColor White
 

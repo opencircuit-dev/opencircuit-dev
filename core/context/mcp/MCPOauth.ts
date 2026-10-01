@@ -70,7 +70,6 @@ type MCPOauthStorageKey = keyof MCPOauthStorage;
 class MCPConnectionOauthProvider implements OAuthClientProvider {
   private globalContext: GlobalContext;
   private _redirectUrl: string;
-  private _redirectUrlInitialized: Promise<void>;
 
   constructor(
     public oauthServerUrl: string,
@@ -79,27 +78,10 @@ class MCPConnectionOauthProvider implements OAuthClientProvider {
     this.globalContext = new GlobalContext();
     // Set default redirect URL immediately for synchronous access
     this._redirectUrl = `http://localhost:${PORT}`;
-    // Initialize actual redirect URL asynchronously
-    this._redirectUrlInitialized = this._initializeRedirectUrl();
-  }
-
-  private async _initializeRedirectUrl(): Promise<void> {
-    try {
-      // If IDE supports getExternalUri (VS Code extension), use it for dynamic redirect URI
-      if (this.ide.getExternalUri) {
-        const localUri = `http://localhost:${PORT}`;
-        const externalUri = await this.ide.getExternalUri(localUri);
-        this._redirectUrl = externalUri;
-      }
-      // Otherwise keep the default localhost URL
-    } catch (error) {
-      console.error("Failed to initialize redirect URL:", error);
-      // Keep default URL on error
-    }
   }
 
   get redirectUrl() {
-    // Always return a valid URL, even if initialization is pending
+    // Always return the local callback URL.
     return this._redirectUrl;
   }
 
@@ -111,8 +93,7 @@ class MCPConnectionOauthProvider implements OAuthClientProvider {
   }
 
   async ensureRedirectUrl(): Promise<string> {
-    // Wait for initialization to complete before returning
-    await this._redirectUrlInitialized;
+    // Preserve the async provider interface.
     return this._redirectUrl;
   }
 
@@ -208,9 +189,8 @@ class MCPConnectionOauthProvider implements OAuthClientProvider {
     // Ensure redirect URL is initialized before proceeding
     await this.ensureRedirectUrl();
 
-    // Only create and start local server if using localhost redirect
-    // For web-based VS Code, the redirect will be handled by VS Code's built-in mechanism
-    if (!this.ide.getExternalUri || this._redirectUrl.includes("localhost")) {
+    // Start the local callback server for the localhost redirect.
+    if (this._redirectUrl.includes("localhost")) {
       if (!serverInstance) {
         serverInstance = createServerForOAuth();
       }

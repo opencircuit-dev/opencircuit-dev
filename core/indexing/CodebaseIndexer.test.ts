@@ -462,13 +462,14 @@ describe("CodebaseIndexer", () => {
     let mockRefreshCodebaseIndex: jest.MockedFunction<any>;
     let mockGetWorkspaceDirs: jest.MockedFunction<any>;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       testIndexer = new TestCodebaseIndexer(
         testConfigHandler,
         testIde,
         mockMessenger as any,
         false,
       );
+      await testIndexer.initPromise;
 
       // Mock the refreshCodebaseIndex method to avoid actual indexing
       mockRefreshCodebaseIndex = jest
@@ -571,6 +572,9 @@ describe("CodebaseIndexer", () => {
               embed: {
                 model: "test-model",
                 provider: "test-provider",
+                underlyingProviderName: "test-provider",
+                title: "Test embedding model",
+                maxEmbeddingChunkSize: 1000,
               },
             },
           } as unknown as OCircuitConfig,
@@ -610,6 +614,9 @@ describe("CodebaseIndexer", () => {
               embed: {
                 model: "test-model",
                 provider: "test-provider",
+                underlyingProviderName: "test-provider",
+                title: "Test embedding model",
+                maxEmbeddingChunkSize: 1000,
               },
             },
           } as unknown as OCircuitConfig,
@@ -633,6 +640,9 @@ describe("CodebaseIndexer", () => {
             embed: {
               model: "test-model",
               provider: "test-provider",
+              underlyingProviderName: "test-provider",
+              title: "Test embedding model",
+              maxEmbeddingChunkSize: 1000,
             },
           },
         } as unknown as OCircuitConfig;
@@ -671,6 +681,9 @@ describe("CodebaseIndexer", () => {
               embed: {
                 model: "test-model",
                 provider: "test-provider",
+                underlyingProviderName: "test-provider",
+                title: "Test embedding model",
+                maxEmbeddingChunkSize: 1000,
               },
             },
           } as unknown as OCircuitConfig,
@@ -705,6 +718,8 @@ describe("CodebaseIndexer", () => {
           maxEmbeddingChunkSize: 1000,
           model: "test-model",
           provider: "test-provider",
+          underlyingProviderName: "test-provider",
+          title: "Test embedding model",
         };
 
         mockIdeSettings = {

@@ -350,7 +350,7 @@ export class ConfigHandler {
     await this.ide.openFile(configFile);
   }
 
-  // Ancient method of adding custom providers through vs code
+  // Ancient method of adding custom providers through host editor
   private additionalContextProviders: IContextProvider[] = [];
   registerCustomContextProvider(contextProvider: IContextProvider) {
     this.additionalContextProviders.push(contextProvider);

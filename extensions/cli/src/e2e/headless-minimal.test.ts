@@ -54,7 +54,7 @@ provider: openai`,
       args: ["-p", "--config", configPath, "Hello, world!"],
       env: {
         OPENAI_API_KEY: "test-key",
-        // Simulate TTY-less environment (like Docker, CI, or VSCode terminal tool)
+        // Simulate TTY-less environment (like Docker, CI, or an editor terminal tool)
         FORCE_NO_TTY: "true",
       },
       expectError: true, // Will fail without proper LLM setup, but that's okay
