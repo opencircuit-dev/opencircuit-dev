@@ -60,6 +60,27 @@ export interface ListHistoryOptions {
   workspaceDirectory?: string;
 }
 
+export interface CreateSessionOptions {
+  /** Initial title, limited to 512 UTF-8 bytes. */
+  title?: string;
+  /** Workspace identity, limited to 4096 UTF-8 bytes. */
+  workspaceDirectory: string;
+  /** Initial model title, if selected, limited to 512 UTF-8 bytes. */
+  chatModelTitle?: string | null;
+  /** Stable across retries of the same logical create request; 1–256 UTF-8 bytes. */
+  idempotencyKey: string;
+}
+
+export interface CreatedSession {
+  session: Session;
+  metadata: BaseSessionMetadata;
+}
+
+export interface SavedSession {
+  /** Revision assigned by Core after the save is durable. */
+  revision: number;
+}
+
 export type ToCoreFromIdeOrWebviewProtocol = {
   // Special
   ping: [string, string];
@@ -67,10 +88,11 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   cancelApply: [undefined, void];
 
   // History
+  "history/create": [CreateSessionOptions, CreatedSession];
   "history/list": [ListHistoryOptions, BaseSessionMetadata[]];
   "history/delete": [{ id: string }, void];
   "history/load": [{ id: string }, Session];
-  "history/save": [Session, void];
+  "history/save": [Session, SavedSession];
   "history/share": [{ id: string; outputDir?: string }, void];
   "history/clear": [undefined, void];
   "devdata/log": [DevDataLogEvent, void];

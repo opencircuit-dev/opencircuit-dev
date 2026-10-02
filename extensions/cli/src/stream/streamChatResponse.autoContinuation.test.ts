@@ -2,7 +2,7 @@ import { ModelConfig } from "@opencircuit/config-yaml";
 import { BaseLlmApi } from "@opencircuit/openai-adapters";
 import type { ChatHistoryItem } from "core/index.js";
 import { convertToUnifiedHistory } from "core/messageConversion.js";
-import type { ChatCompletionChunk } from "openai/resources/chat/completions.mjs";
+import type { ChatCompletionChunk } from "openai/resources/index.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { streamChatResponse } from "./streamChatResponse.js";

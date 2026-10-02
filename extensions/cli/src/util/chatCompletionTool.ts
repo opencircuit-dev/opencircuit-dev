@@ -1,4 +1,4 @@
-import type { ChatCompletionTool } from "openai/resources.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 
 /**
  * OpenAI may add non-function tools to ChatCompletionTool over time. Keep

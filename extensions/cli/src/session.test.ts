@@ -41,22 +41,40 @@ vi.mock("./util/logger.js", () => ({
     error: vi.fn(),
   },
 }));
-const mockHistoryManager: any = vi.hoisted(() => ({
-  save: vi.fn((session: any) => {
-    // Mimic writing the session payload to disk so expectations on fs still work
-    fs.writeFileSync(
-      `/home/test/.ocircuit/sessions/${session.sessionId}.json`,
-      JSON.stringify(session),
-    );
-  }),
-  load: vi.fn(() => ({
-    sessionId: "test-session-id",
-    title: "Test Session",
-    workspaceDirectory: "/test/workspace",
-    history: [],
-  })),
-  list: vi.fn(() => []),
-}));
+const mockHistoryManager: any = vi.hoisted(() => {
+  const sessions = new Map<string, any>();
+
+  return {
+    sessions,
+    save: vi.fn((session: any) => {
+      const previous = sessions.get(session.sessionId);
+      const expectedRevision = session.revision ?? 0;
+      const actualRevision = previous?.revision ?? 0;
+      if (previous && expectedRevision !== actualRevision) {
+        throw new Error("The OpenCircuit session changed since it was loaded");
+      }
+
+      const revision = actualRevision + 1;
+      const persistedSession = { ...session, revision };
+      sessions.set(session.sessionId, persistedSession);
+
+      // Mimic writing the session payload to disk so expectations on fs still work.
+      fs.writeFileSync(
+        `/home/test/.ocircuit/sessions/${session.sessionId}.json`,
+        JSON.stringify(persistedSession),
+      );
+      return { revision };
+    }),
+    load: vi.fn((sessionId: string) => {
+      const session = sessions.get(sessionId);
+      if (!session) {
+        throw new Error("not found");
+      }
+      return JSON.parse(JSON.stringify(session));
+    }),
+    list: vi.fn(() => []),
+  };
+});
 vi.mock("core/util/history.js", () => ({
   default: mockHistoryManager,
 }));
@@ -67,6 +85,7 @@ const mockOs = vi.mocked(os);
 describe("SessionManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHistoryManager.sessions.clear();
 
     // Reset the singleton between tests
     // @ts-ignore - accessing private static property for testing
@@ -280,6 +299,64 @@ describe("SessionManager", () => {
       // After modification, system messages are filtered out
       expect(savedData.history).toHaveLength(1);
       expect(savedData.history[0].message.role).toBe("user");
+    });
+
+    it("should retain the returned revision across repeated saves", () => {
+      const session = createSession([], "repeated-save-session");
+      const firstMessage: ChatHistoryItem = {
+        message: { role: "user", content: "first" },
+        contextItems: [],
+      };
+      const secondMessage: ChatHistoryItem = {
+        message: { role: "assistant", content: "reply" },
+        contextItems: [],
+      };
+
+      updateSessionHistory([firstMessage]);
+      expect(session.revision).toBe(1);
+
+      updateSessionHistory([firstMessage, secondMessage]);
+
+      expect(session.revision).toBe(2);
+      expect(mockHistoryManager.sessions.get(session.sessionId)).toMatchObject({
+        revision: 2,
+        history: [firstMessage, secondMessage],
+      });
+      expect(mockHistoryManager.save).toHaveBeenCalledTimes(2);
+    });
+
+    it("should save new history after loading a saved session", () => {
+      const originalHistory: ChatHistoryItem[] = [
+        {
+          message: { role: "user", content: "before resume" },
+          contextItems: [],
+        },
+        {
+          message: { role: "assistant", content: "saved reply" },
+          contextItems: [],
+        },
+      ];
+      createSession(originalHistory, "resumed-save-session");
+      saveSession();
+      clearSession();
+
+      const resumedSession = loadOrCreateSessionById("resumed-save-session");
+      const appendedHistory: ChatHistoryItem[] = [
+        ...originalHistory,
+        {
+          message: { role: "user", content: "after resume" },
+          contextItems: [],
+        },
+      ];
+      updateSessionHistory(appendedHistory);
+
+      expect(resumedSession.revision).toBe(2);
+      expect(
+        mockHistoryManager.sessions.get(resumedSession.sessionId),
+      ).toMatchObject({
+        revision: 2,
+        history: appendedHistory,
+      });
     });
   });
 

@@ -1,5 +1,5 @@
 import nock from "nock";
-import { ChatCompletionMessageParam } from "openai/resources";
+import type { ChatCompletionMessageParam } from "openai/resources/index.js";
 
 export interface MockAPIOptions {
   baseURL?: string;

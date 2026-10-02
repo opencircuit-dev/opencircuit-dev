@@ -2,7 +2,7 @@ import { ModelConfig } from "@opencircuit/config-yaml";
 import type { ChatHistoryItem } from "core/index.js";
 import { getAdjustedTokenCountFromModel } from "core/llm/getAdjustedTokenCount.js";
 import { encode } from "gpt-tokenizer";
-import type { ChatCompletionTool } from "openai/resources/chat/completions.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 
 import { isFunctionChatCompletionTool } from "./chatCompletionTool.js";
 import { logger } from "./logger.js";

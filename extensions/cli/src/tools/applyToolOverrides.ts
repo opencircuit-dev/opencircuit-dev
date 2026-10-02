@@ -1,5 +1,5 @@
 import type { ToolOverrideConfig } from "@opencircuit/config-yaml";
-import type { ChatCompletionTool } from "openai/resources.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 
 import { isFunctionChatCompletionTool } from "../util/chatCompletionTool.js";
 

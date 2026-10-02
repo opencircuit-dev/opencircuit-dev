@@ -289,7 +289,8 @@ export function saveSession(): void {
     }
 
     const sessionToSave = getSessionPersistenceSnapshot(session);
-    historyManager.save(sessionToSave);
+    const { revision } = historyManager.save(sessionToSave);
+    session.revision = revision;
   } catch (error) {
     logger.error("Error saving session:", error);
   }

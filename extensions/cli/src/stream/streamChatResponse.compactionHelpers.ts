@@ -1,7 +1,7 @@
 import { ModelConfig } from "@opencircuit/config-yaml";
 import { BaseLlmApi } from "@opencircuit/openai-adapters";
 import type { ChatHistoryItem } from "core/index.js";
-import type { ChatCompletionTool } from "openai/resources/chat/completions.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 
 import { services } from "../services/index.js";
 import { ToolCall } from "../tools/index.js";

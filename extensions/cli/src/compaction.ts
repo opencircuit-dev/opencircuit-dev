@@ -2,7 +2,7 @@ import { ModelConfig } from "@opencircuit/config-yaml";
 import { BaseLlmApi } from "@opencircuit/openai-adapters";
 import type { ChatHistoryItem } from "core/index.js";
 import { encode } from "gpt-tokenizer";
-import { ChatCompletionTool } from "openai/resources.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 
 import { streamChatResponse } from "./stream/streamChatResponse.js";
 import { StreamCallbacks } from "./stream/streamChatResponse.types.js";

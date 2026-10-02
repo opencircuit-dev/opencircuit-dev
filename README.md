@@ -38,9 +38,9 @@ New to Open Circuit? Follow the beginner guide:
 | Packages   | `packages/`             | Fetching, model information, adapters, and security         |
 | Validation | `tests/` and `scripts/` | Builds, smoke tests, release checks, and runtime boundaries |
 
-The retained product path is the CLI and Core runtime. Editor extension and
-VSIX packaging are deferred and outside this repository's supported product
-surface.
+The retained product path is the CLI and Core runtime. Standalone VS Code
+extension and public VSIX Marketplace distribution have been retired. Native
+OVSCode integration is maintained separately.
 
 ## Architecture
 

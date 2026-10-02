@@ -77,9 +77,9 @@ packaging, and validation explanation in the pull request. Follow
 
 ## Scope and compatibility
 
-The retained product is the CLI, Core, and their shared packages. Editor
-extension and VSIX packaging are deferred and outside this repository's
-supported product surface.
+The retained product is the CLI, Core, and their shared packages. Standalone
+VS Code extension and public VSIX Marketplace distribution have been retired.
+Native OVSCode integration is maintained separately.
 Preserve `@opencircuit/*` package names and `OCIRCUIT_*` environment variables
 when compatibility requires them.
 

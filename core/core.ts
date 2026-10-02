@@ -23,7 +23,10 @@ import { callTool } from "./tools/callTool";
 import { ChatDescriber } from "./util/chatDescriber";
 import { compactConversation } from "./util/conversationCompaction";
 import { GlobalContext } from "./util/GlobalContext";
-import historyManager from "./util/history";
+import historyManager, {
+  registerHistoryCreateHandler,
+  registerHistorySaveHandler,
+} from "./util/history";
 import { editConfigFile, migrateV1DevDataFiles } from "./util/paths";
 
 import {
@@ -302,6 +305,8 @@ export class Core {
     });
 
     // History
+    registerHistoryCreateHandler(this.messenger, historyManager);
+
     on("history/list", async (msg) => {
       const sessions = historyManager.list(msg.data);
       const limit = msg.data?.limit ?? 100;
@@ -316,9 +321,7 @@ export class Core {
       return historyManager.load(msg.data.id);
     });
 
-    on("history/save", (msg) => {
-      historyManager.save(msg.data);
-    });
+    registerHistorySaveHandler(this.messenger, historyManager);
 
     on("history/share", async (msg) => {
       const session = historyManager.load(msg.data.id);

@@ -1,6 +1,6 @@
 import { CompletionOptions } from "@opencircuit/config-yaml";
 import type { ToolStatus } from "core/index.js";
-import type { ChatCompletionCreateParamsStreaming } from "openai/resources.mjs";
+import type { ChatCompletionCreateParamsStreaming } from "openai/resources/index.js";
 
 import { ToolCallPreview } from "../tools/types.js";
 

@@ -69,17 +69,40 @@ export function removeRunningProcess(toolCallId: string): void {
 
 export async function killTerminalProcess(toolCallId: string): Promise<void> {
   const processInfo = processTerminalForegroundStates.get(toolCallId);
-  if (processInfo && !processInfo.process.killed) {
+  if (
+    processInfo &&
+    !processInfo.process.killed &&
+    processInfo.process.exitCode === null &&
+    processInfo.process.signalCode === null
+  ) {
     const { process } = processInfo;
 
-    process.kill("SIGTERM");
+    let exited = false;
+    let forceKillTimeout: NodeJS.Timeout;
+    const onExit = () => {
+      exited = true;
+      clearTimeout(forceKillTimeout);
+    };
 
-    // Force kill after 5 seconds if still running
-    setTimeout(() => {
-      if (!process.killed) {
+    process.once("exit", onExit);
+
+    // Force kill after 5 seconds if the process has not exited. `killed`
+    // only means a signal was sent successfully; it does not mean the child
+    // has exited.
+    forceKillTimeout = setTimeout(() => {
+      if (!exited && process.exitCode === null && process.signalCode === null) {
         process.kill("SIGKILL");
       }
+      process.removeListener("exit", onExit);
     }, 5000);
+
+    try {
+      process.kill("SIGTERM");
+    } catch (error) {
+      clearTimeout(forceKillTimeout);
+      process.removeListener("exit", onExit);
+      throw error;
+    }
 
     processTerminalForegroundStates.delete(toolCallId);
   }

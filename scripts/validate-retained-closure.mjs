@@ -9,6 +9,14 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const skipInstall = process.argv.includes("--skip-install");
+const cargoBin = process.env.HOME
+  ? path.join(process.env.HOME, ".cargo", "bin")
+  : null;
+const validationEnvironment = {
+  ...process.env,
+  CI: "true",
+  PATH: [cargoBin, process.env.PATH].filter(Boolean).join(path.delimiter),
+};
 
 for (const generatedDirectory of ["core/dist", "extensions/cli/dist"]) {
   const directory = path.join(repositoryRoot, generatedDirectory);
@@ -21,12 +29,28 @@ const commands = [
     ? [
         {
           name: "root dependencies",
-          command: npmCommand,
-          args: ["ci", "--no-audit", "--no-fund"],
+          command: process.execPath,
+          args: [
+            "scripts/check-deprecation-policy.mjs",
+            "--no-audit",
+            "--no-fund",
+          ],
           cwd: repositoryRoot,
         },
       ]
     : []),
+  {
+    name: "Root release-tooling audit exception",
+    command: process.execPath,
+    args: ["scripts/check-release-tooling-audit-exception.mjs"],
+    cwd: repositoryRoot,
+  },
+  {
+    name: "Root production audit",
+    command: npmCommand,
+    args: ["audit", "--omit=dev", "--audit-level=high"],
+    cwd: repositoryRoot,
+  },
   {
     name: "shared package builds",
     command: process.execPath,
@@ -37,8 +61,12 @@ const commands = [
     ? [
         {
           name: "Core dependencies",
-          command: npmCommand,
-          args: ["ci", "--no-audit", "--no-fund"],
+          command: process.execPath,
+          args: [
+            "../scripts/check-deprecation-policy.mjs",
+            "--no-audit",
+            "--no-fund",
+          ],
           cwd: path.join(repositoryRoot, "core"),
         },
       ]
@@ -83,8 +111,13 @@ const commands = [
     ? [
         {
           name: "CLI dependencies",
-          command: npmCommand,
-          args: ["ci", "--include=optional", "--no-audit", "--no-fund"],
+          command: process.execPath,
+          args: [
+            "../../scripts/check-deprecation-policy.mjs",
+            "--include=optional",
+            "--no-audit",
+            "--no-fund",
+          ],
           cwd: path.join(repositoryRoot, "extensions/cli"),
         },
       ]
@@ -104,7 +137,13 @@ const commands = [
   {
     name: "CLI audit",
     command: npmCommand,
-    args: ["audit", "--audit-level=high"],
+    args: ["audit", "--omit=dev", "--audit-level=high"],
+    cwd: path.join(repositoryRoot, "extensions/cli"),
+  },
+  {
+    name: "CLI release-tooling audit exception",
+    command: process.execPath,
+    args: ["../../scripts/check-release-tooling-audit-exception.mjs"],
     cwd: path.join(repositoryRoot, "extensions/cli"),
   },
   {
@@ -136,6 +175,18 @@ const commands = [
     command: npmCommand,
     args: ["run", "check:release-artifact"],
     cwd: path.join(repositoryRoot, "extensions/cli"),
+  },
+  {
+    name: "Rust toolchain bootstrap",
+    command: process.execPath,
+    args: ["scripts/bootstrap-rust-toolchain.mjs"],
+    cwd: repositoryRoot,
+  },
+  {
+    name: "Rust toolchain preflight",
+    command: process.execPath,
+    args: ["scripts/check-rust-toolchain.mjs"],
+    cwd: repositoryRoot,
   },
   {
     name: "Rust format",
@@ -176,7 +227,7 @@ function runCommand(step) {
     console.log(`[retained-closure] $ ${step.command} ${step.args.join(" ")}`);
     const child = spawn(step.command, step.args, {
       cwd: step.cwd,
-      env: { ...process.env, CI: "true" },
+      env: validationEnvironment,
       stdio: "inherit",
     });
 

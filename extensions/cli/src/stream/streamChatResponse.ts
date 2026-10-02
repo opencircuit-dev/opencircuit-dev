@@ -6,7 +6,7 @@ import * as dotenv from "dotenv";
 import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
-} from "openai/resources.mjs";
+} from "openai/resources/index.js";
 
 import { pruneLastMessage } from "../compaction.js";
 import { services } from "../services/index.js";

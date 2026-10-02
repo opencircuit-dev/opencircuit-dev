@@ -1,5 +1,5 @@
 import { JSONSchema7Object } from "json-schema";
-import { ChatCompletionTool } from "openai/resources/index.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 
 // https://ai.google.dev/api/generate-content
 export interface GeminiGenerationConfig {

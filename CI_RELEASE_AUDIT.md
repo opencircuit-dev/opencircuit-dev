@@ -11,6 +11,18 @@ Canonical repository: `open-circuit-dev/open-circuit`
 - Root and CLI docs consistently require Node.js `24.19.0`.
 - Retained CLI/Core checks are documented as typecheck, build, smoke, and
   characterization/runtime-boundary validation.
+- Clean dependency installs run through a pinned, expiring deprecation policy
+  at `scripts/deprecation-allowlist.json`. It records only the currently
+  reproduced upstream warnings and fails on any new, removed, or changed
+  warning. The listed chains are tracked for direct-parent upgrades; major
+  Jest, SQLite/native-build, ESLint, and fetch-stack changes require separate
+  compatibility validation.
+- Root, Core, and CLI production closures retain strict high-severity audit
+  gates.
+  Development-only release tooling is checked by a fail-closed, expiring
+  exception at `scripts/dependency-audit-exceptions.json`; it accepts only the
+  three exact npm-bundled findings, versions, paths, and advisory URLs recorded
+  there. Any new or changed finding fails validation.
 
 ## Deferred references
 
