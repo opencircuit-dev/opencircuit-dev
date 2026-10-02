@@ -1,4 +1,5 @@
 import { ChildProcess } from "child_process";
+import { EventEmitter } from "events";
 import {
   clearAllBackgroundProcesses,
   getAllBackgroundedProcessIds,
@@ -21,11 +22,13 @@ const createMockProcess = (
   pid: number = 123,
   killed: boolean = false,
 ): jest.Mocked<ChildProcess> => {
-  const mockProcess = {
+  const mockProcess = Object.assign(new EventEmitter(), {
     pid,
     killed,
+    exitCode: null,
+    signalCode: null,
     kill: jest.fn(),
-  } as unknown as jest.Mocked<ChildProcess>;
+  }) as unknown as jest.Mocked<ChildProcess>;
 
   // Make kill() update the killed property
   mockProcess.kill.mockImplementation(() => {
@@ -196,6 +199,7 @@ describe("processTerminalStates", () => {
     });
 
     afterEach(() => {
+      jest.clearAllTimers();
       jest.useRealTimers();
     });
 
@@ -229,17 +233,9 @@ describe("processTerminalStates", () => {
       expect(mockProcess.kill).not.toHaveBeenCalled();
     });
 
-    test("should send SIGKILL after timeout if process not killed", async () => {
+    test("should send SIGKILL after timeout if process has not exited", async () => {
       const toolCallId = "test-123";
       const mockProcess = createMockProcess();
-
-      // Mock kill to not actually set killed=true for SIGTERM
-      mockProcess.kill.mockImplementation((signal) => {
-        if (signal === "SIGKILL") {
-          (mockProcess as any).killed = true;
-        }
-        return true;
-      });
 
       markProcessAsRunning(toolCallId, mockProcess);
 
@@ -254,7 +250,7 @@ describe("processTerminalStates", () => {
       expect(mockProcess.kill).toHaveBeenCalledWith("SIGKILL");
     });
 
-    test("should not send SIGKILL if process was already killed", async () => {
+    test("should clear the force-kill timer when the process exits", async () => {
       const toolCallId = "test-123";
       const mockProcess = createMockProcess();
 
@@ -262,12 +258,14 @@ describe("processTerminalStates", () => {
 
       const cancelPromise = killTerminalProcess(toolCallId);
 
-      // Fast-forward time to trigger the timeout
-      jest.advanceTimersByTime(5000);
-
       await cancelPromise;
 
       expect(mockProcess.kill).toHaveBeenCalledWith("SIGTERM");
+
+      mockProcess.emit("exit", 0, null);
+      expect(jest.getTimerCount()).toBe(0);
+
+      jest.advanceTimersByTime(5000);
       expect(mockProcess.kill).toHaveBeenCalledTimes(1); // Only SIGTERM, no SIGKILL
     });
   });
@@ -321,6 +319,9 @@ describe("processTerminalStates", () => {
       expect(mockProcess2.kill).toHaveBeenCalledWith("SIGTERM");
       expect(isProcessRunning(toolCallId1)).toBe(false);
       expect(isProcessRunning(toolCallId2)).toBe(false);
+
+      mockProcess1.emit("exit", 0, null);
+      mockProcess2.emit("exit", 0, null);
     });
 
     test("should cancel all running terminal commands", async () => {
@@ -341,6 +342,9 @@ describe("processTerminalStates", () => {
       expect(mockProcess2.kill).toHaveBeenCalledWith("SIGTERM");
       expect(isProcessRunning(toolCallId1)).toBe(false);
       expect(isProcessRunning(toolCallId2)).toBe(false);
+
+      mockProcess1.emit("exit", 0, null);
+      mockProcess2.emit("exit", 0, null);
     });
 
     test("should return empty array when no running commands to cancel", async () => {

@@ -1,4 +1,4 @@
-import type { ChatCompletionTool } from "openai/resources.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.js";
 import { describe, expect, it } from "vitest";
 
 import { isFunctionChatCompletionTool } from "../util/chatCompletionTool.js";

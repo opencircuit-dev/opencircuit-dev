@@ -3,18 +3,18 @@ import {
   CompletionCreateParamsNonStreaming,
   CompletionCreateParamsStreaming,
   CompletionUsage,
-} from "openai/resources/completions.mjs";
+} from "openai/resources/completions.js";
 import {
   CreateEmbeddingResponse,
   EmbeddingCreateParams,
-} from "openai/resources/embeddings.mjs";
+} from "openai/resources/embeddings.js";
 import {
   ChatCompletion,
   ChatCompletionChunk,
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionCreateParamsStreaming,
-} from "openai/resources/index.mjs";
-import { Model } from "openai/resources/models.mjs";
+} from "openai/resources/index.js";
+import { Model } from "openai/resources/models.js";
 import { z } from "zod";
 import { OpenAIConfigSchema } from "../types.js";
 import {

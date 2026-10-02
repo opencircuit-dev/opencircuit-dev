@@ -192,6 +192,16 @@ describe("E2E: Resume Flag", () => {
 
     // Verify both requests were made to the server
     expect(mockServer.requests).toHaveLength(2);
+    expect(
+      mockServer.requests[1].body.messages
+        .filter((message: any) => message.role === "user")
+        .map((message: any) => message.content),
+    ).toContain("first message");
+    expect(
+      mockServer.requests[1].body.messages
+        .filter((message: any) => message.role === "assistant")
+        .map((message: any) => message.content),
+    ).toContain("First response");
 
     // Check that the session file contains both messages
     sessionFiles = (await fs.readdir(sessionDir)).filter(
