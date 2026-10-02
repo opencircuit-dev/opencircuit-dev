@@ -21,12 +21,28 @@ const commands = [
     ? [
         {
           name: "root dependencies",
-          command: npmCommand,
-          args: ["ci", "--no-audit", "--no-fund"],
+          command: process.execPath,
+          args: [
+            "scripts/check-deprecation-policy.mjs",
+            "--no-audit",
+            "--no-fund",
+          ],
           cwd: repositoryRoot,
         },
       ]
     : []),
+  {
+    name: "Root release-tooling audit exception",
+    command: process.execPath,
+    args: ["scripts/check-release-tooling-audit-exception.mjs"],
+    cwd: repositoryRoot,
+  },
+  {
+    name: "Root production audit",
+    command: npmCommand,
+    args: ["audit", "--omit=dev", "--audit-level=high"],
+    cwd: repositoryRoot,
+  },
   {
     name: "shared package builds",
     command: process.execPath,
@@ -37,8 +53,12 @@ const commands = [
     ? [
         {
           name: "Core dependencies",
-          command: npmCommand,
-          args: ["ci", "--no-audit", "--no-fund"],
+          command: process.execPath,
+          args: [
+            "../scripts/check-deprecation-policy.mjs",
+            "--no-audit",
+            "--no-fund",
+          ],
           cwd: path.join(repositoryRoot, "core"),
         },
       ]
@@ -83,8 +103,13 @@ const commands = [
     ? [
         {
           name: "CLI dependencies",
-          command: npmCommand,
-          args: ["ci", "--include=optional", "--no-audit", "--no-fund"],
+          command: process.execPath,
+          args: [
+            "../../scripts/check-deprecation-policy.mjs",
+            "--include=optional",
+            "--no-audit",
+            "--no-fund",
+          ],
           cwd: path.join(repositoryRoot, "extensions/cli"),
         },
       ]
@@ -104,7 +129,13 @@ const commands = [
   {
     name: "CLI audit",
     command: npmCommand,
-    args: ["audit", "--audit-level=high"],
+    args: ["audit", "--omit=dev", "--audit-level=high"],
+    cwd: path.join(repositoryRoot, "extensions/cli"),
+  },
+  {
+    name: "CLI release-tooling audit exception",
+    command: process.execPath,
+    args: ["../../scripts/check-release-tooling-audit-exception.mjs"],
     cwd: path.join(repositoryRoot, "extensions/cli"),
   },
   {
