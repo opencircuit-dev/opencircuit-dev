@@ -177,6 +177,12 @@ const commands = [
     cwd: path.join(repositoryRoot, "extensions/cli"),
   },
   {
+    name: "Rust toolchain bootstrap",
+    command: process.execPath,
+    args: ["scripts/bootstrap-rust-toolchain.mjs"],
+    cwd: repositoryRoot,
+  },
+  {
     name: "Rust toolchain preflight",
     command: process.execPath,
     args: ["scripts/check-rust-toolchain.mjs"],
