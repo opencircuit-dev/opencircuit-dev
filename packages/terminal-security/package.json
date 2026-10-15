@@ -20,6 +20,6 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
-    "shell-quote": "^1.8.1"
+    "shell-quote": "^1.11.0"
   }
 }
