@@ -2,7 +2,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import { modelSchema } from "@opencircuit/config-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import YAML from "yaml";
 
 import { env } from "./env.js";
 import { installPackagedTemplates } from "./templateInstaller.js";
@@ -74,5 +76,24 @@ describe("installPackagedTemplates", () => {
       "config-olmo.yaml",
       "config-openai.yaml",
     ]);
+  });
+
+  it("installs an OLMo config whose no-tools option survives schema loading", () => {
+    installPackagedTemplates();
+    const config = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-olmo.yaml"),
+        "utf8",
+      ),
+    );
+    const model = modelSchema.parse(config.models[0]);
+
+    expect(model.chatOptions?.disableTools).toBe(true);
+    expect(
+      modelSchema.safeParse({
+        ...config.models[0],
+        chatOptions: { disableTools: "true" },
+      }).success,
+    ).toBe(false);
   });
 });
