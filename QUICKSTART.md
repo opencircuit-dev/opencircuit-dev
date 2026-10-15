@@ -421,6 +421,32 @@ The CLI currently auto-detects `ANTHROPIC_API_KEY` during headless onboarding,
 but explicit `--config` files are the reliable path for OpenAI, Anthropic,
 Gemini, and OpenAI-compatible provider selection.
 
+#### OLMo through Ollama
+
+`oc init` installs the packaged OLMo example at
+`~/.ocircuit/templates/config-olmo.yaml`. Copy it into the active config and
+adjust the model name to match `ollama list` on the Ollama server:
+
+```bash
+cp ~/.ocircuit/templates/config-olmo.yaml ~/.ocircuit/config.yaml
+```
+
+For an Ollama server without authentication, put this in `~/.ocircuit/.env`:
+
+```dotenv
+BYOM_API_KEY=
+```
+
+The packaged example uses `http://localhost:11434/v1/`; change `apiBase` if
+your Ollama server uses another address. Run Open Circuit with that config and
+send a one-shot smoke request:
+
+```bash
+oc --config ~/.ocircuit/config.yaml -p "Reply with exactly OK." --silent
+```
+
+The expected response is `OK`.
+
 ## 8. Maintainer: Stage a Local Release Asset
 
 From an Open Circuit source checkout:

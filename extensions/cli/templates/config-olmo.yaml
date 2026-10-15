@@ -1,0 +1,11 @@
+name: OLMo on Ollama
+version: 1.0.0
+schema: v1
+models:
+  - name: OLMo
+    provider: openai-compatible
+    model: olmo2:7b # Replace with the exact name shown by `ollama list`
+    apiBase: http://localhost:11434/v1/
+    apiKey: ${{ secrets.BYOM_API_KEY }}
+    roles:
+      - chat
