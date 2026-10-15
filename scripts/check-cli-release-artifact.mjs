@@ -48,6 +48,7 @@ const requiredFiles = [
   "templates/config-anthropic.yaml",
   "templates/config-gemini.yaml",
   "templates/config-byom.yaml",
+  "templates/config-olmo.yaml",
 ];
 const missingFiles = requiredFiles.filter((file) => !files.includes(file));
 const forbiddenFiles = files.filter(

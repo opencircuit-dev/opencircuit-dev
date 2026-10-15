@@ -30,6 +30,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-gemini.yaml",
+      "config-olmo.yaml",
       "config-openai.yaml",
     ];
 
@@ -59,6 +60,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-gemini.yaml",
+      "config-olmo.yaml",
     ]);
     expect(result.preserved).toEqual(["config-openai.yaml"]);
     expect(fs.readFileSync(existingPath, "utf8")).toBe("user-owned-config\n");
@@ -69,6 +71,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-gemini.yaml",
+      "config-olmo.yaml",
       "config-openai.yaml",
     ]);
   });
