@@ -9,3 +9,5 @@ models:
     apiKey: ${{ secrets.BYOM_API_KEY }}
     roles:
       - chat
+    chatOptions:
+      disableTools: true

@@ -285,10 +285,10 @@ models:
       - chat
 ```
 
-The CLI package installs these four starter templates automatically in
+The CLI package installs these five starter templates automatically in
 `~/.ocircuit/templates/` without overwriting existing files:
-`config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`, and
-`config-byom.yaml`. Select exactly one template for the active configuration,
+`config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`,
+`config-byom.yaml`, and `config-olmo.yaml`. Select exactly one template for the active configuration,
 copy it once to `~/.ocircuit/config.yaml`, and do not keep multiple provider
 configs active at the same time.
 
@@ -446,6 +446,26 @@ oc --config ~/.ocircuit/config.yaml -p "Reply with exactly OK." --silent
 ```
 
 The expected response is `OK`.
+
+The OLMo template sets `chatOptions.disableTools: true` because `olmo2:7b`
+does not support native tool calling. Plain `oc` works without `--exclude '*'`.
+This model-level restriction applies in interactive and headless sessions,
+including plan/auto mode, and cannot be overridden by tool permission flags.
+Other model configurations keep their existing tool behavior. OLMo sessions
+are chat-only: they cannot read files, run commands, or edit code through tools.
+
+For an existing active OLMo config, add:
+
+```yaml
+chatOptions:
+  disableTools: true
+```
+
+Place this under its entry in `models`. Upgrades preserve existing templates
+and active configs, so they must be updated explicitly. After installing a
+runtime that supports this setting, remove any global `exclude: ["*"]`
+workaround from `~/.ocircuit/permissions.yaml` if tools should remain available
+for other models. Plain HTTP endpoints should only be used on a trusted network.
 
 ## 8. Maintainer: Stage a Local Release Asset
 

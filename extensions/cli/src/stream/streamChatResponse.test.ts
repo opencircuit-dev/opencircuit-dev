@@ -179,6 +179,55 @@ describe("processStreamingResponse - content preservation", () => {
     expect(result.finalContent).toBe("I'll read the README file for you.");
   });
 
+  it.each([true, false, undefined])(
+    "honors model disableTools=%s at the request boundary",
+    async (disableTools) => {
+      mockModel.chatOptions = { disableTools };
+      chunks = [contentChunk("OK")];
+      const tools = [
+        {
+          type: "function" as const,
+          function: { name: "Read", parameters: { type: "object" } },
+        },
+      ];
+
+      const result = await processStreamingResponse({
+        chatHistory,
+        model: mockModel,
+        llmApi: mockLlmApi,
+        abortController: mockAbortController,
+        tools,
+        systemMessage: "You are a helpful assistant.",
+      });
+
+      const request = vi.mocked(mockLlmApi.chatCompletionStream).mock
+        .calls[0][0];
+      if (disableTools) {
+        expect(request).not.toHaveProperty("tools");
+        expect(request).not.toHaveProperty("tool_choice");
+        expect(request).not.toHaveProperty("parallel_tool_calls");
+      } else {
+        expect(request.tools).toEqual(tools);
+      }
+      expect(result.content).toBe("OK");
+    },
+  );
+
+  it("rejects unsolicited tool calls when tools are disabled", async () => {
+    mockModel.chatOptions = { disableTools: true };
+    chunks = [toolCallChunk("call_123", "Bash", '{"command":"pwd"}')];
+
+    await expect(
+      processStreamingResponse({
+        chatHistory,
+        model: mockModel,
+        llmApi: mockLlmApi,
+        abortController: mockAbortController,
+        systemMessage: "You are a helpful assistant.",
+      }),
+    ).rejects.toThrow("chatOptions.disableTools is enabled");
+  });
+
   it("content before tool calls is preserved", async () => {
     chunks = [
       contentChunk("Let me search for that. "),
