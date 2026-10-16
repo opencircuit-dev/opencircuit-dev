@@ -46,6 +46,7 @@ jobs:
   release:
     name: Release ${{ inputs.package-name }}
     runs-on: ubuntu-24.04
+    if: github.repository == 'opencircuit-dev/opencircuit-dev'
     defaults:
       run:
         working-directory: ${{ inputs.package-path }}
@@ -62,6 +63,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: ".nvmrc"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Build
         run: npm run build
@@ -86,4 +88,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.SEMANTIC_RELEASE_NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_NPM_TOKEN }}
-        run: npx semantic-release
+        run: node ../../scripts/release-package.mjs --execute
