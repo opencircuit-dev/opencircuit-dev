@@ -141,6 +141,7 @@
   "allowScripts": {
     "@google/genai@1.52.0": true,
     "@biomejs/biome@1.6.4": true,
+    "@parcel/watcher@2.6.0": true,
     "esbuild@0.28.2": true,
     "esbuild@0.25.5": true,
     "esbuild@0.25.12": true,
