@@ -211,10 +211,11 @@ export async function processStreamingResponse(
     abortController,
     callbacks,
     isHeadless,
-    tools,
+    tools: requestedTools,
     systemMessage,
   } = options;
 
+  const tools = model.chatOptions?.disableTools ? undefined : requestedTools;
   let chatHistory = options.chatHistory;
 
   // Safety buffer to account for tokenization estimation errors
@@ -269,7 +270,7 @@ export async function processStreamingResponse(
       model: model.model,
       messages: openaiChatHistory,
       stream: true as const,
-      tools,
+      ...(tools?.length ? { tools } : {}),
       ...getDefaultCompletionOptions(model.defaultCompletionOptions),
     };
 
@@ -341,6 +342,11 @@ export async function processStreamingResponse(
         callbacks,
         isHeadless,
       });
+      if (model.chatOptions?.disableTools && toolCallsMap.size > 0) {
+        throw new Error(
+          "The model returned a tool call while chatOptions.disableTools is enabled.",
+        );
+      }
       aiResponse = result.aiResponse;
       if (!result.shouldContinue) break;
     }
@@ -466,7 +472,9 @@ export async function streamChatResponse(
     );
 
     // Recompute tools on each iteration to handle mode changes during streaming
-    const rawTools = await getRequestTools(isHeadless);
+    const rawTools = model.chatOptions?.disableTools
+      ? []
+      : await getRequestTools(isHeadless);
     const tools = applyChatCompletionToolOverrides(
       rawTools,
       model.chatOptions?.toolOverrides,

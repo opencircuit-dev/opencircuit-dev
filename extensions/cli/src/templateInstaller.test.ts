@@ -2,7 +2,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import { modelSchema } from "@opencircuit/config-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import YAML from "yaml";
 
 import { env } from "./env.js";
 import { installPackagedTemplates } from "./templateInstaller.js";
@@ -31,6 +33,7 @@ describe("installPackagedTemplates", () => {
       "config-byom.yaml",
       "config-cisco.yaml",
       "config-gemini.yaml",
+      "config-olmo.yaml",
       "config-openai.yaml",
     ];
 
@@ -61,6 +64,7 @@ describe("installPackagedTemplates", () => {
       "config-byom.yaml",
       "config-cisco.yaml",
       "config-gemini.yaml",
+      "config-olmo.yaml",
     ]);
     expect(result.preserved).toEqual(["config-openai.yaml"]);
     expect(fs.readFileSync(existingPath, "utf8")).toBe("user-owned-config\n");
@@ -72,7 +76,27 @@ describe("installPackagedTemplates", () => {
       "config-byom.yaml",
       "config-cisco.yaml",
       "config-gemini.yaml",
+      "config-olmo.yaml",
       "config-openai.yaml",
     ]);
+  });
+
+  it("installs an OLMo config whose no-tools option survives schema loading", () => {
+    installPackagedTemplates();
+    const config = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-olmo.yaml"),
+        "utf8",
+      ),
+    );
+    const model = modelSchema.parse(config.models[0]);
+
+    expect(model.chatOptions?.disableTools).toBe(true);
+    expect(
+      modelSchema.safeParse({
+        ...config.models[0],
+        chatOptions: { disableTools: "true" },
+      }).success,
+    ).toBe(false);
   });
 });
