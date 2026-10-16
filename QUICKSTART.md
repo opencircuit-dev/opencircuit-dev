@@ -300,7 +300,9 @@ models:
       - chat
 ```
 
-The release tarball packages these five starter templates directly. Install
+The release tarball packages six starter templates directly:
+`config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`,
+`config-byom.yaml`, `config-cisco.yaml`, and `config-olmo.yaml`. Install
 them locally, without network access or lifecycle scripts, with:
 
 ```bash
@@ -472,6 +474,52 @@ oc --config ./config.yaml -p "Summarize the current directory."
 The CLI currently auto-detects `ANTHROPIC_API_KEY` during headless onboarding,
 but explicit `--config` files are the reliable path for OpenAI, Anthropic,
 Gemini, and OpenAI-compatible provider selection.
+
+#### OLMo through Ollama
+
+`oc init` installs the packaged OLMo example at
+`~/.ocircuit/templates/config-olmo.yaml`. Copy it into the active config and
+adjust the model name to match `ollama list` on the Ollama server:
+
+```bash
+cp ~/.ocircuit/templates/config-olmo.yaml ~/.ocircuit/config.yaml
+```
+
+For an Ollama server without authentication, put this in `~/.ocircuit/.env`:
+
+```dotenv
+BYOM_API_KEY=
+```
+
+The packaged example uses `http://10.1.141.29:11434/v1/`; change `apiBase` if
+your Ollama server uses another address. Run Open Circuit with that config and
+send a one-shot smoke request:
+
+```bash
+oc --config ~/.ocircuit/config.yaml -p "Reply with exactly OK." --silent
+```
+
+The expected response is `OK`.
+
+The OLMo template sets `chatOptions.disableTools: true` because `olmo2:7b`
+does not support native tool calling. Plain `oc` works without `--exclude '*'`.
+This model-level restriction applies in interactive and headless sessions,
+including plan/auto mode, and cannot be overridden by tool permission flags.
+Other model configurations keep their existing tool behavior. OLMo sessions
+are chat-only: they cannot read files, run commands, or edit code through tools.
+
+For an existing active OLMo config, add:
+
+```yaml
+chatOptions:
+  disableTools: true
+```
+
+Place this under its entry in `models`. Upgrades preserve existing templates
+and active configs, so they must be updated explicitly. After installing a
+runtime that supports this setting, remove any global `exclude: ["*"]`
+workaround from `~/.ocircuit/permissions.yaml` if tools should remain available
+for other models. Plain HTTP endpoints should only be used on a trusted network.
 
 ## 8. Maintainer: Stage a Local Release Asset
 

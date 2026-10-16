@@ -5,6 +5,9 @@ import { convertToUnifiedHistory } from "core/messageConversion.js";
 import type { ChatCompletionChunk } from "openai/resources/index.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { services } from "../services/index.js";
+
+import { getRequestTools } from "./handleToolCalls.js";
 import { streamChatResponse } from "./streamChatResponse.js";
 
 // Mock all dependencies
@@ -131,6 +134,41 @@ describe("streamChatResponse - auto-continuation after compaction", () => {
       abort: vi.fn(),
     } as unknown as AbortController;
   });
+
+  it.each([
+    [false, "normal"],
+    [false, "plan"],
+    [false, "auto"],
+    [true, "normal"],
+    [true, "plan"],
+    [true, "auto"],
+  ] as const)(
+    "keeps tools disabled for headless=%s in %s mode",
+    async (isHeadless, currentMode) => {
+      vi.mocked(services.toolPermissions.isHeadless).mockReturnValue(
+        isHeadless,
+      );
+      vi.mocked(services.toolPermissions.getState).mockReturnValue({
+        currentMode,
+        permissions: {
+          policies: [{ tool: "*", permission: "allow" }],
+        },
+        isHeadless,
+      });
+
+      await streamChatResponse(
+        chatHistory,
+        { ...mockModel, chatOptions: { disableTools: true } },
+        mockLlmApi,
+        mockAbortController,
+      );
+
+      expect(getRequestTools).not.toHaveBeenCalled();
+      const request = vi.mocked(mockLlmApi.chatCompletionStream).mock
+        .calls[0][0];
+      expect(request).not.toHaveProperty("tools");
+    },
+  );
 
   it("should automatically continue after compaction when no tool calls remain", async () => {
     const { services } = await import("../services/index.js");

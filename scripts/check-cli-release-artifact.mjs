@@ -49,6 +49,7 @@ const requiredFiles = [
   "templates/config-gemini.yaml",
   "templates/config-byom.yaml",
   "templates/config-cisco.yaml",
+  "templates/config-olmo.yaml",
 ];
 const missingFiles = requiredFiles.filter((file) => !files.includes(file));
 const forbiddenFiles = files.filter(
@@ -94,6 +95,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else if (packageJson.version.endsWith("-dev")) {
   console.warn(
-    "Release artifact shape passed; semantic-release must replace the development version before publishing.",
+    "Release artifact shape passed; assign a stable version before publishing.",
   );
 }

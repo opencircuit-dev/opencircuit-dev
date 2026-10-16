@@ -115,6 +115,7 @@ export const toolOverrideSchema = z.object({
 export type ToolOverrideConfig = z.infer<typeof toolOverrideSchema>;
 
 export const chatOptionsSchema = z.object({
+  disableTools: z.boolean().optional(),
   baseSystemMessage: z.string().optional(),
   baseAgentSystemMessage: z.string().optional(),
   basePlanSystemMessage: z.string().optional(),
