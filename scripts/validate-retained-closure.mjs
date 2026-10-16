@@ -90,9 +90,15 @@ const commands = [
     cwd: path.join(repositoryRoot, "core"),
   },
   {
+    name: "Core dependency-upgrade compatibility",
+    command: npmCommand,
+    args: ["run", "test:dependency-upgrades"],
+    cwd: path.join(repositoryRoot, "core"),
+  },
+  {
     name: "Core audit",
     command: npmCommand,
-    args: ["audit", "--audit-level=high"],
+    args: ["audit", "--audit-level=low"],
     cwd: path.join(repositoryRoot, "core"),
   },
   {

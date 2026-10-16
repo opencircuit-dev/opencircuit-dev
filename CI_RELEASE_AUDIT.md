@@ -17,9 +17,7 @@ Canonical repository: `open-circuit-dev/open-circuit`
   warning. The listed chains are tracked for direct-parent upgrades; major
   Jest, SQLite/native-build, ESLint, and fetch-stack changes require separate
   compatibility validation.
-- Root, Core, and CLI production closures retain strict high-severity audit
-  gates.
-  Root and CLI development/optional closures are also audited with no
+- Root, Core, and CLI dependency closures are audited with no
   exceptions. The historical check-release-tooling-audit-exception script
   name remains compatible, but any finding now fails the check. The former
   npm-bundle exception file has been removed with the dependency chain.
@@ -71,9 +69,13 @@ Validation uses Node.js `24.19.0`, npm `11.17.0`, and macOS arm64.
   14 reviewed warnings, including glob 10 through coverage tooling, and the
   exact-version reviewed watcher hook approval. The existing deprecation
   expiry is unchanged; warning entries are not vulnerability exceptions.
-- Core's existing high-severity audit gate passes. Core still has moderate
-  sprintf-js findings in its separate Jest and SQL Server dependency chains;
-  this is not a claim of zero vulnerabilities across the entire repository.
+- Core's full audit now reports zero vulnerabilities as well. Exact,
+  parent-scoped upgrades move the coverage config loader to js-yaml 4.3.2
+  and dbinfoz to mssql 12.7.9/tedious 20, removing sprintf-js. YAML config
+  loading and schema queries through the actual upgraded adapter APIs pass
+  three focused compatibility/lockfile checks; Core build/typecheck and CLI
+  typecheck/build/smoke also pass. The Core audit gate now rejects findings
+  at every severity. No live SQL Server connection was used in these tests.
 - The retained-closure run passes root clean-install/audit checks, release
   planning/audit safety tests, shared builds, Core install-script/dependency/
   audit/build/typecheck/lint checks, and CLI install-script/dependency/audit/
@@ -85,6 +87,12 @@ Validation uses Node.js `24.19.0`, npm `11.17.0`, and macOS arm64.
   Server1, Ubuntu1, or another supported Linux runner before declaring the
   entire profile passed. A live Cisco API smoke test also remains separate
   from deterministic checks.
+- A minimal, read-only Cisco request was attempted with existing credentials
+  and returned HTTP 401. Metadata-only checks confirm that both the shell
+  and application-file tokens are expired. Neither credentials nor raw API
+  bodies were recorded in repository evidence; a fresh approved token is
+  required before this test can pass. Credential files and user config were
+  not changed.
 
 No audit acceptance was added. Do not enable publishing automation or promote
 an artifact before the required platform gates and maintainer review finish.

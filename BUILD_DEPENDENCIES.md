@@ -17,6 +17,23 @@ CLI package artifact, and runs Rust format/check/tests/benchmark/audit. Use
 npm run validate:retained-closure -- --skip-install only after dependencies
 have already been installed from the current lockfiles.
 
+## Core dependency compatibility
+
+Core removes its remaining sprintf-js chains with exact, parent-scoped
+overrides: `@istanbuljs/load-nyc-config` uses `js-yaml@4.3.2`, and `dbinfoz`
+uses `mssql@12.7.9` (which resolves tedious 20). The coverage loader uses the
+retained `load` API, and the database adapter retains the ConnectionPool,
+request, input, and query interfaces. No global YAML or SQL-driver override
+is applied, and no audit acceptance is added.
+
+Run `npm --prefix core run test:dependency-upgrades` to check YAML/extended
+coverage configuration, mocked schema queries through the real upgraded SQL
+driver, and absence of sprintf-js in the Core lockfile. This test does not
+contact a database and does not certify live SQL Server connectivity. It is
+part of the retained-closure profile, whose Core audit now rejects findings
+at any severity. Remove these compatibility overrides when the owning
+packages declare supported dependency ranges that remove the old chains.
+
 ## Release tooling
 
 Release planning uses pinned conventional-changelog libraries, not
