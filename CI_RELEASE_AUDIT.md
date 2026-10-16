@@ -48,7 +48,10 @@ path.
 
 PR #5 imports upstream `1e9967945023cea8e2e7fc4630771b5640a9e969`
 into internal baseline `50163baeeae70d9d6eff9ad57893d9c0d6fdf785`.
-Validation uses Node.js `24.19.0`, npm `11.17.0`, and macOS arm64.
+Local checks use Node.js `24.19.0`, npm `11.17.0`, and macOS arm64.
+The complete retained-closure profile also passes on Server1 Linux at
+`7f0e8ddee3cd1f30b89124824b1885e5b4007bf0` using Node.js `24.19.0`
+and pinned Rust/Cargo `1.99.0`.
 
 - Replacing config-yaml's Jest 29 runner with Vitest retains 288 passing
   source tests; emitted dist tests are not executed a second time. Unused
@@ -82,11 +85,16 @@ Validation uses Node.js `24.19.0`, npm `11.17.0`, and macOS arm64.
   typecheck/build/smoke/runtime-boundary/artifact checks. The runtime-boundary
   check uses the pinned Node version and packages both Cisco and OLMo
   templates without forbidden credential files.
-- The full profile then stops at Server1 Rust bootstrap because that step
-  supports Linux, not macOS. The Rust gates require a complete rerun on
-  Server1, Ubuntu1, or another supported Linux runner before declaring the
-  entire profile passed. A live Cisco API smoke test also remains separate
-  from deterministic checks.
+- All 30 stages of the complete profile pass on Server1, including Rust
+  bootstrap/preflight, format, locked check, 11 normal tests, the separately
+  invoked ignored benchmark, and cargo audit. The source bundle checksum
+  and checkout SHA were verified before execution. Validation used an
+  isolated checkout under the Server1 user's cache because the pre-existing
+  checkout had local changes; those files and its HEAD were preserved.
+  This successful Linux run supersedes the earlier macOS-only Rust blocker.
+  The local evidence log is
+  `/tmp/opencircuit-server1-retained-7f0e8ddee.log`. These documentation-only
+  follow-ups do not change the validated runtime source.
 - A minimal, read-only Cisco request was attempted with existing credentials
   and returned HTTP 401. Metadata-only checks confirm that both the shell
   and application-file tokens are expired. Neither credentials nor raw API

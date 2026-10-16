@@ -78,7 +78,8 @@ tag-only publishing flow. This check is also in the retained-closure profile.
 
 - Node.js `24.19.0`, pinned by `.nvmrc` and `.node-version`.
 - npm with the committed package lockfiles.
-- Rust/Cargo 1.98.1 and cargo-audit for the sync retained-closure gate.
+- Rust/Cargo `1.99.0`, pinned by `sync/rust-toolchain.toml`, and cargo-audit
+  for the sync retained-closure gate.
 
 ## CI and release secrets
 
