@@ -53,6 +53,8 @@ const requiredFiles = [
 const missingFiles = requiredFiles.filter((file) => !files.includes(file));
 const forbiddenFiles = files.filter(
   (file) =>
+    file === "templates/config-cisco.yaml" ||
+    file === "templates/config-devnet.yaml" ||
     file.includes("node_modules/") ||
     file === ".env" ||
     file.endsWith(".pem") ||
