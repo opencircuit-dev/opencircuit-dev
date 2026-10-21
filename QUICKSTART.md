@@ -300,9 +300,10 @@ models:
       - chat
 ```
 
-The release tarball packages seven starter templates directly:
+The release tarball packages eight starter templates directly:
 `config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`,
-`config-byom.yaml`, `config-cisco.yaml`, `config-devnet.yaml`, and `config-olmo.yaml`. Install
+`config-byom.yaml`, `config-cisco.yaml`, `config-devnet.yaml`,
+`config-meta.yaml`, and `config-olmo.yaml`. Install
 them locally, without network access or lifecycle scripts, with:
 
 ```bash
@@ -522,7 +523,32 @@ chatOptions:
 ```
 
 Place this under its entry in `models`. Upgrades preserve existing templates
-and active configs, so they must be updated explicitly. After installing a
+and active configs, so they must be updated explicitly.
+
+#### Meta Muse Spark
+
+The packaged `config-meta.yaml` uses Meta's OpenAI-compatible Model API with
+the `muse-spark-1.3` model. Add the API key to `~/.ocircuit/.env` (or another
+supported Open Circuit secret source), keeping that file private:
+
+```dotenv
+META_MODEL_API_KEY=your-meta-model-api-key
+```
+
+Copy the template to the active config, then make a harmless test request:
+
+```bash
+cp ~/.ocircuit/templates/config-meta.yaml ~/.ocircuit/config.yaml
+chmod 600 ~/.ocircuit/config.yaml
+oc --config ~/.ocircuit/config.yaml -p "Reply with exactly OK." --silent
+```
+
+Meta's API is OpenAI-compatible, but not every OpenAI request parameter is
+supported. If the API returns a parameter-related `400`, review Meta's current
+Chat Completions documentation rather than retrying the same request unchanged.
+Keep provider keys separate between agent harnesses when practical.
+
+After installing a
 runtime that supports this setting, remove any global `exclude: ["*"]`
 workaround from `~/.ocircuit/permissions.yaml` if tools should remain available
 for other models. Plain HTTP endpoints should only be used on a trusted network.
