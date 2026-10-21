@@ -13,15 +13,13 @@ another Linux runner:
 The profile installs from lockfiles, builds shared packages and Core, checks
 the exact install-script and dependency policies, audits Core and CLI, runs
 the CLI smoke and hermetic CLI-to-Core runtime tests, validates the dry-run
-CLI package artifact, and runs Rust format/check/tests/benchmark/audit. Use
-npm run validate:retained-closure -- --skip-install only after dependencies
-have already been installed from the current lockfiles.
+CLI package artifact. Use npm run validate:retained-closure -- --skip-install
+only after dependencies have already been installed from the current lockfiles.
 
 ## Runtime
 
 - Node.js `24.19.0`, pinned by `.nvmrc` and `.node-version`.
 - npm with the committed package lockfiles.
-- Rust/Cargo 1.98.1 and cargo-audit for the sync retained-closure gate.
 
 ## CI and release secrets
 

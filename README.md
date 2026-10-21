@@ -165,7 +165,7 @@ npm run validate:retained-closure
 
 Use `--skip-install` only after the committed lockfiles have been installed.
 The profile covers dependency policy, Core and CLI builds, the CLI-to-Core
-runtime boundary, release-artifact shape, and the Rust benchmark.
+runtime boundary, and release-artifact shape.
 
 ## Provider keys
 
