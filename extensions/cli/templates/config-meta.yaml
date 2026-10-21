@@ -1,0 +1,11 @@
+name: Open Circuit Meta Muse
+version: 1.0.0
+schema: v1
+models:
+  - name: Meta Muse Spark
+    provider: openai-compatible
+    model: muse-spark-1.3
+    apiBase: https://api.meta.ai/v1/
+    apiKey: ${{ secrets.META_MODEL_API_KEY }}
+    roles:
+      - chat
