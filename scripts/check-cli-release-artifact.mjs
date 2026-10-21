@@ -4,6 +4,10 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {
+  isForbiddenReleaseFile,
+  parseCliPackReport,
+} from "./cli-release-pack-report.mjs";
 
 const packagePath = path.resolve(process.cwd(), "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
@@ -17,6 +21,7 @@ const result = spawnSync(
   {
     cwd: process.cwd(),
     encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, npm_config_cache: temporaryCache },
   },
 );
@@ -30,12 +35,12 @@ if (result.status !== 0) {
 
 let packReport;
 try {
-  packReport = JSON.parse(result.stdout);
+  packReport = parseCliPackReport(result.stdout, packageJson);
 } catch (error) {
-  throw new Error(`npm pack returned invalid JSON: ${error.message}`);
+  throw new Error(`Invalid npm pack report: ${error.message}`);
 }
 
-const files = (packReport[0]?.files ?? []).map((entry) => entry.path);
+const files = packReport.files.map((entry) => entry.path);
 const requiredFiles = [
   "package.json",
   "README.md",
@@ -48,19 +53,11 @@ const requiredFiles = [
   "templates/config-anthropic.yaml",
   "templates/config-gemini.yaml",
   "templates/config-byom.yaml",
+  "templates/config-meta.yaml",
   "templates/config-olmo.yaml",
 ];
 const missingFiles = requiredFiles.filter((file) => !files.includes(file));
-const forbiddenFiles = files.filter(
-  (file) =>
-    file === "templates/config-cisco.yaml" ||
-    file === "templates/config-devnet.yaml" ||
-    file.includes("node_modules/") ||
-    file === ".env" ||
-    file.endsWith(".pem") ||
-    file.endsWith(".key") ||
-    /(^|\/)credentials(?:\.|\/|$)/i.test(file),
-);
+const forbiddenFiles = files.filter(isForbiddenReleaseFile);
 const errors = [];
 
 if (packageJson.name !== "@opencircuit/cli") {
