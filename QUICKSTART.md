@@ -285,10 +285,10 @@ models:
       - chat
 ```
 
-The CLI package installs these five starter templates automatically in
+The CLI package installs these six starter templates automatically in
 `~/.ocircuit/templates/` without overwriting existing files:
 `config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`,
-`config-byom.yaml`, and `config-olmo.yaml`. Select exactly one template for the active configuration,
+`config-byom.yaml`, `config-meta.yaml`, and `config-olmo.yaml`. Select exactly one template for the active configuration,
 copy it once to `~/.ocircuit/config.yaml`, and do not keep multiple provider
 configs active at the same time.
 
@@ -437,8 +437,8 @@ For an Ollama server without authentication, put this in `~/.ocircuit/.env`:
 BYOM_API_KEY=
 ```
 
-The packaged example uses `http://localhost:11434/v1/`; change `apiBase` if
-your Ollama server uses another address. Run Open Circuit with that config and
+The packaged example uses `http://your-ollama-host.example:11434/v1/`; replace
+the placeholder hostname with your Ollama server address. Run Open Circuit with that config and
 send a one-shot smoke request:
 
 ```bash
@@ -453,6 +453,29 @@ This model-level restriction applies in interactive and headless sessions,
 including plan/auto mode, and cannot be overridden by tool permission flags.
 Other model configurations keep their existing tool behavior. OLMo sessions
 are chat-only: they cannot read files, run commands, or edit code through tools.
+
+#### Meta Muse Spark
+
+The packaged `config-meta.yaml` uses Meta's OpenAI-compatible Model API with
+the `muse-spark-1.3` model. Add the API key to `~/.ocircuit/.env` (or another
+supported Open Circuit secret source), keeping that file private:
+
+```dotenv
+META_MODEL_API_KEY=your-meta-model-api-key
+```
+
+Copy the template to the active config, then make a harmless test request:
+
+```bash
+cp ~/.ocircuit/templates/config-meta.yaml ~/.ocircuit/config.yaml
+chmod 600 ~/.ocircuit/config.yaml
+oc --config ~/.ocircuit/config.yaml -p "Reply with exactly OK." --silent
+```
+
+Meta's API is OpenAI-compatible, but not every OpenAI request parameter is
+supported. If the API returns a parameter-related `400`, review Meta's current
+Chat Completions documentation rather than retrying the same request unchanged.
+Keep provider keys separate between agent harnesses when practical.
 
 For an existing active OLMo config, add:
 

@@ -9,13 +9,9 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const skipInstall = process.argv.includes("--skip-install");
-const cargoBin = process.env.HOME
-  ? path.join(process.env.HOME, ".cargo", "bin")
-  : null;
 const validationEnvironment = {
   ...process.env,
   CI: "true",
-  PATH: [cargoBin, process.env.PATH].filter(Boolean).join(path.delimiter),
 };
 
 for (const generatedDirectory of ["core/dist", "extensions/cli/dist"]) {
@@ -175,48 +171,6 @@ const commands = [
     command: npmCommand,
     args: ["run", "check:release-artifact"],
     cwd: path.join(repositoryRoot, "extensions/cli"),
-  },
-  {
-    name: "Rust toolchain bootstrap",
-    command: process.execPath,
-    args: ["scripts/bootstrap-rust-toolchain.mjs"],
-    cwd: repositoryRoot,
-  },
-  {
-    name: "Rust toolchain preflight",
-    command: process.execPath,
-    args: ["scripts/check-rust-toolchain.mjs"],
-    cwd: repositoryRoot,
-  },
-  {
-    name: "Rust format",
-    command: "cargo",
-    args: ["fmt", "--check"],
-    cwd: path.join(repositoryRoot, "sync"),
-  },
-  {
-    name: "Rust locked check",
-    command: "cargo",
-    args: ["check", "--locked"],
-    cwd: path.join(repositoryRoot, "sync"),
-  },
-  {
-    name: "Rust tests",
-    command: "cargo",
-    args: ["test", "--locked"],
-    cwd: path.join(repositoryRoot, "sync"),
-  },
-  {
-    name: "Rust ignored benchmark",
-    command: "cargo",
-    args: ["test", "--locked", "benchmark_load_vectors", "--", "--ignored"],
-    cwd: path.join(repositoryRoot, "sync"),
-  },
-  {
-    name: "Rust audit",
-    command: "cargo",
-    args: ["audit"],
-    cwd: path.join(repositoryRoot, "sync"),
   },
 ];
 

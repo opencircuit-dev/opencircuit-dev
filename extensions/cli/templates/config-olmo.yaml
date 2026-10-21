@@ -5,7 +5,7 @@ models:
   - name: OLMo
     provider: openai-compatible
     model: olmo2:7b # Replace with the exact name shown by `ollama list`
-    apiBase: http://localhost:11434/v1/
+    apiBase: http://your-ollama-host.example:11434/v1/ # Replace with your Ollama server address
     apiKey: ${{ secrets.BYOM_API_KEY }}
     roles:
       - chat

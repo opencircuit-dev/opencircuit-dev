@@ -32,6 +32,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-gemini.yaml",
+      "config-meta.yaml",
       "config-olmo.yaml",
       "config-openai.yaml",
     ];
@@ -62,6 +63,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-gemini.yaml",
+      "config-meta.yaml",
       "config-olmo.yaml",
     ]);
     expect(result.preserved).toEqual(["config-openai.yaml"]);
@@ -73,6 +75,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-gemini.yaml",
+      "config-meta.yaml",
       "config-olmo.yaml",
       "config-openai.yaml",
     ]);
@@ -95,5 +98,22 @@ describe("installPackagedTemplates", () => {
         chatOptions: { disableTools: "true" },
       }).success,
     ).toBe(false);
+  });
+
+  it("installs a Meta Muse config with the OpenAI-compatible provider", () => {
+    installPackagedTemplates();
+    const config = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-meta.yaml"),
+        "utf8",
+      ),
+    );
+    const model = modelSchema.parse(config.models[0]);
+
+    expect(model.provider).toBe("openai-compatible");
+    expect(model.model).toBe("muse-spark-1.3");
+    expect(model.apiBase).toBe("https://api.meta.ai/v1/");
+    expect(model.apiKey).toBe("${{ secrets.META_MODEL_API_KEY }}");
+    expect(model.roles).toEqual(["chat"]);
   });
 });
