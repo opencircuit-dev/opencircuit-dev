@@ -32,6 +32,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-cisco.yaml",
+      "config-devnet.yaml",
       "config-gemini.yaml",
       "config-olmo.yaml",
       "config-openai.yaml",
@@ -63,6 +64,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-cisco.yaml",
+      "config-devnet.yaml",
       "config-gemini.yaml",
       "config-olmo.yaml",
     ]);
@@ -75,6 +77,7 @@ describe("installPackagedTemplates", () => {
       "config-anthropic.yaml",
       "config-byom.yaml",
       "config-cisco.yaml",
+      "config-devnet.yaml",
       "config-gemini.yaml",
       "config-olmo.yaml",
       "config-openai.yaml",

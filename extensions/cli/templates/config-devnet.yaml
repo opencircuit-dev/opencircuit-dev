@@ -1,0 +1,11 @@
+name: Open Circuit DevNet BYOM
+version: 1.0.0
+schema: v1
+models:
+  - name: DevNet model
+    provider: openai-compatible
+    model: my-model # Replace with your DevNet deployment's model identifier
+    apiBase: https://your-devnet-host.example/v1/ # Replace with your OpenAI-compatible endpoint
+    apiKey: ${{ secrets.DEVNET_API_KEY }}
+    roles:
+      - chat
