@@ -1,15 +1,17 @@
+import { createServer, type IncomingHttpHeaders } from "node:http";
 import { describe, expect, it } from "vitest";
+import { OpenAIApi } from "../apis/OpenAI.js";
 import { customFetch } from "../util.js";
 
 /**
  * Tests for the letRequestOptionsOverrideAuthHeaders function in customFetch
  *
- * This function removes duplicate Authorization and x-api-key headers when
- * custom headers are provided in requestOptions.headers.
+ * The wrapper removes SDK auth headers when custom auth headers are configured
+ * in requestOptions.headers.
  *
  * The logic being tested:
- * 1. If requestOptions.headers contains Authorization or x-api-key
- * 2. Remove those headers from init.headers (sent by OpenAI SDK)
+ * 1. If requestOptions.headers contains Authorization, api-key, or x-api-key
+ * 2. Remove conflicting auth headers from init.headers (sent by OpenAI SDK)
  * 3. Let fetchwithRequestOptions merge in the custom headers
  * 4. Results in single, correct header (not duplicate)
  */
@@ -74,16 +76,69 @@ describe("customFetch - auth header override logic", () => {
   });
 });
 
-/**
- * Note: Full integration testing of the header override logic requires
- * mocking the entire fetch stack (@opencircuit/fetch package) which is
- * complex. The above tests verify the function structure and basic behavior.
- *
- * The actual header removal logic is tested end-to-end by:
- * - Manual testing with MITRE AIP endpoints
- * - Real-world usage showing duplicate headers are resolved
- *
- * Related issues:
- * - #7047: Duplicate headers bug
- * - #8684: Authorization header fix (this extends it)
- */
+describe("OpenAI-compatible custom API key authentication", () => {
+  it.each(["api-key", "Api-Key", "x-api-key", "X-Api-Key"])(
+    "sends %s without the SDK default Bearer header",
+    async (apiKeyHeader) => {
+      let resolveHeaders: (headers: IncomingHttpHeaders) => void = () => {};
+      const receivedHeaders = new Promise<IncomingHttpHeaders>((resolve) => {
+        resolveHeaders = resolve;
+      });
+      const server = createServer((request, response) => {
+        resolveHeaders(request.headers);
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(
+          JSON.stringify({
+            id: "test-id",
+            object: "chat.completion",
+            created: 1234567890,
+            model: "test-model",
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: "pong" },
+                finish_reason: "stop",
+              },
+            ],
+          }),
+        );
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", resolve);
+      });
+
+      try {
+        const address = server.address();
+        if (!address || typeof address === "string") {
+          throw new Error("Could not determine test server address");
+        }
+        const api = new OpenAIApi({
+          provider: "openai-compatible",
+          apiKey: "sdk-default-test-key",
+          apiBase: `http://127.0.0.1:${address.port}/v1/`,
+          requestOptions: {
+            headers: { [apiKeyHeader]: "custom-test-key" },
+          },
+        });
+
+        await api.chatCompletionNonStream(
+          {
+            model: "test-model",
+            messages: [{ role: "user", content: "ping" }],
+          },
+          new AbortController().signal,
+        );
+
+        const headers = await receivedHeaders;
+        expect(headers[apiKeyHeader.toLowerCase()]).toBe("custom-test-key");
+        expect(headers.authorization).toBeUndefined();
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        });
+      }
+    },
+  );
+});
