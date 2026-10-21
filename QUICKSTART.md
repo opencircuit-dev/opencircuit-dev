@@ -300,9 +300,9 @@ models:
       - chat
 ```
 
-The release tarball packages six starter templates directly:
+The release tarball packages seven starter templates directly:
 `config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`,
-`config-byom.yaml`, `config-cisco.yaml`, and `config-olmo.yaml`. Install
+`config-byom.yaml`, `config-cisco.yaml`, `config-devnet.yaml`, and `config-olmo.yaml`. Install
 them locally, without network access or lifecycle scripts, with:
 
 ```bash
@@ -390,6 +390,12 @@ chmod 600 ~/.ocircuit/config.yaml
 Keep both values in environment-backed secrets. The Cisco deployment name is
 part of `apiBase`, so change both the URL deployment segment and `model` when
 selecting a different deployment.
+
+The internal-only `config-devnet.yaml` is an OpenAI-compatible starter, not
+a preconfigured DevNet service. Replace its `.example` endpoint and `my-model`
+identifier with your deployment's values and supply `DEVNET_API_KEY` through
+an Open Circuit secret source. Confirm the service's authentication requirements
+before use; the template assumes standard API-key authentication.
 
 After the config is in place, run a harmless validation request without exposing
 credentials:
