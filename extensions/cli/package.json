@@ -91,7 +91,7 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.70.0",
-    "@vitest/ui": "^5.0.1",
+    "@vitest/ui": "^5.0.3",
     "@workos-inc/node": "^10.13.0",
     "chalk": "^5.4.1",
     "clipboardy": "^4.0.0",
@@ -139,7 +139,7 @@
     "turndown": "^7.2.0",
     "typescript": "^5.8.3",
     "uuid": "^14.0.2",
-    "vitest": "^5.0.1",
+    "vitest": "^5.0.3",
     "winston": "^3.17.0",
     "yaml": "^2.8.0"
   },
