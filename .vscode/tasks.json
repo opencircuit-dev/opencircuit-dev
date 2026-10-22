@@ -18,114 +18,6 @@
       }
     },
     {
-      "label": "vscode-extension:build",
-      "dependsOn": [
-        "tsc:watch",
-        "vscode-extension:ocircuit-ui:build",
-        "vscode-extension:esbuild",
-        "vscode-extension:esbuild-notify",
-        "gui:dev"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "vscode-extension:esbuild-notify",
-      "dependsOn": ["vscode-extension:esbuild"],
-      "type": "npm",
-      "script": "esbuild-notify",
-      "path": "extensions/vscode",
-      "presentation": {
-        "group": "build-tasks",
-        "panel": "shared",
-        "reveal": "silent",
-        "revealProblems": "onProblem",
-        "close": true,
-        "clear": true
-      }
-    },
-    {
-      "label": "vscode-extension:esbuild",
-      "dependsOn": ["vscode-extension:ocircuit-ui:build"],
-      "type": "npm",
-      "script": "esbuild-watch",
-      "path": "extensions/vscode",
-      "isBackground": true,
-      "presentation": {
-        "group": "dev-watchers",
-        "panel": "dedicated",
-        "reveal": "silent"
-      },
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": "> (.*?):([0-9]+):([0-9]+): (warning|error): (.+)$",
-              "file": 1,
-              "line": 2,
-              "column": 3,
-              "severity": 4,
-              "message": 5
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ">",
-            "endsPattern": "VS Code Extension esbuild complete"
-          }
-        }
-      ]
-    },
-    {
-      "label": "vscode-extension:package",
-      "dependsOn": ["vscode-extension:esbuild"],
-      "type": "npm",
-      "script": "package",
-      "path": "extensions/vscode",
-      "presentation": {
-        "group": "build-tasks",
-        "panel": "shared",
-        "reveal": "always"
-      },
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": "> (.*?):([0-9]+):([0-9]+): (warning|error): (.+)$",
-              "file": 1,
-              "line": 2,
-              "column": 3,
-              "severity": 4,
-              "message": 5
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "label": "vscode-extension:ocircuit-ui:build",
-      "type": "shell",
-      "command": "node",
-      "args": ["scripts/prepackage.js"],
-      "problemMatcher": ["$tsc"],
-      "presentation": {
-        "group": "build-tasks",
-        "panel": "shared",
-        "reveal": "silent",
-        "revealProblems": "onProblem",
-        "close": true,
-        "clear": true
-      },
-      "options": {
-        "env": {
-          // "SKIP_INSTALLS": "true" // Can set to true to speed up build scripts, but only after initial installs (otherwise issues with copying e.g. ripgrep, sqlite, etc)
-        },
-        "cwd": "${workspaceFolder}/extensions/vscode"
-      }
-    },
-    {
       "label": "install-all-dependencies",
       "type": "shell",
       "windows": { "command": "./scripts/install-dependencies.ps1" },
@@ -233,22 +125,6 @@
       }
     },
     {
-      "label": "refresh-dependencies:vscode",
-      "type": "shell",
-      "command": "npm",
-      "args": ["install"],
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}/extensions/vscode"
-      },
-      "presentation": {
-        "group": "maintenance",
-        "panel": "shared",
-        "reveal": "silent",
-        "close": true
-      }
-    },
-    {
       "label": "refresh-dependencies:gui",
       "type": "shell",
       "command": "npm",
@@ -266,11 +142,7 @@
     },
     {
       "label": "refresh-dependencies:all",
-      "dependsOn": [
-        "refresh-dependencies:core",
-        "refresh-dependencies:gui",
-        "refresh-dependencies:vscode"
-      ],
+      "dependsOn": ["refresh-dependencies:core", "refresh-dependencies:gui"],
       "type": "shell",
       "problemMatcher": [],
       "presentation": {
@@ -290,26 +162,6 @@
         "reveal": "always",
         "close": true,
         "revealProblems": "onProblem"
-      }
-    },
-    {
-      "label": "vscode-extension:build-with-packages",
-      "dependsOn": ["ocircuit-packages:build", "vscode-extension:build"],
-      "type": "shell",
-      "command": "echo",
-      "args": ["Build with packages completed"],
-      "problemMatcher": [],
-      "dependsOrder": "sequence",
-      "runOptions": {
-        "instanceLimit": 1,
-        "reevaluateOnRerun": true
-      },
-      "presentation": {
-        "group": "build-tasks",
-        "panel": "shared",
-        "reveal": "silent",
-        "close": true,
-        "focus": false
       }
     },
     {

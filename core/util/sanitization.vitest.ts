@@ -274,7 +274,6 @@ describe("sanitizeShellArgument - integration tests", () => {
   });
 
   it("should handle git stash message use case safely", () => {
-    // This mirrors the actual usage in VsCodeMessenger.ts:269
     const agentId = "agent-123; rm -rf /";
     const stashMessage = `Continue: Stashed before opening agent ${agentId}`;
     const sanitized = sanitizeShellArgument(stashMessage);
