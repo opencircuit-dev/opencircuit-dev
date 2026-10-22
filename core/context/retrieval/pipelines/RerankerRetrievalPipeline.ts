@@ -174,7 +174,6 @@ export default class RerankerRetrievalPipeline extends BaseRetrievalPipeline {
 // This is VS Code only until we use PSI for JetBrains or build our own general solution
 // TODO: Need to pass in the expandSnippet function as a function argument
 // because this import causes `tsc` to fail
-// if ((await extras.ide.getIdeInfo()).ideType === "vscode") {
 //   const { expandSnippet } = await import(
 //     "a former editor-specific snippet helper"
 //   );
