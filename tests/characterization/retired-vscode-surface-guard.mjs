@@ -25,7 +25,7 @@ const scannedExtensions = new Set([
   ".yml",
 ]);
 const retiredCompatibility = [
-  /(?:^|[\\/])extensions[\\/]vscode(?:[\\/]|$)/i,
+  /(?<![\w.-])extensions[\\/]vscode(?![\w.-])/i,
   /\bideType\s*===?\s*["']vscode["']/i,
   /\bgetExternalUri\b/,
   /\bvsc(?:MachineId|MediaUrl)\b/,
