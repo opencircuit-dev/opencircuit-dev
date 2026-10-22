@@ -93,6 +93,7 @@ export class AuthManager {
   private readonly now: () => number;
   private readonly timeoutMs: number;
   private readonly tokenStore: SecureTokenStore;
+  private refreshInFlight: Promise<OAuthTokenSet> | undefined;
 
   constructor(config: ConfigJson, options: AuthManagerOptions = {}) {
     this.auth = authOptionsSchema.parse(config.auth ?? {});
@@ -131,11 +132,27 @@ export class AuthManager {
 
     if (!tokenSet.refreshToken) return null;
 
-    const refreshed = await this.refreshToken(tokenSet.refreshToken);
+    const refreshed = await this.refreshStoredToken(tokenSet.refreshToken);
     return refreshed.accessToken;
   }
 
   async refreshToken(refreshToken?: string): Promise<OAuthTokenSet> {
+    return this.refreshStoredToken(refreshToken);
+  }
+
+  private async refreshStoredToken(
+    refreshToken?: string,
+  ): Promise<OAuthTokenSet> {
+    if (this.refreshInFlight) return this.refreshInFlight;
+
+    const refresh = this.performRefresh(refreshToken);
+    this.refreshInFlight = refresh.finally(() => {
+      this.refreshInFlight = undefined;
+    });
+    return this.refreshInFlight;
+  }
+
+  private async performRefresh(refreshToken?: string): Promise<OAuthTokenSet> {
     const metadata = await this.resolveProviderMetadata();
     const current = await this.tokenStore.load();
     const requestedRefreshToken = refreshToken ?? current?.refreshToken;

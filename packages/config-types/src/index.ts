@@ -3,6 +3,7 @@ import { z } from "zod";
 export const authOptionsSchema = z
   .object({
     enabled: z.boolean().optional(),
+    profile: z.enum(["cisco-circuit"]).optional(),
     issuer: z.string().url().optional(),
     authorizationEndpoint: z.string().url().optional(),
     tokenEndpoint: z.string().url().optional(),

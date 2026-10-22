@@ -18,6 +18,10 @@
     "dist/AuthManager.js.map",
     "dist/AuthManager.d.ts",
     "dist/AuthManager.d.ts.map",
+    "dist/OsTokenStore.js",
+    "dist/OsTokenStore.js.map",
+    "dist/OsTokenStore.d.ts",
+    "dist/OsTokenStore.d.ts.map",
     "README.md"
   ],
   "scripts": {

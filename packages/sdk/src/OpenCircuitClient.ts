@@ -98,6 +98,13 @@ export class OpenCircuitClient {
     return tokenSet;
   }
 
+  async getAccessToken(): Promise<string | null> {
+    if (!this.authManager) return this.accessToken;
+    const accessToken = await this.authManager.getAccessToken();
+    this.accessToken = accessToken;
+    return accessToken;
+  }
+
   async logout(): Promise<boolean> {
     const remotelyRevoked = this.authManager
       ? await this.authManager.revoke()
