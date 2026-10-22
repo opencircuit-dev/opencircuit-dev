@@ -19,7 +19,9 @@ const retiredPaths = [
 ];
 
 const pathViolations = retiredPaths
-  .filter((relativePath) => fs.existsSync(path.join(repositoryRoot, relativePath)))
+  .filter((relativePath) =>
+    fs.existsSync(path.join(repositoryRoot, relativePath)),
+  )
   .map((relativePath) => "retired path exists: " + relativePath);
 
 const trackedFiles = execFileSync(
@@ -51,6 +53,8 @@ const forbiddenCompatibility = [
 
 const excludedFiles = new Set([
   "tests/characterization/deferred-surface-check.mjs",
+  "tests/characterization/retired-vscode-surface-guard.mjs",
+  "tests/characterization/retired-vscode-surface-guard.test.mjs",
   "TEST_SKIP_DECISIONS.md",
   "binary/build.js",
   "core/indexing/ignore.ts",
@@ -69,7 +73,10 @@ for (const relativeFile of trackedFiles) {
   ) {
     continue;
   }
-  const content = fs.readFileSync(path.join(repositoryRoot, relativeFile), "utf8");
+  const content = fs.readFileSync(
+    path.join(repositoryRoot, relativeFile),
+    "utf8",
+  );
   if (forbiddenCompatibility.some((pattern) => pattern.test(content))) {
     contentViolations.push("retired compatibility reference: " + relativeFile);
   }
@@ -85,5 +92,7 @@ if (violations.length > 0) {
   console.error(violations.join("\n"));
   process.exitCode = 1;
 } else {
-  console.log("Deferred surface guard passed: no retired VS Code surface remains.");
+  console.log(
+    "Deferred surface guard passed: no retired VS Code surface remains.",
+  );
 }

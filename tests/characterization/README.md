@@ -12,6 +12,7 @@ These checks capture the CLI/Core behavior before reduction. They use existing r
 | Core public import                        | Export-state inventory; unavailable at baseline            | Not applicable                        |
 | Static and emitted boundary               | `node tests/characterization/boundary-check.mjs`           | No network                            |
 | Runtime boundary                          | `node tests/characterization/runtime-boundary-check.mjs`   | No network                            |
+| Retired VS Code surfaces                  | `npm run test:retired-surface-guard`                       | No network                            |
 
 The boundary checks treat existing CLI-to-Core deep imports as observed baseline evidence. They fail only when Core or the emitted/runtime CLI closure crosses the named prohibited repository boundaries.
 

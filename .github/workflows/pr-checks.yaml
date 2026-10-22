@@ -54,6 +54,9 @@ jobs:
       - name: Check code formatting with Prettier
         run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}" --ignore-path .gitignore --ignore-path .prettierignore
 
+      - name: Guard retired VS Code surfaces
+        run: npm run test:retired-surface-guard
+
   core-checks:
     needs: changes
     if: needs.changes.outputs.cli_core == 'true'

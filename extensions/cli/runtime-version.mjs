@@ -16,10 +16,12 @@ export function unsupportedNodeVersionMessage(version) {
   return (
     `Open Circuit CLI requires Node.js ${SUPPORTED_NODE_RANGE}. ` +
     `Detected ${version}.\n` +
-    `To fix this with nvm, select Node.js 24 and make it the default for new terminals:\n` +
-    `  nvm install 24 && nvm alias default 24 && nvm use 24\n` +
-    `If 'oc' is then not found, reinstall it under Node.js 24 ` +
-    `(npm global packages are installed per Node.js version).`
+    `With nvm, install the project baseline and make it the default:\n` +
+    `  nvm install 24.19.0 && nvm alias default 24.19.0 && nvm use 24.19.0\n` +
+    `If 'oc' is missing after switching, global npm installs are per Node.js version. ` +
+    `From the directory containing the release archive, reinstall it with:\n` +
+    `  npm install --global ./opencircuit-cli-internal-X.Y.Z.tgz\n` +
+    `Replace X.Y.Z with the version in the archive filename, then verify with 'node --version', 'command -v oc', and 'oc --version'.`
   );
 }
 
