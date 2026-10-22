@@ -1,3 +1,6 @@
+import { AuthManager } from "./AuthManager.js";
+import type { ConfigJson } from "@opencircuit/config-types";
+
 export interface OpenCircuitClientOptions {
   baseUrl?: string;
   accessToken?: string | null;
@@ -75,6 +78,15 @@ export class OpenCircuitClient {
 
   get isAuthenticated(): boolean {
     return Boolean(this.options.accessToken);
+  }
+
+  async authenticate(config: ConfigJson): Promise<string | null> {
+    const authManager = new AuthManager(config);
+    const token = await authManager.authenticate();
+    if (token) {
+      this.options.accessToken = token;
+    }
+    return token;
   }
 
   getAssistant<TConfig = unknown>(

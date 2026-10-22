@@ -8,6 +8,7 @@ import { Command } from "commander";
 import { chat } from "./commands/chat.js";
 import { checks } from "./commands/checks.js";
 import { initTemplatesCommand } from "./commands/initTemplates.js";
+import { installPackagedTemplates } from "./templateInstaller.js";
 import { listSessionsCommand } from "./commands/ls.js";
 import { review } from "./commands/review.js";
 import { serve } from "./commands/serve.js";
@@ -199,6 +200,9 @@ addCommonOptions(program)
     "Enable beta Subagent tool for invoking subagents",
   )
   .action(async (prompt, options) => {
+    // Ensure packaged templates are installed (for VSIX installs that bypass npm postinstall)
+    installPackagedTemplates();
+
     // Handle piped input - detect it early and decide on mode
     let stdinInput = null;
 

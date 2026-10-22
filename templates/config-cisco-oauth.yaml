@@ -1,0 +1,33 @@
+# Circuit Cisco OAuth Configuration Template
+# This template auto-configures the authentication behavior
+# and default model endpoints to match the VSIX internal defaults.
+
+auth:
+  enabled: true
+  providerUrl: "https://lemonade-server.ai"
+  clientId: "circuit-internal-client"
+  redirectPort: 50681
+
+# Default model settings mirroring VSIX internal provider list
+models:
+  - title: "OpenAI GPT-4o"
+    provider: "openai"
+    model: "gpt-4o"
+    apiBase: "https://api.openai.com/v1"
+  - title: "Anthropic Claude 3.5 Sonnet"
+    provider: "anthropic"
+    model: "claude-3-5-sonnet-20240620"
+    apiBase: "https://api.anthropic.com/v1"
+  - title: "DeepSeek Coder"
+    provider: "openai-compatible"
+    model: "deepseek-coder"
+    apiBase: "https://api.deepseek.com"
+  - title: "Mistral Large"
+    provider: "mistral"
+    model: "mistral-large-latest"
+    apiBase: "https://api.mistral.ai/v1"
+
+# Default configuration for internal gateway routing
+# Use this if your organization routes all traffic through a single domain
+# domain: "internal-gateway.cisco.com"
+# apiVersion: "v3"

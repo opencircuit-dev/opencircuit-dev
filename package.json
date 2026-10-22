@@ -9,7 +9,8 @@
     "test:runtime-version": "node --test tests/characterization/runtime-version.test.mjs",
     "validate:retained-closure": "node scripts/validate-retained-closure.mjs",
     "prepare": "husky",
-    "test:deferred-surface": "node tests/characterization/deferred-surface-check.mjs"
+    "test:deferred-surface": "node tests/characterization/deferred-surface-check.mjs",
+    "postinstall": "node scripts/provision-templates.js"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css,md}": "prettier --write"

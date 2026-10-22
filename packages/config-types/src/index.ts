@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const authOptionsSchema = z.object({
+  enabled: z.boolean().optional(),
+  providerUrl: z.string().optional(),
+  clientId: z.string().optional(),
+  redirectPort: z.number().optional(),
+});
+export type AuthOptions = z.infer<typeof authOptionsSchema>;
+
 export const completionOptionsSchema = z.object({
   temperature: z.number().optional(),
   topP: z.number().optional(),
@@ -238,6 +246,7 @@ export const configJsonSchema = z.object({
   disableIndexing: z.boolean().optional(),
   tabAutocompleteOptions: tabAutocompleteOptionsSchema.optional(),
   ui: uiOptionsSchema.optional(),
+  auth: authOptionsSchema.optional(),
   docs: z.array(siteIndexingConfigSchema).optional(),
 });
 export type ConfigJson = z.infer<typeof configJsonSchema>;
