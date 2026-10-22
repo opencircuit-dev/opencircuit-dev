@@ -67,6 +67,9 @@ A typical CLI request works as follows:
 - npm
 - Git
 
+The supported runtime range is Node.js `>=24.19.0 <27`. The setup below uses
+the project baseline, Node.js `24.19.0`.
+
 If you use `nvm`, set the Node version as your default so a fresh shell still resolves the correct global binaries:
 
 ```bash
@@ -81,12 +84,25 @@ node --version
 npm --version
 ```
 
-If `oc` is not found in a new shell, reload NVM and select the same version again:
+If `oc` is not found in a new shell, reload NVM and select the default version:
 
 ```bash
 source "$NVM_DIR/nvm.sh"
 nvm use 24.19.0
+node --version
+command -v node
+command -v npm
 command -v oc
+```
+
+Global npm packages are installed separately for each Node.js version. If
+`command -v oc` still finds nothing after switching, reinstall the CLI from
+the release archive you downloaded, substituting its actual version:
+
+```bash
+npm install --global ./opencircuit-cli-X.Y.Z.tgz
+command -v oc
+oc --version
 ```
 
 ## Install the CLI (default for end users)
