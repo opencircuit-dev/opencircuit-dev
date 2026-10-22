@@ -1,0 +1,11 @@
+name: Open Circuit Cisco Circuit
+version: 1.0.0
+schema: v1
+models:
+  - name: Cisco OpenAI-compatible model
+    provider: openai-compatible
+    model: replace-with-deployment
+    apiBase: https://replace-with-cisco-endpoint/v1/
+    apiKey: ${{ secrets.CISCO_API_KEY }}
+    roles:
+      - chat

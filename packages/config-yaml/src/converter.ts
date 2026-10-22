@@ -194,6 +194,7 @@ export function convertJsonToYamlConfig(configJson: ConfigJson): ConfigYaml {
     mcpServers,
     docs,
     requestOptions: configJson.requestOptions,
+    auth: configJson.auth,
   };
 
   return configYaml;

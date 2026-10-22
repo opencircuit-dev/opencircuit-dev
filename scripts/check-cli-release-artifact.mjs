@@ -54,6 +54,8 @@ const requiredFiles = [
   "templates/config-gemini.yaml",
   "templates/config-byom.yaml",
   "templates/config-cisco.yaml",
+  "templates/config-cisco-circuit.yaml",
+  "templates/config-cisco-oauth.yaml",
   "templates/config-devnet.yaml",
   "templates/config-meta.yaml",
   "templates/config-olmo.yaml",

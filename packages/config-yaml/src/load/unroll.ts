@@ -378,6 +378,7 @@ export async function unrollBlocks(
     name: assistant.name,
     version: assistant.version,
     requestOptions: assistant.requestOptions,
+    auth: assistant.auth,
   };
 
   if (injectRequestOptions) {
@@ -397,6 +398,7 @@ export async function unrollBlocks(
     | "schema"
     | "metadata"
     | "env"
+    | "auth"
     | "requestOptions"
   >)[] = ["models", "context", "data", "mcpServers", "prompts", "docs"];
 

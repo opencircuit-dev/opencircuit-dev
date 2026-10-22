@@ -1,9 +1,14 @@
-import { AuthManager } from "./AuthManager.js";
+import {
+  AuthManager,
+  type OAuthTokenSet,
+  type SecureTokenStore,
+} from "./AuthManager.js";
 import type { ConfigJson } from "@opencircuit/config-types";
 
 export interface OpenCircuitClientOptions {
   baseUrl?: string;
   accessToken?: string | null;
+  tokenStore?: SecureTokenStore;
   fetch?: typeof fetch;
 }
 
@@ -70,23 +75,35 @@ export class OpenCircuitApiError extends Error {
 export class OpenCircuitClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
+  private accessToken: string | null;
+  private authManager: AuthManager | undefined;
 
   constructor(private readonly options: OpenCircuitClientOptions = {}) {
     this.baseUrl = `${(options.baseUrl ?? "https://api.ocircuit.dev/").replace(/\/+$/, "")}/`;
     this.fetchImpl = options.fetch ?? fetch;
+    this.accessToken = options.accessToken ?? null;
   }
 
   get isAuthenticated(): boolean {
-    return Boolean(this.options.accessToken);
+    return Boolean(this.accessToken);
   }
 
-  async authenticate(config: ConfigJson): Promise<string | null> {
-    const authManager = new AuthManager(config);
-    const token = await authManager.authenticate();
-    if (token) {
-      this.options.accessToken = token;
-    }
-    return token;
+  async authenticate(config: ConfigJson): Promise<OAuthTokenSet | null> {
+    this.authManager = new AuthManager(config, {
+      fetch: this.fetchImpl,
+      tokenStore: this.options.tokenStore,
+    });
+    const tokenSet = await this.authManager.authenticate();
+    this.accessToken = tokenSet?.accessToken ?? null;
+    return tokenSet;
+  }
+
+  async logout(): Promise<boolean> {
+    const remotelyRevoked = this.authManager
+      ? await this.authManager.revoke()
+      : false;
+    this.accessToken = null;
+    return remotelyRevoked;
   }
 
   getAssistant<TConfig = unknown>(
@@ -130,8 +147,12 @@ export class OpenCircuitClient {
     }
 
     const headers = new Headers({ Accept: "application/json" });
-    if (this.options.accessToken) {
-      headers.set("Authorization", `Bearer ${this.options.accessToken}`);
+    const accessToken = this.authManager
+      ? await this.authManager.getAccessToken()
+      : this.accessToken;
+    if (accessToken) {
+      this.accessToken = accessToken;
+      headers.set("Authorization", `Bearer ${accessToken}`);
     }
     if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");

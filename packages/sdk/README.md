@@ -17,3 +17,17 @@ const assistant = await client.getAssistant({
 ```
 
 The initial API surface supports assistant lookup/listing and secret synchronization. Requests use the configured API base and send the API key only as a bearer authorization header.
+
+## OAuth/OIDC authentication
+
+`AuthManager` accepts the strict `auth` configuration from
+`@opencircuit/config-types`. Enabled configurations must provide an OIDC issuer
+or both explicit OAuth authorization and token endpoints, plus a client ID.
+The flow uses an ephemeral `127.0.0.1` callback, S256 PKCE, state, nonce,
+exact redirect-path checks, form-encoded code exchange, issuer/JWKS/ID-token
+validation, expiry-aware refresh, and revocation when supported by the
+provider.
+
+Tokens are held in memory by default. Applications that need persistence must
+inject a `SecureTokenStore` implemented with the platform OS keychain. The SDK
+does not write OAuth tokens to YAML, `.env`, logs, or an unencrypted file.

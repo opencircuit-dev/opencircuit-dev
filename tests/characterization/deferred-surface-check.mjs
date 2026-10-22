@@ -28,7 +28,10 @@ const trackedFiles = execFileSync(
   { cwd: repositoryRoot, encoding: "utf8" },
 )
   .split("\n")
-  .filter(Boolean);
+  .filter(
+    (relativeFile) =>
+      relativeFile && fs.existsSync(path.join(repositoryRoot, relativeFile)),
+  );
 
 const trackedPathViolations = trackedFiles
   .filter((file) =>

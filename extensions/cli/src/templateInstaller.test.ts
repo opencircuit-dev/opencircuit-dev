@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { modelSchema } from "@opencircuit/config-yaml";
+import { configYamlSchema, modelSchema } from "@opencircuit/config-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import YAML from "yaml";
 
@@ -31,6 +31,8 @@ describe("installPackagedTemplates", () => {
     const expectedTemplates = [
       "config-anthropic.yaml",
       "config-byom.yaml",
+      "config-cisco-circuit.yaml",
+      "config-cisco-oauth.yaml",
       "config-cisco.yaml",
       "config-devnet.yaml",
       "config-gemini.yaml",
@@ -64,6 +66,8 @@ describe("installPackagedTemplates", () => {
     expect(result.installed).toEqual([
       "config-anthropic.yaml",
       "config-byom.yaml",
+      "config-cisco-circuit.yaml",
+      "config-cisco-oauth.yaml",
       "config-cisco.yaml",
       "config-devnet.yaml",
       "config-gemini.yaml",
@@ -78,6 +82,8 @@ describe("installPackagedTemplates", () => {
     expect(rerun.preserved).toEqual([
       "config-anthropic.yaml",
       "config-byom.yaml",
+      "config-cisco-circuit.yaml",
+      "config-cisco-oauth.yaml",
       "config-cisco.yaml",
       "config-devnet.yaml",
       "config-gemini.yaml",
@@ -121,5 +127,28 @@ describe("installPackagedTemplates", () => {
     expect(model.apiBase).toBe("https://api.meta.ai/v1/");
     expect(model.apiKey).toBe("${{ secrets.META_MODEL_API_KEY }}");
     expect(model.roles).toEqual(["chat"]);
+  });
+
+  it("installs OAuth templates that satisfy the shared config contract", () => {
+    installPackagedTemplates();
+    const oauthConfig = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-cisco-oauth.yaml"),
+        "utf8",
+      ),
+    );
+    const circuitConfig = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-cisco-circuit.yaml"),
+        "utf8",
+      ),
+    );
+
+    expect(configYamlSchema.parse(oauthConfig).auth).toMatchObject({
+      clientId: "replace-with-registered-client-id",
+      redirectPort: 0,
+      redirectPath: "/oauth/callback",
+    });
+    expect(configYamlSchema.parse(circuitConfig).models).toHaveLength(1);
   });
 });

@@ -1,11 +1,59 @@
 import { z } from "zod";
 
-export const authOptionsSchema = z.object({
-  enabled: z.boolean().optional(),
-  providerUrl: z.string().optional(),
-  clientId: z.string().optional(),
-  redirectPort: z.number().optional(),
-});
+export const authOptionsSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    issuer: z.string().url().optional(),
+    authorizationEndpoint: z.string().url().optional(),
+    tokenEndpoint: z.string().url().optional(),
+    revocationEndpoint: z.string().url().optional(),
+    clientId: z.string().min(1).optional(),
+    // Native clients must use an ephemeral loopback port for every flow.
+    redirectPort: z.literal(0).optional(),
+    redirectPath: z
+      .string()
+      .regex(/^\/(?:[A-Za-z0-9._~-]+\/)*[A-Za-z0-9._~-]+$/)
+      .optional(),
+    scopes: z.array(z.string().min(1)).min(1).optional(),
+    trustedHosts: z.array(z.string().min(1)).min(1).optional(),
+  })
+  .strict()
+  .superRefine((auth, context) => {
+    if (!auth.enabled) return;
+
+    if (!auth.clientId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["clientId"],
+        message: "clientId is required when authentication is enabled",
+      });
+    }
+
+    const hasIssuer = Boolean(auth.issuer);
+    const hasAuthorizationEndpoint = Boolean(auth.authorizationEndpoint);
+    const hasTokenEndpoint = Boolean(auth.tokenEndpoint);
+
+    if (!hasIssuer && !(hasAuthorizationEndpoint && hasTokenEndpoint)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["issuer"],
+        message:
+          "provide issuer for OIDC discovery or both explicit OAuth endpoints",
+      });
+    }
+
+    if (
+      hasIssuer &&
+      (hasAuthorizationEndpoint || hasTokenEndpoint || auth.revocationEndpoint)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["issuer"],
+        message:
+          "do not mix issuer discovery with explicit OAuth endpoint overrides",
+      });
+    }
+  });
 export type AuthOptions = z.infer<typeof authOptionsSchema>;
 
 export const completionOptionsSchema = z.object({

@@ -2,11 +2,52 @@ import { PackageIdentifier } from "../interfaces/slugs.js";
 import {
   fillTemplateVariables,
   getTemplateVariables,
+  parseConfigYaml,
   parseMarkdownRuleOrAssistantUnrolled,
   replaceInputsWithSecrets,
 } from "./unroll.js";
 
 describe("parseMarkdownRuleOrAssistantUnrolled tests", () => {
+  it("accepts and preserves the strict OAuth configuration contract", () => {
+    const config = parseConfigYaml(`
+name: OAuth client
+version: 1.0.0
+schema: v1
+auth:
+  enabled: true
+  issuer: https://issuer.example.com
+  clientId: test-client
+  redirectPort: 0
+  redirectPath: /oauth/callback
+  scopes:
+    - openid
+`);
+
+    expect(config.auth).toEqual({
+      enabled: true,
+      issuer: "https://issuer.example.com",
+      clientId: "test-client",
+      redirectPort: 0,
+      redirectPath: "/oauth/callback",
+      scopes: ["openid"],
+    });
+  });
+
+  it("rejects fixed callback ports and mixed issuer endpoint configuration", () => {
+    expect(() =>
+      parseConfigYaml(`
+name: Invalid OAuth client
+version: 1.0.0
+auth:
+  enabled: true
+  issuer: https://issuer.example.com
+  authorizationEndpoint: https://issuer.example.com/authorize
+  clientId: test-client
+  redirectPort: 50681
+`),
+    ).toThrow();
+  });
+
   it("parses valid YAML content as AssistantUnrolled", () => {
     const mockId: PackageIdentifier = {
       uriType: "file",

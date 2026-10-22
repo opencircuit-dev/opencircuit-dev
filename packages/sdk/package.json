@@ -35,7 +35,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@opencircuit/config-types": "^1.0.14"
+    "@opencircuit/config-types": "^1.0.14",
+    "jose": "6.2.13"
   },
   "engines": {
     "node": ">=24.19.0 <27"

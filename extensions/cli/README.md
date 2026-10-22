@@ -70,6 +70,15 @@ oc init
 Existing templates are never overwritten. Copy one to
 `~/.ocircuit/config.yaml` or use it directly with `oc --config`.
 
+The internal package includes `config-cisco-oauth.yaml` as a strict OAuth/OIDC
+starting point. Replace its placeholder issuer, client ID, model, and endpoint
+with approved provider values. The SDK authentication flow uses an ephemeral
+loopback callback, S256 PKCE, state and nonce validation, issuer/JWKS checks,
+form-encoded token exchange, expiry-aware refresh, and revocation on logout.
+Tokens are memory-only by default; persistent integrations must supply an
+OS-keychain-backed `SecureTokenStore`. Package installation has no provisioning
+side effect—run `oc init` explicitly when you want to install templates.
+
 ### Headless Mode
 
 Headless mode (`-p` flag) runs without an interactive terminal UI, making it perfect for:
