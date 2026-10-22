@@ -164,38 +164,36 @@ export function customFetch(
       return init;
     }
 
-    // Check if custom Authorization or x-api-key headers are provided
-    const hasCustomAuth =
-      requestOptions.headers["Authorization"] ||
-      requestOptions.headers["authorization"];
-    const hasCustomXApiKey =
-      requestOptions.headers["x-api-key"] ||
-      requestOptions.headers["X-Api-Key"];
+    const customAuthHeaders = new Set(
+      Object.keys(requestOptions.headers)
+        .map((header) => header.toLowerCase())
+        .filter((header) =>
+          ["authorization", "api-key", "x-api-key"].includes(header),
+        ),
+    );
+    if (
+      customAuthHeaders.has("api-key") ||
+      customAuthHeaders.has("x-api-key")
+    ) {
+      customAuthHeaders.add("authorization");
+    }
 
     // Remove default auth headers if custom ones are provided
-    if (hasCustomAuth || hasCustomXApiKey) {
+    if (customAuthHeaders.size > 0) {
       if (init.headers instanceof Headers) {
-        if (hasCustomAuth) {
-          init.headers.delete("Authorization");
-        }
-        if (hasCustomXApiKey) {
-          init.headers.delete("x-api-key");
+        for (const header of customAuthHeaders) {
+          init.headers.delete(header);
         }
       } else if (Array.isArray(init.headers)) {
-        init.headers = init.headers.filter((header: [string, string]) => {
-          const headerLower = (header[0] ?? "").toLowerCase();
-          if (hasCustomAuth && headerLower === "authorization") return false;
-          if (hasCustomXApiKey && headerLower === "x-api-key") return false;
-          return true;
-        });
+        init.headers = init.headers.filter(
+          (header: [string, string]) =>
+            !customAuthHeaders.has((header[0] ?? "").toLowerCase()),
+        );
       } else if (typeof init.headers === "object") {
-        if (hasCustomAuth) {
-          delete init.headers["Authorization"];
-          delete init.headers["authorization"];
-        }
-        if (hasCustomXApiKey) {
-          delete init.headers["x-api-key"];
-          delete init.headers["X-Api-Key"];
+        for (const header of Object.keys(init.headers)) {
+          if (customAuthHeaders.has(header.toLowerCase())) {
+            delete init.headers[header];
+          }
         }
       }
     }
