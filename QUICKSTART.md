@@ -37,7 +37,8 @@ The gate is opt-in per clone. It does not replace required GitHub checks.
 
 ## 1. Check Node.js
 
-Open Circuit 1.0.0 expects Node.js `24.19.0`.
+Open Circuit supports Node.js `>=24.19.0 <27`. Use the project baseline,
+Node.js `24.19.0`, for the commands below.
 
 ```bash
 node --version
@@ -57,17 +58,26 @@ node --version
 npm --version
 ```
 
-If you open a new shell and `oc` is still not found, reload NVM and select the same version again:
+If you open a new shell and `oc` is still not found, reload NVM and select the default version again:
 
 ```bash
 source "$NVM_DIR/nvm.sh"
 nvm use 24.19.0
+node --version
 command -v node
 command -v npm
 command -v oc
 ```
 
-This matters because global npm binaries are tied to the active Node version. A binary installed under one version can disappear from `PATH` when a new shell is opened under another version.
+Global npm binaries are installed separately for each Node.js version. If
+`oc` is still missing after switching, reinstall it from the release archive
+you downloaded, substituting the archive's actual version:
+
+```bash
+npm install --global ./opencircuit-cli-X.Y.Z.tgz
+command -v oc
+oc --version
+```
 
 ## 2. Install the CLI (default user path)
 
@@ -520,13 +530,34 @@ testing or an out-of-band re-publish.
 
 ### `oc: command not found`
 
-The global npm binary directory may not be on your `PATH`. Find it with:
+First check that the active Node.js runtime is supported and select the
+project baseline if needed:
+
+```bash
+node --version
+source "$NVM_DIR/nvm.sh"
+nvm install 24.19.0
+nvm alias default 24.19.0
+nvm use 24.19.0
+```
+
+Global npm packages are installed separately for each Node.js version. If
+`oc` is still missing, reinstall it from the release archive you downloaded:
+
+```bash
+npm install --global ./opencircuit-cli-X.Y.Z.tgz
+command -v oc
+oc --version
+```
+
+If `oc` is installed but not on your `PATH`, find the global npm prefix with:
 
 ```bash
 npm prefix --global
 ```
 
-Add the reported directory to your shell `PATH`, then open a new terminal.
+Add the reported directory's `bin` subdirectory to your shell `PATH`, then
+open a new terminal.
 
 ### The version is wrong
 

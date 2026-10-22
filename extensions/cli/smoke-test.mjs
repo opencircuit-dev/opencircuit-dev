@@ -135,6 +135,21 @@ runTest("Node runtime guard boundaries", () => {
   }
 });
 
+runTest("Unsupported Node guidance includes recovery steps", () => {
+  const message = unsupportedNodeVersionMessage("v22.18.0");
+  for (const instruction of [
+    ">=24.19.0 <27",
+    "nvm install 24.19.0",
+    "nvm alias default 24.19.0",
+    "npm install --global ./opencircuit-cli-X.Y.Z.tgz",
+    "command -v oc",
+  ]) {
+    if (!message.includes(instruction)) {
+      throw new Error("Missing runtime recovery instruction: " + instruction);
+    }
+  }
+});
+
 // Test 5: Check bundle size
 runTest("Bundle size is reasonable", () => {
   const isWindows = process.platform === "win32";
