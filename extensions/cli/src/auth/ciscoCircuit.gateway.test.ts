@@ -1,5 +1,4 @@
 import type { AuthOptions } from "@opencircuit/config-types";
-import type { OpenCircuitClient } from "@opencircuit/sdk";
 import { describe, expect, it, vi } from "vitest";
 
 import { CiscoCircuitGateway } from "./ciscoCircuit.js";
@@ -36,10 +35,8 @@ describe("CiscoCircuitGateway", () => {
           })
         : Response.json({ id: "completion", choices: [] }),
     );
-    const client = {
-      getAccessToken: vi.fn(async () => "delegated-token"),
-    } as unknown as OpenCircuitClient;
-    const gateway = new CiscoCircuitGateway(client, createAuth(), {
+    const getAccessToken = vi.fn(async () => "delegated-token");
+    const gateway = new CiscoCircuitGateway(getAccessToken, createAuth(), {
       fetch: fetchMock,
     });
     await expect(gateway.getPolicy()).resolves.toEqual({
@@ -68,11 +65,9 @@ describe("CiscoCircuitGateway", () => {
   });
 
   it("rejects empty and duplicate policy model lists", async () => {
-    const client = {
-      getAccessToken: vi.fn(async () => "delegated-token"),
-    } as unknown as OpenCircuitClient;
+    const getAccessToken = vi.fn(async () => "delegated-token");
     for (const models of [[], ["same", { model: "same", provider: "cisco" }]]) {
-      const gateway = new CiscoCircuitGateway(client, createAuth(), {
+      const gateway = new CiscoCircuitGateway(getAccessToken, createAuth(), {
         fetch: async () => Response.json({ models }),
       });
       await expect(gateway.getPolicy()).rejects.toThrow();
@@ -87,10 +82,8 @@ describe("CiscoCircuitGateway", () => {
           })
         : Response.json({ id: "completion", choices: [] }),
     );
-    const client = {
-      getAccessToken: vi.fn(async () => "delegated-token"),
-    } as unknown as OpenCircuitClient;
-    const gateway = new CiscoCircuitGateway(client, createAuth(), {
+    const getAccessToken = vi.fn(async () => "delegated-token");
+    const gateway = new CiscoCircuitGateway(getAccessToken, createAuth(), {
       fetch: fetchMock,
     });
     await gateway.getPolicy();
@@ -112,10 +105,8 @@ describe("CiscoCircuitGateway", () => {
           headers: { "content-type": "application/json" },
         }),
     );
-    const client = {
-      getAccessToken: vi.fn(async () => "delegated-token"),
-    } as unknown as OpenCircuitClient;
-    const gateway = new CiscoCircuitGateway(client, createAuth(), {
+    const getAccessToken = vi.fn(async () => "delegated-token");
+    const gateway = new CiscoCircuitGateway(getAccessToken, createAuth(), {
       fetch: fetchMock,
     });
 
@@ -123,7 +114,7 @@ describe("CiscoCircuitGateway", () => {
       Promise.all([gateway.getPolicy(), gateway.getPolicy()]),
     ).resolves.toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(client.getAccessToken).toHaveBeenCalledOnce();
+    expect(getAccessToken).toHaveBeenCalledOnce();
 
     const api = gateway.createLlmApi("blocked-model");
     await expect(

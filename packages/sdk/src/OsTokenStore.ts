@@ -88,21 +88,18 @@ export class OsTokenStore implements SecureTokenStore {
       );
     }
     if (this.platform === "darwin") {
-      // `security` cannot read item data from stdin: a bare `-w` prompts on
-      // /dev/tty (truncated to 128 chars) and `security -i` caps lines near
-      // 4 KB. Token sets exceed both, so pass hex data as an argument; argv is
-      // visible only to same-user/root processes, which can already read the
-      // item via `security find-generic-password`.
-      return this.runCommand("security", [
+      // Interactive mode keeps token data out of the child process argv.
+      const command = [
         "add-generic-password",
         "-U",
         "-a",
-        this.account,
+        quoteSecurityArgument(this.account),
         "-s",
-        this.service,
+        quoteSecurityArgument(this.service),
         "-X",
-        Buffer.from(value, "utf8").toString("hex"),
-      ]);
+        quoteSecurityArgument(Buffer.from(value, "utf8").toString("hex")),
+      ].join(" ");
+      return this.runCommand("security", ["-i"], `${command}\n`);
     }
     return this.runCommand(
       "secret-tool",
@@ -180,4 +177,8 @@ function validateStoredToken(value: unknown): OAuthTokenSet {
     throw new Error("invalid token record");
   }
   return token as unknown as OAuthTokenSet;
+}
+
+function quoteSecurityArgument(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
 }

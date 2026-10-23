@@ -28,7 +28,7 @@ function fakeChild(stdinData: string[]) {
 describe("OsTokenStore macOS save", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("passes token data as hex instead of prompting on the terminal", async () => {
+  it("passes token data through security interactive mode, not argv", async () => {
     const stdinData: string[] = [];
     vi.mocked(childProcess.spawn).mockImplementation(
       () => fakeChild(stdinData) as never,
@@ -44,11 +44,12 @@ describe("OsTokenStore macOS save", () => {
 
     const [command, args] = vi.mocked(childProcess.spawn).mock.calls[0];
     expect(command).toBe("security");
-    expect(args).not.toContain("-w");
-    const hex = (args as string[])[(args as string[]).indexOf("-X") + 1];
-    expect(Buffer.from(hex, "hex").toString("utf8")).toBe(
-      JSON.stringify(tokenSet),
+    expect(args).toEqual(["-i"]);
+    expect(stdinData).toHaveLength(1);
+    expect(stdinData[0]).toContain("add-generic-password");
+    expect(stdinData[0]).not.toContain(JSON.stringify(tokenSet));
+    expect(stdinData[0]).toContain(
+      Buffer.from(JSON.stringify(tokenSet), "utf8").toString("hex"),
     );
-    expect(stdinData).toEqual([]);
   });
 });

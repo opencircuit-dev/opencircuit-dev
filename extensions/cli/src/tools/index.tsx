@@ -1,6 +1,7 @@
 // @ts-ignore
 import { OCircuitError, OCircuitErrorReason } from "core/errors.js";
 import type { ChatCompletionTool } from "openai/resources/index.js";
+import { isModelCapable } from "../utils/modelCapability.js";
 
 import {
   SERVICE_NAMES,
@@ -103,9 +104,14 @@ export async function getAllAvailableTools(
     throw new Error("Model service is not initialized");
   }
 
-  // Every model gets the full edit toolset; tool access is not gated on
-  // model-name heuristics.
-  tools.push(editTool, multiEditTool);
+  const { provider, name, model } = modelState.model;
+  if (modelState.gateway) {
+    tools.push(editTool, multiEditTool);
+  } else if (isModelCapable(provider, name, model)) {
+    tools.push(multiEditTool);
+  } else {
+    tools.push(editTool);
+  }
 
   if (isHeadless) {
     tools.push(exitTool);

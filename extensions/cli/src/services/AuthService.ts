@@ -87,7 +87,10 @@ export class AuthService extends BaseService<AuthServiceState> {
     }
 
     if (this.authOptions.profile === "cisco-circuit") {
-      this.gateway = new CiscoCircuitGateway(this.client, this.authOptions);
+      this.gateway = new CiscoCircuitGateway(
+        () => this.client?.getAccessToken() ?? Promise.resolve(null),
+        this.authOptions,
+      );
     }
     return this.state(accessToken !== null);
   }
@@ -137,7 +140,9 @@ export class AuthService extends BaseService<AuthServiceState> {
     return {
       authConfig: null,
       isAuthenticated,
-      ...(this.client ? { apiClient: this.client } : {}),
+      ...(this.client && this.authOptions?.profile !== "cisco-circuit"
+        ? { apiClient: this.client }
+        : {}),
       ...(this.authOptions ? { authOptions: this.authOptions } : {}),
       ...(this.gateway ? { gateway: this.gateway } : {}),
     };

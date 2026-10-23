@@ -26,7 +26,7 @@ afterEach(async () => {
 });
 
 describe("Cisco Circuit protected profile", () => {
-  it("uses bundled registration metadata when the default profile is absent", () => {
+  it("requires the protected profile when the default profile is absent", () => {
     vi.stubEnv("OCIRCUIT_CISCO_PROFILE", undefined);
     const missing = () => {
       throw Object.assign(new Error("missing"), { code: "ENOENT" });
@@ -35,14 +35,9 @@ describe("Cisco Circuit protected profile", () => {
       .mockImplementationOnce(missing)
       .mockImplementationOnce(missing);
 
-    const profile = loadCiscoCircuitProfile();
-    expect(profile.issuer).toMatch(
-      /^https:\/\/login\.microsoftonline\.com\/[^/]+\/v2\.0$/,
+    expect(() => loadCiscoCircuitProfile()).toThrow(
+      "Cisco protected profile is required",
     );
-    expect(profile.scopes).toContain(
-      `api://${profile.clientId}/access_as_user`,
-    );
-    expect(profile.gatewayBase).toBe("https://organon.cisco.com/vscode-plugin");
     expect(() => loadCiscoCircuitProfile("/missing-explicit-profile")).toThrow(
       "missing",
     );

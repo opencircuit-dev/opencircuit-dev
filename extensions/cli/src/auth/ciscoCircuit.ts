@@ -3,7 +3,6 @@ import * as path from "node:path";
 
 import type { AuthOptions } from "@opencircuit/config-types";
 import { CiscoCircuitApi } from "@opencircuit/openai-adapters";
-import type { OpenCircuitClient } from "@opencircuit/sdk";
 import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
 
@@ -28,21 +27,6 @@ const DEFAULT_POLICY_PATH = "/api/model-policy";
 const DEFAULT_SCOPES = ["openid", "offline_access"];
 const POLICY_CACHE_MS = 5 * 60 * 1000;
 const MAX_POLICY_BYTES = 256 * 1024;
-const DEFAULT_CISCO_PROFILE: CiscoCircuitProfile = {
-  issuer:
-    "https://login.microsoftonline.com/5ae1af62-9505-4097-a69a-c1553ef7840e/v2.0",
-  clientId: "e5707f34-0f65-4fa8-9fa5-3975272959f3",
-  scopes: [
-    "openid",
-    "profile",
-    "offline_access",
-    "api://e5707f34-0f65-4fa8-9fa5-3975272959f3/access_as_user",
-  ],
-  gatewayBase: `${APPROVED_GATEWAY_ORIGIN}${APPROVED_GATEWAY_PATH}`,
-  modelPolicyPath: DEFAULT_POLICY_PATH,
-  modelApiVersion: "2024-07-01-preview",
-};
-
 const profileSchema = z.object({
   issuer: z.string().url(),
   clientId: z.string().min(1).max(256),
@@ -62,6 +46,8 @@ export interface CiscoCircuitProfile {
   modelApiVersion: string;
   secretRef?: string;
 }
+
+export type CiscoCircuitTokenSource = () => Promise<string | null>;
 
 const policyEntrySchema = z.union([
   z
@@ -105,7 +91,9 @@ export function loadCiscoCircuitProfile(
     metadata = fs.lstatSync(resolvedPath);
   } catch (error) {
     if (!explicitPath && (error as NodeJS.ErrnoException).code === "ENOENT") {
-      return profileSchema.parse(DEFAULT_CISCO_PROFILE);
+      throw new Error(
+        `Cisco protected profile is required at ${resolvedPath}; provision it through the approved release environment`,
+      );
     }
     throw error;
   }
@@ -167,7 +155,7 @@ export class CiscoCircuitGateway {
   private readonly now: () => number;
 
   constructor(
-    private readonly client: OpenCircuitClient,
+    private readonly getAccessToken: CiscoCircuitTokenSource,
     private readonly auth: AuthOptions,
     options: CiscoCircuitGatewayOptions = {},
   ) {
@@ -201,7 +189,7 @@ export class CiscoCircuitGateway {
             "Cisco model deployment changed; restart the session",
           );
         }
-        const token = await this.client.getAccessToken();
+        const token = await this.getAccessToken();
         if (!token) throw new Error("Cisco Circuit authentication is required");
         return token;
       },
@@ -230,7 +218,7 @@ export class CiscoCircuitGateway {
       ensureTrailingSlash(this.auth.gatewayBase!),
     );
     validateGatewayRequest(url);
-    const token = await this.client.getAccessToken();
+    const token = await this.getAccessToken();
     if (!token) throw new Error("Cisco Circuit authentication is required");
     const response = await this.fetchImpl(url, {
       headers: { Accept: "application/json", Authorization: `Bearer ${token}` },

@@ -1,7 +1,5 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { OpenCircuitClient } from "@opencircuit/sdk";
-
 // Mock dependencies before imports
 vi.mock("../config.js");
 vi.mock("../auth/workos.js");
@@ -58,7 +56,7 @@ describe("ModelService", () => {
     test.each([null, "Removed model", "Second"])(
       "populates entitled models and selects a valid preference (%s)",
       async (preference) => {
-        const gateway = new CiscoCircuitGateway(new OpenCircuitClient(), {
+        const gateway = new CiscoCircuitGateway(async () => "delegated-token", {
           enabled: true,
           profile: "cisco-circuit",
           gatewayBase: "https://organon.cisco.com/vscode-plugin",

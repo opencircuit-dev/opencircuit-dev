@@ -8,13 +8,14 @@ import {
 
 describe("tools/index utilities", () => {
   describe("getAllAvailableTools", () => {
-    it("gives models outside the legacy capability list both edit tools", async () => {
+    it("gives Cisco-entitled models the full edit toolset", async () => {
       const get = vi.spyOn(serviceContainer, "get").mockResolvedValue({
         model: {
           name: "Mellum2 12B Thinking (Cisco)",
           provider: "openai-compatible",
           model: "mellum2-12b-thinking",
         },
+        gateway: {},
         tools: [],
       } as never);
 
