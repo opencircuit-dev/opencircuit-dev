@@ -156,19 +156,40 @@ describe("installPackagedTemplates", () => {
     expect(configYamlSchema.parse(circuitConfig).models).toHaveLength(1);
   });
 
-  it("installs a loadable private Cisco profile and preserves an existing one", () => {
+  it("installs a release-injected Cisco profile privately and preserves an existing one", () => {
+    const packagedProfile = path.join(temporaryHome, "packaged.env");
+    fs.writeFileSync(
+      packagedProfile,
+      [
+        "OCIRCUIT_CISCO_ISSUER=https://login.microsoftonline.com/00000000-0000-4000-8000-000000000000/v2.0",
+        "OCIRCUIT_CISCO_CLIENT_ID=11111111-1111-4111-8111-111111111111",
+        "OCIRCUIT_CISCO_SCOPES=openid offline_access",
+        "OCIRCUIT_CISCO_GATEWAY_BASE=https://organon.cisco.com/vscode-plugin",
+        "OCIRCUIT_CISCO_MODEL_API_VERSION=2024-07-01-preview",
+        "",
+      ].join("\n"),
+    );
     const profilePath = path.join(temporaryHome, "cisco-circuit.env");
 
-    expect(installPackagedCiscoProfile()).toBe("installed");
+    expect(installPackagedCiscoProfile(packagedProfile)).toBe("installed");
     if (process.platform !== "win32") {
       expect(fs.statSync(profilePath).mode & 0o777).toBe(0o600);
     }
-    expect(loadCiscoCircuitProfile(profilePath).gatewayBase).toBe(
-      "https://organon.cisco.com/vscode-plugin",
+    expect(loadCiscoCircuitProfile(profilePath).clientId).toBe(
+      "11111111-1111-4111-8111-111111111111",
     );
 
     fs.writeFileSync(profilePath, "user-owned\n", { mode: 0o600 });
-    expect(installPackagedCiscoProfile()).toBe("preserved");
+    expect(installPackagedCiscoProfile(packagedProfile)).toBe("preserved");
     expect(fs.readFileSync(profilePath, "utf8")).toBe("user-owned\n");
+  });
+
+  it("reports an unavailable profile for builds without one", () => {
+    expect(
+      installPackagedCiscoProfile(path.join(temporaryHome, "missing.env")),
+    ).toBe("unavailable");
+    expect(fs.existsSync(path.join(temporaryHome, "cisco-circuit.env"))).toBe(
+      false,
+    );
   });
 });

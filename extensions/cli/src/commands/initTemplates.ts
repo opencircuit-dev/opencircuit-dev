@@ -22,5 +22,9 @@ export async function initTemplatesCommand(): Promise<void> {
   if (preserved.length > 0) {
     console.log(`  Preserved: ${preserved.join(", ")}`);
   }
-  console.log(`  Cisco profile: ${ciscoProfile} (cisco-circuit.env)`);
+  console.log(
+    ciscoProfile === "unavailable"
+      ? "  Cisco profile: not included in this build"
+      : `  Cisco profile: ${ciscoProfile} (cisco-circuit.env)`,
+  );
 }

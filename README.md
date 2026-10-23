@@ -242,21 +242,38 @@ From the repository root, run:
 
 ```bash
 npm --prefix extensions/cli run check:release-artifact
-npm --prefix extensions/cli run release:internal-artifact
+OCIRCUIT_RELEASE_CISCO_PROFILE_FILE=<private-0600-profile> \
+  npm --prefix extensions/cli run release:internal-artifact
 ```
+
+The Cisco Circuit profile (`OCIRCUIT_CISCO_*` values) is not stored in Git.
+Supply it from a protected source with exactly one of
+`OCIRCUIT_RELEASE_CISCO_PROFILE` (profile contents, for example from a CI
+secret) or `OCIRCUIT_RELEASE_CISCO_PROFILE_FILE` (a regular, owner-only `0600`
+file). The packager validates the schema, issuer and approved gateway, writes
+the profile only into a temporary staging copy of the package, verifies the
+packed copy, records its SHA-256 in the provenance file, and then overwrites and
+deletes the temporary file. `oc init` installs the packaged profile as
+`~/.ocircuit/cisco-circuit.env`. `check:release-artifact` fails if any Cisco
+profile data is present in a public build. Pass `--no-profile` for validation
+builds that must not include the profile.
 
 The internal packaging command creates the versioned tarball and SHA-256
 sidecar in the sibling `opencircuit-internal/` directory by default. Pass
 `--output-dir <path>` to write them elsewhere. The `Package Internal CLI`
-workflow builds the CLI for relevant pull requests to `main`, after those
-changes merge to `main`, or when manually dispatched. Each run creates the
-archive in the sibling directory on its runner and uploads both files as a
-downloadable Actions artifact for 14 days.
+workflow builds a `--no-profile` validation archive for relevant pull requests
+to `main`, after those changes merge to `main`, or when manually dispatched.
+Each run creates the archive in the sibling directory on its runner and uploads
+both files as a downloadable Actions artifact for 14 days.
 
 To publish a version into the `opencircuit-internal` repository, run the
 `Release Internal CLI` workflow manually and enter the version. Configure the
 source repository secret `INTERNAL_RELEASE_REPO_TOKEN` with contents-write
-access to `opencircuit-dev/opencircuit-internal`. The workflow builds and tests
+access to `opencircuit-dev/opencircuit-internal`. The job runs in the protected
+`internal-release` environment, which must define the secret
+`OCIRCUIT_CISCO_PROFILE` (profile contents) and the variable
+`OCIRCUIT_RELEASE_PROFILE_ID` (a non-secret identifier recorded in provenance).
+The workflow builds and tests
 the requested version, then commits and pushes the tarball and checksum to the
 internal artifact repository root, replacing its previous root-level version.
 Earlier releases remain available in the repository's commit history.

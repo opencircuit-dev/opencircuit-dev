@@ -12,6 +12,7 @@ on:
       - "scripts/build-packages.js"
       - "scripts/check-cli-release-artifact.mjs"
       - "scripts/package-cli-internal.mjs"
+      - "scripts/cisco-release-profile.mjs"
       - "scripts/publish-cli-internal-artifact.sh"
       - "package.json"
       - "package-lock.json"
@@ -35,6 +36,8 @@ jobs:
     name: Build and publish internal CLI
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    # Protected environment: required reviewers and the Cisco profile secret.
+    environment: internal-release
     if: github.repository == 'opencircuit-dev/opencircuit-internal-dev' && github.ref == 'refs/heads/main'
 
     steps:
@@ -84,12 +87,18 @@ jobs:
         working-directory: extensions/cli
         run: npm test
 
+      - name: Test release profile tooling
+        run: node --test scripts/cisco-release-profile.test.mjs
+
       - name: Check release package contents
         working-directory: extensions/cli
         run: npm run check:release-artifact
 
       - name: Package internal CLI artifact
         working-directory: extensions/cli
+        env:
+          OCIRCUIT_RELEASE_CISCO_PROFILE: ${{ secrets.OCIRCUIT_CISCO_PROFILE }}
+          OCIRCUIT_RELEASE_PROFILE_ID: ${{ vars.OCIRCUIT_RELEASE_PROFILE_ID }}
         run: npm run release:internal-artifact -- --output-dir "$RUNNER_TEMP/internal-cli-release"
 
       - name: Checkout internal artifact repository
