@@ -28,6 +28,20 @@ const DEFAULT_POLICY_PATH = "/api/model-policy";
 const DEFAULT_SCOPES = ["openid", "offline_access"];
 const POLICY_CACHE_MS = 5 * 60 * 1000;
 const MAX_POLICY_BYTES = 256 * 1024;
+const DEFAULT_CISCO_PROFILE: CiscoCircuitProfile = {
+  issuer:
+    "https://login.microsoftonline.com/5ae1af62-9505-4097-a69a-c1553ef7840e/v2.0",
+  clientId: "e5707f34-0f65-4fa8-9fa5-3975272959f3",
+  scopes: [
+    "openid",
+    "profile",
+    "offline_access",
+    "api://e5707f34-0f65-4fa8-9fa5-3975272959f3/access_as_user",
+  ],
+  gatewayBase: `${APPROVED_GATEWAY_ORIGIN}${APPROVED_GATEWAY_PATH}`,
+  modelPolicyPath: DEFAULT_POLICY_PATH,
+  modelApiVersion: "2024-07-01-preview",
+};
 
 const profileSchema = z.object({
   issuer: z.string().url(),
@@ -50,30 +64,57 @@ export interface CiscoCircuitProfile {
 }
 
 const policyEntrySchema = z.union([
-  z.string().min(1).max(200),
+  z
+    .string()
+    .min(1)
+    .max(200)
+    .transform((id) => ({ id, name: id, deployment: undefined })),
   z
     .object({
       id: z.string().min(1).max(200),
+      name: z.string().min(1).max(200).optional(),
       deployment: z.string().min(1).max(200).optional(),
     })
     .strict(),
+  z
+    .object({
+      model: z.string().min(1).max(200),
+      name: z.string().min(1).max(200).optional(),
+      provider: z.literal("cisco"),
+    })
+    .transform(({ model, name }) => ({
+      id: model,
+      name: name ?? model,
+      deployment: undefined,
+    })),
 ]);
 
-const policySchema = z
-  .object({ models: z.array(policyEntrySchema).min(1).max(100) })
-  .strict();
+const policySchema = z.object({
+  models: z.array(policyEntrySchema).min(1).max(100),
+});
 
 export type CiscoModelPolicy = z.infer<typeof policySchema>;
 
 export function loadCiscoCircuitProfile(
-  profilePath = process.env[CISCO_CIRCUIT_PROFILE_ENV] ??
-    CISCO_CIRCUIT_PROFILE_PATH,
+  profilePath?: string,
 ): CiscoCircuitProfile {
-  const metadata = fs.lstatSync(profilePath);
+  const explicitPath = profilePath ?? process.env[CISCO_CIRCUIT_PROFILE_ENV];
+  const resolvedPath = explicitPath ?? CISCO_CIRCUIT_PROFILE_PATH;
+  let metadata: fs.Stats;
+  try {
+    metadata = fs.lstatSync(resolvedPath);
+  } catch (error) {
+    if (!explicitPath && (error as NodeJS.ErrnoException).code === "ENOENT") {
+      return profileSchema.parse(DEFAULT_CISCO_PROFILE);
+    }
+    throw error;
+  }
   if (!metadata.isFile() || (metadata.mode & 0o077) !== 0) {
     throw new Error("Cisco profile must be a regular file with mode 0600");
   }
-  const parsed = loadDotenv({ path: profilePath, processEnv: {} }).parsed ?? {};
+  const loaded = loadDotenv({ path: resolvedPath, processEnv: {} });
+  if (loaded.error) throw loaded.error;
+  const parsed = loaded.parsed ?? {};
   const profile = profileSchema.parse({
     issuer: parsed[CISCO_CIRCUIT_ISSUER],
     clientId: parsed[CISCO_CIRCUIT_CLIENT_ID],
@@ -142,20 +183,24 @@ export class CiscoCircuitGateway {
   }
 
   createLlmApi(model: string): CiscoCircuitApi {
+    const deployment =
+      this.policy?.models.find((entry) => entry.id === model)?.deployment ??
+      model;
     const base = new URL(
-      `api/llm/openai/deployments/${encodeURIComponent(model)}/`,
+      `api/llm/openai/deployments/${encodeURIComponent(deployment)}/`,
       ensureTrailingSlash(this.auth.gatewayBase!),
     );
     return new CiscoCircuitApi(
       base.toString(),
       async () => {
         const policy = await this.getPolicy();
-        const entry = policy.models.find((candidate) =>
-          typeof candidate === "string"
-            ? candidate === model
-            : candidate.id === model,
-        );
+        const entry = policy.models.find((candidate) => candidate.id === model);
         if (!entry) throw new Error(`Cisco model is not entitled: ${model}`);
+        if ((entry.deployment ?? model) !== deployment) {
+          throw new Error(
+            "Cisco model deployment changed; restart the session",
+          );
+        }
         const token = await this.client.getAccessToken();
         if (!token) throw new Error("Cisco Circuit authentication is required");
         return token;
@@ -201,9 +246,7 @@ export class CiscoCircuitGateway {
       throw new Error("Cisco model policy was not valid JSON");
     }
     const policy = policySchema.parse(payload);
-    const ids = policy.models.map((entry) =>
-      typeof entry === "string" ? entry : entry.id,
-    );
+    const ids = policy.models.map((entry) => entry.id);
     if (new Set(ids).size !== ids.length)
       throw new Error("Cisco model policy contains duplicate IDs");
     this.policy = policy;

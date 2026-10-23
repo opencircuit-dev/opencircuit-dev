@@ -56,9 +56,21 @@ export class ModelService
       assistantModelsCount: assistant?.models?.length || 0,
     });
 
+    this.gateway = authServiceState?.gateway ?? null;
+    if (this.gateway) {
+      const policy = await this.gateway.getPolicy();
+      assistant = {
+        ...assistant,
+        models: policy.models.map((entry) => ({
+          name: entry.name ?? entry.id,
+          provider: "openai-compatible",
+          model: entry.id,
+          roles: ["chat"],
+        })),
+      };
+    }
     this.assistant = assistant;
     this.authConfig = authConfig;
-    this.gateway = authServiceState?.gateway ?? null;
     this.availableModels = (assistant.models?.filter(
       (model) =>
         model && (model.roles?.includes("chat") || model.roles === undefined),

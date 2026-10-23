@@ -1,14 +1,19 @@
 import { mkdtemp, chmod, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import * as fs from "node:fs";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { loadCiscoCircuitProfile } from "./ciscoCircuit.js";
+
+vi.mock("node:fs", { spy: true });
 
 const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   await Promise.all(
     temporaryDirectories
       .splice(0)
@@ -21,6 +26,28 @@ afterEach(async () => {
 });
 
 describe("Cisco Circuit protected profile", () => {
+  it("uses bundled registration metadata when the default profile is absent", () => {
+    vi.stubEnv("OCIRCUIT_CISCO_PROFILE", undefined);
+    const missing = () => {
+      throw Object.assign(new Error("missing"), { code: "ENOENT" });
+    };
+    vi.mocked(fs.lstatSync)
+      .mockImplementationOnce(missing)
+      .mockImplementationOnce(missing);
+
+    const profile = loadCiscoCircuitProfile();
+    expect(profile.issuer).toMatch(
+      /^https:\/\/login\.microsoftonline\.com\/[^/]+\/v2\.0$/,
+    );
+    expect(profile.scopes).toContain(
+      `api://${profile.clientId}/access_as_user`,
+    );
+    expect(profile.gatewayBase).toBe("https://organon.cisco.com/vscode-plugin");
+    expect(() => loadCiscoCircuitProfile("/missing-explicit-profile")).toThrow(
+      "missing",
+    );
+  });
+
   it("loads only a mode-0600 profile and validates the approved gateway", async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), "ocircuit-cisco-"));
     temporaryDirectories.push(directory);

@@ -1,5 +1,6 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { OpenCircuitClient } from "@opencircuit/sdk";
 
 // Mock dependencies before imports
 vi.mock("../config.js");
@@ -8,6 +9,7 @@ vi.mock("../auth/workos.js");
 import * as workos from "../auth/workos.js";
 import { AuthConfig } from "../auth/workos.js";
 import * as config from "../config.js";
+import { CiscoCircuitGateway } from "../auth/ciscoCircuit.js";
 
 import { ModelService } from "./ModelService.js";
 
@@ -53,6 +55,49 @@ describe("ModelService", () => {
   });
 
   describe("State Management", () => {
+    test.each([null, "Removed model", "Second"])(
+      "populates entitled models and selects a valid preference (%s)",
+      async (preference) => {
+        const gateway = new CiscoCircuitGateway(new OpenCircuitClient(), {
+          enabled: true,
+          profile: "cisco-circuit",
+          gatewayBase: "https://organon.cisco.com/vscode-plugin",
+          modelPolicyPath: "/api/model-policy",
+          modelApiVersion: "2024-07-01-preview",
+        });
+        vi.spyOn(gateway, "getPolicy").mockResolvedValue({
+          models: [
+            { id: "first", name: "First" },
+            { id: "second", name: "Second" },
+          ],
+        });
+        vi.mocked(workos.getModelName).mockReturnValue(preference);
+        const llmApi = gateway.createLlmApi("first");
+        vi.mocked(config.getLlmApi).mockImplementation((assistant) => {
+          const model = assistant.models?.[0];
+          if (!model) throw new Error("Missing policy model");
+          return [llmApi, model];
+        });
+        vi.mocked(config.createLlmApi).mockReturnValue(llmApi);
+        mockAssistant.models = [];
+
+        const state = await service.initialize(
+          mockAssistant,
+          mockAuthConfig,
+          undefined,
+          { authConfig: null, isAuthenticated: true, gateway },
+        );
+        expect(gateway.getPolicy).toHaveBeenCalledOnce();
+        expect(state.model?.model).toBe(
+          preference === "Second" ? "second" : "first",
+        );
+        expect(
+          service.getAvailableChatModels().map((model) => model.name),
+        ).toEqual(["First", "Second"]);
+        expect(mockAssistant.models).toEqual([]);
+      },
+    );
+
     test("should initialize with default model", async () => {
       vi.mocked(config.getLlmApi).mockReturnValue([
         mockLlmApi as any,
