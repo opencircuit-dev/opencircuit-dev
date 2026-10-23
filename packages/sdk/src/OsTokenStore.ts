@@ -87,27 +87,34 @@ export class OsTokenStore implements SecureTokenStore {
         ),
       );
     }
+    if (this.platform === "darwin") {
+      // `security` cannot read item data from stdin: a bare `-w` prompts on
+      // /dev/tty (truncated to 128 chars) and `security -i` caps lines near
+      // 4 KB. Token sets exceed both, so pass hex data as an argument; argv is
+      // visible only to same-user/root processes, which can already read the
+      // item via `security find-generic-password`.
+      return this.runCommand("security", [
+        "add-generic-password",
+        "-U",
+        "-a",
+        this.account,
+        "-s",
+        this.service,
+        "-X",
+        Buffer.from(value, "utf8").toString("hex"),
+      ]);
+    }
     return this.runCommand(
-      this.platform === "darwin" ? "security" : "secret-tool",
-      this.platform === "darwin"
-        ? [
-            "add-generic-password",
-            "-U",
-            "-a",
-            this.account,
-            "-s",
-            this.service,
-            "-w",
-          ]
-        : [
-            "store",
-            "--label",
-            "Open Circuit OAuth token",
-            "service",
-            this.service,
-            "account",
-            this.account,
-          ],
+      "secret-tool",
+      [
+        "store",
+        "--label",
+        "Open Circuit OAuth token",
+        "service",
+        this.service,
+        "account",
+        this.account,
+      ],
       value,
     );
   }
