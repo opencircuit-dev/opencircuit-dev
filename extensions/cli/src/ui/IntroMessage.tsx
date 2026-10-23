@@ -14,6 +14,8 @@ interface IntroMessageProps {
   model?: ModelConfig;
   mcpService?: MCPService;
   organizationName?: string;
+  /** Model comes from the Cisco model-policy entitlement; skip the warning. */
+  isEntitledModel?: boolean;
 }
 
 // Helper function to extract rule names
@@ -28,6 +30,7 @@ const IntroMessage: React.FC<IntroMessageProps> = ({
   model,
   mcpService,
   organizationName,
+  isEntitledModel = false,
 }) => {
   // Get MCP prompts directly (not memoized since they can change after first render)
   const mcpPrompts = mcpService?.getState().prompts ?? [];
@@ -129,7 +132,7 @@ const IntroMessage: React.FC<IntroMessageProps> = ({
       <Text> </Text>
 
       {/* Model capability warning */}
-      {model && !modelCapable && (
+      {model && !modelCapable && !isEntitledModel && (
         <>
           <ModelCapabilityWarning
             modelName={model.name.split("/").pop() || model.name}
