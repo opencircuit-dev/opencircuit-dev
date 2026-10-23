@@ -6,8 +6,12 @@ import { configYamlSchema, modelSchema } from "@opencircuit/config-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import YAML from "yaml";
 
+import { loadCiscoCircuitProfile } from "./auth/ciscoCircuit.js";
 import { env } from "./env.js";
-import { installPackagedTemplates } from "./templateInstaller.js";
+import {
+  installPackagedCiscoProfile,
+  installPackagedTemplates,
+} from "./templateInstaller.js";
 
 describe("installPackagedTemplates", () => {
   const originalHome = env.ocircuitHome;
@@ -150,5 +154,21 @@ describe("installPackagedTemplates", () => {
       redirectPath: "/oauth/callback",
     });
     expect(configYamlSchema.parse(circuitConfig).models).toHaveLength(1);
+  });
+
+  it("installs a loadable private Cisco profile and preserves an existing one", () => {
+    const profilePath = path.join(temporaryHome, "cisco-circuit.env");
+
+    expect(installPackagedCiscoProfile()).toBe("installed");
+    if (process.platform !== "win32") {
+      expect(fs.statSync(profilePath).mode & 0o777).toBe(0o600);
+    }
+    expect(loadCiscoCircuitProfile(profilePath).gatewayBase).toBe(
+      "https://organon.cisco.com/vscode-plugin",
+    );
+
+    fs.writeFileSync(profilePath, "user-owned\n", { mode: 0o600 });
+    expect(installPackagedCiscoProfile()).toBe("preserved");
+    expect(fs.readFileSync(profilePath, "utf8")).toBe("user-owned\n");
   });
 });

@@ -92,7 +92,7 @@ export function loadCiscoCircuitProfile(
   } catch (error) {
     if (!explicitPath && (error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new Error(
-        `Cisco protected profile is required at ${resolvedPath}; provision it through the approved release environment`,
+        `Cisco protected profile is required at ${resolvedPath}; run \`oc init\` to install the packaged profile`,
       );
     }
     throw error;

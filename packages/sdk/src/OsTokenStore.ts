@@ -9,6 +9,13 @@ export class TokenStoreUnavailable extends Error {
   }
 }
 
+// `security -i` rejects input lines longer than ~4 KB, so macOS token sets are
+// stored as base64 chunks in numbered items with a count in the primary item.
+const CHUNK_MANIFEST_PREFIX = "oc-chunks:";
+const MAX_CHUNK_CHARS = 1500;
+const MAX_CHUNKS = 64;
+const NOT_FOUND = /not found|could not be found|no such item/i;
+
 interface CommandResult {
   stdout: string;
   stderr: string;
@@ -24,8 +31,11 @@ export class OsTokenStore implements SecureTokenStore {
   ) {}
 
   async load(): Promise<OAuthTokenSet | null> {
-    const result = await this.runLookup();
-    if (!result) return null;
+    const stored = await this.runLookup();
+    if (!stored) return null;
+    const result = stored.startsWith(CHUNK_MANIFEST_PREFIX)
+      ? await this.loadChunks(stored)
+      : stored;
     try {
       const value: unknown = JSON.parse(result);
       if (!value || typeof value !== "object") throw new Error("invalid");
@@ -45,33 +55,58 @@ export class OsTokenStore implements SecureTokenStore {
   }
 
   async clear(): Promise<void> {
-    const result = await this.runClear();
-    if (
-      result.code !== 0 &&
-      !/not found|could not be found|no such item/i.test(result.stderr)
-    ) {
-      throw new TokenStoreUnavailable(
-        "Host credential manager could not clear OAuth credentials",
-      );
+    const chunkCount = await this.storedChunkCount();
+    const services = [this.service];
+    for (let index = 0; index < chunkCount; index++) {
+      services.push(this.chunkService(index));
+    }
+    for (const service of services) {
+      const result = await this.runClear(service);
+      if (result.code !== 0 && !NOT_FOUND.test(result.stderr)) {
+        throw new TokenStoreUnavailable(
+          "Host credential manager could not clear OAuth credentials",
+        );
+      }
     }
   }
 
-  private async runLookup(): Promise<string | null> {
+  private chunkService(index: number): string {
+    return `${this.service}#${index}`;
+  }
+
+  private async storedChunkCount(): Promise<number> {
+    if (this.platform !== "darwin") return 0;
+    const stored = await this.runLookup().catch(() => null);
+    return stored?.startsWith(CHUNK_MANIFEST_PREFIX)
+      ? (parseChunkCount(stored) ?? 0)
+      : 0;
+  }
+
+  private async loadChunks(manifest: string): Promise<string> {
+    const count = parseChunkCount(manifest);
+    if (count === null) {
+      throw new TokenStoreUnavailable("Stored OAuth credentials are invalid");
+    }
+    let encoded = "";
+    for (let index = 0; index < count; index++) {
+      const chunk = await this.runLookup(this.chunkService(index));
+      if (!chunk) {
+        throw new TokenStoreUnavailable("Stored OAuth credentials are invalid");
+      }
+      encoded += chunk;
+    }
+    return Buffer.from(encoded, "base64").toString("utf8");
+  }
+
+  private async runLookup(service = this.service): Promise<string | null> {
     const result = await this.runCommand(
       this.platform === "darwin" ? "security" : "secret-tool",
       this.platform === "darwin"
-        ? [
-            "find-generic-password",
-            "-a",
-            this.account,
-            "-s",
-            this.service,
-            "-w",
-          ]
-        : ["lookup", "service", this.service, "account", this.account],
+        ? ["find-generic-password", "-a", this.account, "-s", service, "-w"]
+        : ["lookup", "service", service, "account", this.account],
     );
     if (result.code !== 0) {
-      if (/not found|could not be found|no such item/i.test(result.stderr)) {
+      if (NOT_FOUND.test(result.stderr)) {
         return null;
       }
       throw new TokenStoreUnavailable("Host credential manager is unavailable");
@@ -79,7 +114,7 @@ export class OsTokenStore implements SecureTokenStore {
     return result.stdout.trim() || null;
   }
 
-  private runStore(value: string): Promise<CommandResult> {
+  private async runStore(value: string): Promise<CommandResult> {
     if (this.platform !== "darwin" && this.platform !== "linux") {
       return Promise.reject(
         new TokenStoreUnavailable(
@@ -89,17 +124,35 @@ export class OsTokenStore implements SecureTokenStore {
     }
     if (this.platform === "darwin") {
       // Interactive mode keeps token data out of the child process argv.
-      const command = [
-        "add-generic-password",
-        "-U",
-        "-a",
-        quoteSecurityArgument(this.account),
-        "-s",
-        quoteSecurityArgument(this.service),
-        "-X",
-        quoteSecurityArgument(Buffer.from(value, "utf8").toString("hex")),
-      ].join(" ");
-      return this.runCommand("security", ["-i"], `${command}\n`);
+      const chunks =
+        Buffer.from(value, "utf8")
+          .toString("base64")
+          .match(new RegExp(`.{1,${MAX_CHUNK_CHARS}}`, "g")) ?? [];
+      if (chunks.length === 0 || chunks.length > MAX_CHUNKS) {
+        throw new TokenStoreUnavailable("OAuth credentials are too large");
+      }
+      const previousCount = await this.storedChunkCount();
+      const lines = chunks.map((chunk, index) =>
+        this.addItemCommand(this.chunkService(index), chunk),
+      );
+      lines.push(
+        this.addItemCommand(
+          this.service,
+          `${CHUNK_MANIFEST_PREFIX}${chunks.length}`,
+        ),
+      );
+      for (let index = chunks.length; index < previousCount; index++) {
+        lines.push(
+          [
+            "delete-generic-password",
+            "-a",
+            quoteSecurityArgument(this.account),
+            "-s",
+            quoteSecurityArgument(this.chunkService(index)),
+          ].join(" "),
+        );
+      }
+      return this.runCommand("security", ["-i"], `${lines.join("\n")}\n`);
     }
     return this.runCommand(
       "secret-tool",
@@ -116,7 +169,20 @@ export class OsTokenStore implements SecureTokenStore {
     );
   }
 
-  private runClear(): Promise<CommandResult> {
+  private addItemCommand(service: string, data: string): string {
+    return [
+      "add-generic-password",
+      "-U",
+      "-a",
+      quoteSecurityArgument(this.account),
+      "-s",
+      quoteSecurityArgument(service),
+      "-X",
+      quoteSecurityArgument(Buffer.from(data, "utf8").toString("hex")),
+    ].join(" ");
+  }
+
+  private runClear(service = this.service): Promise<CommandResult> {
     if (this.platform !== "darwin" && this.platform !== "linux") {
       return Promise.reject(
         new TokenStoreUnavailable(
@@ -127,8 +193,8 @@ export class OsTokenStore implements SecureTokenStore {
     return this.runCommand(
       this.platform === "darwin" ? "security" : "secret-tool",
       this.platform === "darwin"
-        ? ["delete-generic-password", "-a", this.account, "-s", this.service]
-        : ["clear", "service", this.service, "account", this.account],
+        ? ["delete-generic-password", "-a", this.account, "-s", service]
+        : ["clear", "service", service, "account", this.account],
     );
   }
 
@@ -181,4 +247,11 @@ function validateStoredToken(value: unknown): OAuthTokenSet {
 
 function quoteSecurityArgument(value: string): string {
   return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function parseChunkCount(manifest: string): number | null {
+  const count = Number(manifest.slice(CHUNK_MANIFEST_PREFIX.length));
+  return Number.isInteger(count) && count > 0 && count <= MAX_CHUNKS
+    ? count
+    : null;
 }

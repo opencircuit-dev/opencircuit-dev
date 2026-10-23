@@ -9,7 +9,8 @@
     "dist",
     "README.md",
     "LICENSE.txt",
-    "templates"
+    "templates",
+    "profiles"
   ],
   "bin": {
     "oc": "dist/oc.js"

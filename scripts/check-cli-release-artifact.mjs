@@ -59,6 +59,7 @@ const requiredFiles = [
   "templates/config-devnet.yaml",
   "templates/config-meta.yaml",
   "templates/config-olmo.yaml",
+  "profiles/cisco-circuit.env",
 ];
 const missingFiles = requiredFiles.filter((file) => !files.includes(file));
 const forbiddenFiles = files.filter((file) =>

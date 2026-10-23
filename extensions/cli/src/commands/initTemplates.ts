@@ -1,9 +1,13 @@
 import chalk from "chalk";
 
-import { installPackagedTemplates } from "../templateInstaller.js";
+import {
+  installPackagedCiscoProfile,
+  installPackagedTemplates,
+} from "../templateInstaller.js";
 
 export async function initTemplatesCommand(): Promise<void> {
   const { installed, preserved } = installPackagedTemplates();
+  const ciscoProfile = installPackagedCiscoProfile();
   const total = installed.length + preserved.length;
 
   console.log(
@@ -18,4 +22,5 @@ export async function initTemplatesCommand(): Promise<void> {
   if (preserved.length > 0) {
     console.log(`  Preserved: ${preserved.join(", ")}`);
   }
+  console.log(`  Cisco profile: ${ciscoProfile} (cisco-circuit.env)`);
 }
