@@ -13,6 +13,7 @@ on:
       - "scripts/check-cli-release-artifact.mjs"
       - "scripts/package-cli-internal.mjs"
       - "scripts/cisco-release-profile.mjs"
+      - "scripts/cli-release-pack-report.mjs"
       - "scripts/publish-cli-internal-artifact.sh"
       - "package.json"
       - "package-lock.json"
@@ -88,7 +89,7 @@ jobs:
         run: npm test
 
       - name: Test release profile tooling
-        run: node --test scripts/cisco-release-profile.test.mjs
+        run: node --test scripts/cisco-release-profile.test.mjs scripts/package-cli-internal.test.mjs
 
       - name: Check release package contents
         working-directory: extensions/cli

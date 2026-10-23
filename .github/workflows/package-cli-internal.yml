@@ -12,6 +12,7 @@ on:
       - "scripts/check-cli-release-artifact.mjs"
       - "scripts/package-cli-internal.mjs"
       - "scripts/cisco-release-profile.mjs"
+      - "scripts/cli-release-pack-report.mjs"
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"
@@ -26,6 +27,7 @@ on:
       - "scripts/check-cli-release-artifact.mjs"
       - "scripts/package-cli-internal.mjs"
       - "scripts/cisco-release-profile.mjs"
+      - "scripts/cli-release-pack-report.mjs"
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"
@@ -86,7 +88,7 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Test release profile tooling
-        run: node --test scripts/cisco-release-profile.test.mjs
+        run: node --test scripts/cisco-release-profile.test.mjs scripts/package-cli-internal.test.mjs
 
       # Validation build only; the protected profile is injected by release-cli-internal.yml.
       - name: Package internal archive

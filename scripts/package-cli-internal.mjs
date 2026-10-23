@@ -22,6 +22,7 @@ import {
   secureDelete,
   validateReleaseProfile,
 } from "./cisco-release-profile.mjs";
+import { parseCliPackReport } from "./cli-release-pack-report.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cliDirectory = resolve(repositoryRoot, "extensions/cli");
@@ -83,8 +84,9 @@ for (const name of [
   delete npmEnv[name];
 }
 
+// npm 10/11 report an array; npm 12 reports an object keyed by package name.
 function packedFiles(cwd) {
-  const [report] = JSON.parse(
+  const report = parseCliPackReport(
     execFileSync(
       npmCommand,
       ["pack", "--dry-run", "--json", "--ignore-scripts"],
@@ -95,6 +97,7 @@ function packedFiles(cwd) {
         maxBuffer: 16 * 1024 * 1024,
       },
     ),
+    packageJson,
   );
   return report.files.map((entry) => entry.path).sort();
 }
