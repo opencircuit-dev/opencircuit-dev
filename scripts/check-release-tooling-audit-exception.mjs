@@ -26,10 +26,19 @@ if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
+  const {
+    npm_config_allow_scripts: _npmConfigAllowScripts,
+    NPM_CONFIG_ALLOW_SCRIPTS: _npmConfigAllowScriptsUpper,
+    ...cleanEnvironment
+  } = process.env;
   const result = spawnSync(
     process.platform === "win32" ? "npm.cmd" : "npm",
     ["audit", "--json", "--include=dev", "--include=optional"],
-    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+    {
+      encoding: "utf8",
+      env: cleanEnvironment,
+      maxBuffer: 16 * 1024 * 1024,
+    },
   );
   if (result.error) throw result.error;
   const audit = JSON.parse(result.stdout);

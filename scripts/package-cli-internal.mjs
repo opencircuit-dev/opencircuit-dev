@@ -47,6 +47,7 @@ if (!/^\d+\.\d+\.\d+$/.test(version)) {
 const artifactName = `opencircuit-cli-internal-${version}.tgz`;
 const artifactPath = resolve(outputDirectory, artifactName);
 const checksumPath = `${artifactPath}.sha256`;
+const provenancePath = `${artifactPath}.provenance.json`;
 
 mkdirSync(outputDirectory, { recursive: true });
 const stagingDirectory = mkdtempSync(
@@ -86,8 +87,50 @@ try {
   renameSync(stagedArtifact, artifactPath);
   renameSync(stagedChecksum, checksumPath);
 
+  const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  }).trim();
+  const sourceChanges = execFileSync("git", ["status", "--porcelain"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => line.slice(3));
+  const profileIdentifier =
+    process.env.OCIRCUIT_RELEASE_PROFILE_ID ?? "protected-runtime-profile";
+  if (!/^[A-Za-z0-9._:-]+$/.test(profileIdentifier)) {
+    throw new Error(
+      "OCIRCUIT_RELEASE_PROFILE_ID must be a non-secret identifier",
+    );
+  }
+  writeFileSync(
+    provenancePath,
+    `${JSON.stringify(
+      {
+        artifact: artifactName,
+        package: packageJson.name,
+        version,
+        sha256: checksum,
+        sourceCommit,
+        sourceTreeDirty: sourceChanges.length > 0,
+        sourceChanges,
+        protectedProfile: profileIdentifier,
+        generatedWith: {
+          node: process.version,
+          npm: execFileSync("npm", ["--version"], { encoding: "utf8" }).trim(),
+        },
+      },
+      null,
+      2,
+    )}\n`,
+    { mode: 0o600 },
+  );
+
   console.log(`Internal release artifact: ${artifactPath}`);
   console.log(`SHA-256: ${checksum}`);
+  console.log(`Provenance: ${provenancePath}`);
 } finally {
   rmSync(stagingDirectory, { recursive: true, force: true });
   rmSync(npmCacheDirectory, { recursive: true, force: true });

@@ -29,7 +29,7 @@ export class OsTokenStore implements SecureTokenStore {
     try {
       const value: unknown = JSON.parse(result);
       if (!value || typeof value !== "object") throw new Error("invalid");
-      return value as OAuthTokenSet;
+      return validateStoredToken(value);
     } catch {
       throw new TokenStoreUnavailable("Stored OAuth credentials are invalid");
     }
@@ -152,4 +152,25 @@ export class OsTokenStore implements SecureTokenStore {
       child.stdin.end(input);
     });
   }
+}
+
+function validateStoredToken(value: unknown): OAuthTokenSet {
+  if (!value || typeof value !== "object") {
+    throw new Error("invalid token record");
+  }
+  const token = value as Record<string, unknown>;
+  if (
+    typeof token.accessToken !== "string" ||
+    token.accessToken.length === 0 ||
+    token.tokenType !== "Bearer" ||
+    typeof token.expiresAt !== "number" ||
+    !Number.isFinite(token.expiresAt) ||
+    (token.refreshToken !== undefined &&
+      typeof token.refreshToken !== "string") ||
+    (token.scope !== undefined && typeof token.scope !== "string") ||
+    (token.idToken !== undefined && typeof token.idToken !== "string")
+  ) {
+    throw new Error("invalid token record");
+  }
+  return token as unknown as OAuthTokenSet;
 }

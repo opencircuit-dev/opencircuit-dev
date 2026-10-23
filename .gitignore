@@ -94,6 +94,7 @@ celerybeat.pid
 
 # Environments
 .env
+.ocircuit/cisco-circuit.env
 .venv
 env/
 venv/

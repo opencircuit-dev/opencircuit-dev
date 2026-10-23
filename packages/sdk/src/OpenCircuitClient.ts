@@ -89,13 +89,17 @@ export class OpenCircuitClient {
   }
 
   async authenticate(config: ConfigJson): Promise<OAuthTokenSet | null> {
+    this.configureAuth(config);
+    const tokenSet = await this.authManager!.authenticate();
+    this.accessToken = tokenSet?.accessToken ?? null;
+    return tokenSet;
+  }
+
+  configureAuth(config: ConfigJson): void {
     this.authManager = new AuthManager(config, {
       fetch: this.fetchImpl,
       tokenStore: this.options.tokenStore,
     });
-    const tokenSet = await this.authManager.authenticate();
-    this.accessToken = tokenSet?.accessToken ?? null;
-    return tokenSet;
   }
 
   async getAccessToken(): Promise<string | null> {

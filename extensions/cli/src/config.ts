@@ -6,6 +6,7 @@ import {
 } from "@opencircuit/openai-adapters";
 import { OpenCircuitClient } from "@opencircuit/sdk";
 
+import type { CiscoCircuitGateway } from "./auth/ciscoCircuit.js";
 import { AuthConfig } from "./auth/workos.js";
 import { env } from "./env.js";
 import { getUniqueId } from "./util/uniqueId.js";
@@ -41,7 +42,11 @@ function _mergeUserAgentIntoRequestOptions(
 export function createLlmApi(
   model: ModelConfig,
   _authConfig: AuthConfig,
+  gateway?: CiscoCircuitGateway | null,
 ): BaseLlmApi | null {
+  if (gateway && model.provider === "openai-compatible") {
+    return gateway.createLlmApi(model.model);
+  }
   const config: LLMConfig = {
     provider: model.provider as any,
     model: model.model,
@@ -57,6 +62,7 @@ export function createLlmApi(
 export function getLlmApi(
   assistant: AssistantUnrolled,
   authConfig: AuthConfig,
+  gateway?: CiscoCircuitGateway | null,
 ): [BaseLlmApi, ModelConfig] {
   if (!assistant.models || assistant.models.length === 0) {
     throw new Error("No models found in the configured assistant");
@@ -73,7 +79,7 @@ export function getLlmApi(
     );
   }
 
-  const llmApi = createLlmApi(model, authConfig);
+  const llmApi = createLlmApi(model, authConfig, gateway);
 
   if (!llmApi) {
     throw new Error(

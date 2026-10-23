@@ -22,6 +22,9 @@ import type {
 const APPROVED_GATEWAY_ORIGIN = "https://organon.cisco.com";
 const ROUTE_PREFIX = "/vscode-plugin/api/llm/openai/deployments/";
 
+export const CISCO_CIRCUIT_GATEWAY_ORIGIN = APPROVED_GATEWAY_ORIGIN;
+export const CISCO_CIRCUIT_ROUTE_PREFIX = ROUTE_PREFIX;
+
 /** Dedicated adapter for the protected Cisco Circuit gateway contract. */
 export class CiscoCircuitApi implements BaseLlmApi {
   private readonly client: OpenAI;
@@ -31,10 +34,12 @@ export class CiscoCircuitApi implements BaseLlmApi {
     apiBase: string,
     private readonly accessToken: () => Promise<string | null>,
     private readonly apiVersion: string,
+    private readonly fetchImpl: typeof fetch = fetch,
   ) {
     this.approvedBase = validateCircuitEndpoint(apiBase);
     this.client = new OpenAI({
-      apiKey: "",
+      // The transport replaces this SDK placeholder before every request.
+      apiKey: "cisco-circuit-transport",
       baseURL: this.approvedBase.toString(),
       fetch: this.authenticatedFetch.bind(this),
     });
@@ -44,6 +49,7 @@ export class CiscoCircuitApi implements BaseLlmApi {
     body: ChatCompletionCreateParamsNonStreaming,
     signal: AbortSignal,
   ): Promise<ChatCompletion> {
+    await this.requireAccessToken();
     return this.client.chat.completions.create(body, { signal });
   }
 
@@ -51,6 +57,7 @@ export class CiscoCircuitApi implements BaseLlmApi {
     body: ChatCompletionCreateParamsStreaming,
     signal: AbortSignal,
   ): AsyncGenerator<ChatCompletionChunk> {
+    await this.requireAccessToken();
     const response = await this.client.chat.completions.create(body, {
       signal,
     });
@@ -113,14 +120,19 @@ export class CiscoCircuitApi implements BaseLlmApi {
       requestUrl.searchParams.set("api-version", this.apiVersion);
     }
 
-    const token = await this.accessToken();
-    if (!token) throw new Error("Cisco Circuit authentication is required");
+    const token = await this.requireAccessToken();
 
     const headers = new Headers(init?.headers);
     headers.delete("api-key");
     headers.delete("x-api-key");
     headers.set("Authorization", `Bearer ${token}`);
-    return fetch(requestUrl, { ...init, headers });
+    return this.fetchImpl(requestUrl, { ...init, headers });
+  }
+
+  private async requireAccessToken(): Promise<string> {
+    const token = await this.accessToken();
+    if (!token) throw new Error("Cisco Circuit authentication is required");
+    return token;
   }
 }
 
@@ -132,6 +144,7 @@ function validateCircuitEndpoint(value: string): URL {
     !endpoint.pathname.startsWith(ROUTE_PREFIX) ||
     endpoint.username ||
     endpoint.password ||
+    endpoint.search ||
     endpoint.hash
   ) {
     throw new Error("Cisco Circuit gateway endpoint is not approved");

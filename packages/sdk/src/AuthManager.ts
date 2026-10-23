@@ -488,6 +488,7 @@ export class AuthManager {
       }
       const jwks = createRemoteJWKSet(metadata.jwksUri);
       const verified = await jwtVerify(tokenSet.idToken, jwks, {
+        algorithms: ["ES256", "PS256", "RS256"],
         audience: this.requireClientId(),
         issuer: metadata.issuer,
       });
@@ -627,7 +628,7 @@ function validateEndpoint(value: string, allowLoopbackHttp: boolean): URL {
   if (url.protocol !== "https:" && !isAllowedHttp) {
     throw new OAuthError("OAuth provider endpoints must use HTTPS");
   }
-  if (url.username || url.password || url.hash) {
+  if (url.username || url.password || url.search || url.hash) {
     throw new OAuthError(
       "OAuth provider endpoints cannot contain credentials or fragments",
     );

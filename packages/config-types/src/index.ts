@@ -3,7 +3,14 @@ import { z } from "zod";
 export const authOptionsSchema = z
   .object({
     enabled: z.boolean().optional(),
-    profile: z.enum(["cisco-circuit"]).optional(),
+    profile: z.literal("cisco-circuit").optional(),
+    gatewayBase: z.string().url().optional(),
+    modelPolicyPath: z
+      .string()
+      .regex(/^\/[A-Za-z0-9._~!$&'()*+,;=:@%/~-]+$/)
+      .optional(),
+    modelApiVersion: z.string().min(1).max(64).optional(),
+    secretRef: z.string().min(1).max(256).optional(),
     issuer: z.string().url().optional(),
     authorizationEndpoint: z.string().url().optional(),
     tokenEndpoint: z.string().url().optional(),
@@ -21,6 +28,12 @@ export const authOptionsSchema = z
   .strict()
   .superRefine((auth, context) => {
     if (!auth.enabled) return;
+
+    // The internal Cisco profile is completed from the protected runtime
+    // profile before OAuth validation runs.
+    if (auth.profile === "cisco-circuit" && !auth.issuer && !auth.clientId) {
+      return;
+    }
 
     if (!auth.clientId) {
       context.addIssue({

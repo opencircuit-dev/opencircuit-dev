@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { exportJWK, generateKeyPair, type KeyLike, SignJWT } from "jose";
 
 import type { ConfigJson } from "@opencircuit/config-types";
-import { AuthManager, OAuthError } from "./AuthManager.js";
+import { AuthManager, MemoryTokenStore, OAuthError } from "./AuthManager.js";
 
 interface ProviderHarness {
   authorizationEndpoint: string;
@@ -174,6 +174,30 @@ describe("AuthManager", () => {
       "refreshed-access-token",
     );
     await expect(manager.getAccessToken()).resolves.toBeNull();
+  });
+
+  it("coalesces concurrent refreshes and preserves the rotated token", async () => {
+    const provider = await createProvider();
+    const store = new MemoryTokenStore();
+    await store.save({
+      accessToken: "expired-access-token",
+      expiresAt: 1,
+      refreshToken: "refresh-token",
+      tokenType: "Bearer",
+    });
+    const manager = new AuthManager(
+      createConfig({
+        authorizationEndpoint: provider.authorizationEndpoint,
+        tokenEndpoint: provider.tokenEndpoint,
+      }),
+      { now: () => 2_000, tokenStore: store },
+    );
+
+    await expect(
+      Promise.all([manager.getAccessToken(), manager.getAccessToken()]),
+    ).resolves.toEqual(["refreshed-access-token", "refreshed-access-token"]);
+    expect(provider.tokenRequests).toHaveLength(1);
+    expect((await store.load())?.refreshToken).toBe("refresh-token");
   });
 
   it("validates the OIDC issuer, JWKS signature, audience, and nonce", async () => {

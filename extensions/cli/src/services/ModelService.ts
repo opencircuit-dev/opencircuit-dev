@@ -1,11 +1,16 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 
+import type { CiscoCircuitGateway } from "../auth/ciscoCircuit.js";
 import { AuthConfig, getModelName } from "../auth/workos.js";
 import { createLlmApi, getLlmApi } from "../config.js";
 import { logger } from "../util/logger.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
-import { AgentFileServiceState, ModelServiceState } from "./types.js";
+import {
+  AgentFileServiceState,
+  AuthServiceState,
+  ModelServiceState,
+} from "./types.js";
 
 /**
  * Service for managing LLM and model state
@@ -18,6 +23,7 @@ export class ModelService
   private availableModels: ModelConfig[] = [];
   private assistant: AssistantUnrolled | null = null;
   private authConfig: AuthConfig | null = null;
+  private gateway: CiscoCircuitGateway | null = null;
 
   constructor() {
     super("ModelService", {
@@ -42,6 +48,7 @@ export class ModelService
     assistant: AssistantUnrolled,
     authConfig: AuthConfig,
     agentFileServiceState: AgentFileServiceState | undefined,
+    authServiceState?: AuthServiceState,
   ): Promise<ModelServiceState> {
     logger.debug("ModelService.doInitialize called", {
       hasAssistant: !!assistant,
@@ -51,6 +58,7 @@ export class ModelService
 
     this.assistant = assistant;
     this.authConfig = authConfig;
+    this.gateway = authServiceState?.gateway ?? null;
     this.availableModels = (assistant.models?.filter(
       (model) =>
         model && (model.roles?.includes("chat") || model.roles === undefined),
@@ -80,12 +88,15 @@ export class ModelService
       });
       if (modelIndex === -1) {
         // Preferred model not found, use default model selection
-        const [llmApi, model] = getLlmApi(assistant, authConfig);
+        const [llmApi, model] = this.gateway
+          ? getLlmApi(assistant, authConfig, this.gateway)
+          : getLlmApi(assistant, authConfig);
         return {
           llmApi,
           model,
           assistant,
           authConfig,
+          ...(this.gateway ? { gateway: this.gateway } : {}),
         };
       } else {
         // Use the preferred model - but we need to handle initialization specially
@@ -99,7 +110,9 @@ export class ModelService
           modelSource,
         });
 
-        const llmApi = createLlmApi(selectedModel, authConfig);
+        const llmApi = this.gateway
+          ? createLlmApi(selectedModel, authConfig, this.gateway)
+          : createLlmApi(selectedModel, authConfig);
         if (!llmApi) {
           throw new Error(`Failed to initialize LLM with ${modelSource} model`);
         }
@@ -109,16 +122,20 @@ export class ModelService
           model: selectedModel,
           assistant,
           authConfig,
+          ...(this.gateway ? { gateway: this.gateway } : {}),
         };
       }
     } else {
       // Use default model selection
-      const [llmApi, model] = getLlmApi(assistant, authConfig);
+      const [llmApi, model] = this.gateway
+        ? getLlmApi(assistant, authConfig, this.gateway)
+        : getLlmApi(assistant, authConfig);
       return {
         llmApi,
         model,
         assistant,
         authConfig,
+        ...(this.gateway ? { gateway: this.gateway } : {}),
       };
     }
   }
@@ -231,7 +248,9 @@ export class ModelService
     });
 
     try {
-      const llmApi = createLlmApi(selectedModel, authConfig);
+      const llmApi = this.gateway
+        ? createLlmApi(selectedModel, authConfig, this.gateway)
+        : createLlmApi(selectedModel, authConfig);
 
       if (!llmApi) {
         throw new Error("Failed to initialize LLM with selected model");
@@ -242,6 +261,7 @@ export class ModelService
         model: selectedModel,
         assistant,
         authConfig,
+        ...(this.gateway ? { gateway: this.gateway } : {}),
       });
 
       logger.debug("Model switched successfully", {
@@ -320,10 +340,13 @@ export class ModelService
       return [];
     }
     return subagentModels?.map((model) => ({
-      llmApi: createLlmApi(model, modelState.authConfig),
+      llmApi: modelState.gateway
+        ? createLlmApi(model, modelState.authConfig, modelState.gateway)
+        : createLlmApi(model, modelState.authConfig),
       model,
       assistant: modelState.assistant,
       authConfig: modelState.authConfig,
+      ...(modelState.gateway ? { gateway: modelState.gateway } : {}),
     }));
   }
 }

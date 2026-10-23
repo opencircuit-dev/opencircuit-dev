@@ -1,9 +1,8 @@
-import { AuthConfig } from "../auth/workos.js";
 import { getApiClient } from "../config.js";
 import { logger } from "../util/logger.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
-import { ApiClientServiceState } from "./types.js";
+import { ApiClientServiceState, AuthServiceState } from "./types.js";
 
 /**
  * Service for managing API client state
@@ -29,8 +28,10 @@ export class ApiClientService
   /**
    * Initialize the API client service
    */
-  async doInitialize(_authConfig: AuthConfig): Promise<ApiClientServiceState> {
-    const apiClient = getApiClient(undefined);
+  async doInitialize(
+    authState: AuthServiceState | null,
+  ): Promise<ApiClientServiceState> {
+    const apiClient = authState?.apiClient ?? getApiClient(undefined);
 
     return {
       apiClient,
@@ -40,11 +41,13 @@ export class ApiClientService
   /**
    * Update the API client with new auth config
    */
-  async update(_authConfig: AuthConfig): Promise<ApiClientServiceState> {
+  async update(
+    authState: AuthServiceState | null,
+  ): Promise<ApiClientServiceState> {
     logger.debug("Updating ApiClientService");
 
     try {
-      const apiClient = getApiClient(undefined);
+      const apiClient = authState?.apiClient ?? getApiClient(undefined);
 
       this.setState({
         apiClient,
