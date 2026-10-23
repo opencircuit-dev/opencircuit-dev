@@ -9,9 +9,18 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const skipInstall = process.argv.includes("--skip-install");
+const {
+  CISCO_ACCESS_TOKEN: _ciscoAccessToken,
+  CISCO_APPKEY: _ciscoAppKey,
+  OCIRCUIT_CISCO_ACCESS_TOKEN: _ocircuitCiscoAccessToken,
+  OCIRCUIT_CISCO_CLIENT_SECRET: _ocircuitCiscoClientSecret,
+  ...nonSecretEnvironment
+} = process.env;
 const validationEnvironment = {
-  ...process.env,
+  ...nonSecretEnvironment,
   CI: "true",
+  npm_config_allow_scripts: "",
+  NPM_CONFIG_ALLOW_SCRIPTS: "",
 };
 
 for (const generatedDirectory of ["core/dist", "extensions/cli/dist"]) {

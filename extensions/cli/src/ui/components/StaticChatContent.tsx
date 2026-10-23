@@ -15,6 +15,7 @@ interface StaticChatContentProps {
   model?: ModelConfig;
   mcpService?: MCPService;
   organizationName?: string;
+  isEntitledModel?: boolean;
   chatHistory: ChatHistoryItem[];
   queuedMessages?: QueuedMessage[];
   renderMessage: (
@@ -31,6 +32,7 @@ export const StaticChatContent: React.FC<StaticChatContentProps> = ({
   model,
   mcpService,
   organizationName,
+  isEntitledModel,
   chatHistory,
   queuedMessages = [],
   renderMessage,
@@ -99,6 +101,7 @@ export const StaticChatContent: React.FC<StaticChatContentProps> = ({
           model={model}
           mcpService={mcpService}
           organizationName={organizationName}
+          isEntitledModel={isEntitledModel}
         />,
       );
     }
@@ -133,6 +136,7 @@ export const StaticChatContent: React.FC<StaticChatContentProps> = ({
     model,
     mcpService,
     organizationName,
+    isEntitledModel,
     processedChatHistory,
     renderMessage,
   ]);

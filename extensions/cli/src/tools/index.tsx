@@ -1,7 +1,7 @@
 // @ts-ignore
 import { OCircuitError, OCircuitErrorReason } from "core/errors.js";
 import type { ChatCompletionTool } from "openai/resources/index.js";
-import { isModelCapable } from "src/utils/modelCapability.js";
+import { isModelCapable } from "../utils/modelCapability.js";
 
 import {
   SERVICE_NAMES,
@@ -74,7 +74,7 @@ const BASE_BUILTIN_TOOLS: Tool[] = [
 
 const BUILTIN_SEARCH_TOOLS: Tool[] = [searchCodeTool];
 
-// Get all builtin tools including dynamic ones, with capability-based filtering
+// Get all builtin tools including dynamic ones
 export async function getAllAvailableTools(
   isHeadless: boolean,
 ): Promise<Tool[]> {
@@ -97,7 +97,6 @@ export async function getAllAvailableTools(
     }
   }
 
-  // If model is capable, exclude editTool in favor of multiEditTool
   const modelState = await serviceContainer.get<ModelServiceState>(
     SERVICE_NAMES.MODEL,
   );
@@ -106,22 +105,13 @@ export async function getAllAvailableTools(
   }
 
   const { provider, name, model } = modelState.model;
-
-  const isCapable = isModelCapable(provider, name, model);
-  if (isCapable) {
+  if (modelState.gateway) {
+    tools.push(editTool, multiEditTool);
+  } else if (isModelCapable(provider, name, model)) {
     tools.push(multiEditTool);
   } else {
     tools.push(editTool);
-    logger.debug(
-      "Excluded Edit tool for capable model - MultiEdit will be used instead",
-    );
   }
-
-  logger.debug("Capability-based tool filtering", {
-    provider,
-    name,
-    isCapable,
-  });
 
   if (isHeadless) {
     tools.push(exitTool);

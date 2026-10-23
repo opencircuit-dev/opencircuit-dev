@@ -1,4 +1,5 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { AuthOptions } from "@opencircuit/config-types";
 import {
   AgentFile,
   AssistantUnrolled,
@@ -10,6 +11,7 @@ import type { AssistantUnrolled as AssistantConfig } from "@opencircuit/config-y
 import { BaseLlmApi } from "@opencircuit/openai-adapters";
 import { OpenCircuitClient } from "@opencircuit/sdk";
 
+import type { CiscoCircuitGateway } from "../auth/ciscoCircuit.js";
 import type { AuthConfig } from "../auth/workos.js";
 import { BaseCommandOptions } from "../commands/BaseCommandOptions.js";
 import { PermissionMode } from "../permissions/types.js";
@@ -48,6 +50,9 @@ export interface AuthServiceState {
   authConfig: AuthConfig | null;
   isAuthenticated: boolean;
   organizationId?: string;
+  apiClient?: OpenCircuitClient;
+  authOptions?: AuthOptions;
+  gateway?: CiscoCircuitGateway;
 }
 
 export interface ConfigServiceState {
@@ -60,6 +65,7 @@ export interface ModelServiceState {
   model: ModelConfig | null;
   assistant: AssistantUnrolled | null;
   authConfig: AuthConfig | null;
+  gateway?: CiscoCircuitGateway;
 }
 
 export type MCPServerStatus = "idle" | "connecting" | "connected" | "error";

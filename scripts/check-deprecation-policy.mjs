@@ -31,10 +31,18 @@ if (!expected) {
 }
 
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+// The repository package.json owns the approval policy. Do not let an
+// operator's global npm allow-scripts setting change or block this check.
+const {
+  npm_config_allow_scripts: _npmConfigAllowScripts,
+  NPM_CONFIG_ALLOW_SCRIPTS: _npmConfigAllowScriptsUpper,
+  ...cleanEnvironment
+} = process.env;
 const result = spawnSync(npmCommand, ["ci", ...process.argv.slice(2)], {
   cwd: process.cwd(),
   encoding: "utf8",
   stdio: ["ignore", "pipe", "pipe"],
+  env: cleanEnvironment,
 });
 const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
 process.stdout.write(output);

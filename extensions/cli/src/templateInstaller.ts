@@ -26,6 +26,42 @@ function getTemplateDirectory(): string {
   return path.join(env.ocircuitHome, "templates");
 }
 
+const CISCO_PROFILE_FILE = "cisco-circuit.env";
+
+/**
+ * Installs the Cisco profile injected by the protected internal release job,
+ * without replacing an existing one. Public builds do not include a profile.
+ */
+export function installPackagedCiscoProfile(
+  sourcePath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../profiles",
+    CISCO_PROFILE_FILE,
+  ),
+): "installed" | "preserved" | "unavailable" {
+  let profile: Buffer;
+  try {
+    profile = readFileSync(sourcePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return "unavailable";
+    }
+    throw error;
+  }
+  const targetPath = path.join(env.ocircuitHome, CISCO_PROFILE_FILE);
+  mkdirSync(env.ocircuitHome, { recursive: true, mode: 0o700 });
+  try {
+    writeFileSync(targetPath, profile, {
+      flag: "wx",
+      mode: 0o600,
+    });
+    return "installed";
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return "preserved";
+    throw error;
+  }
+}
+
 export function installPackagedTemplates(): TemplateInstallResult {
   const sourceDirectory = getPackagedTemplateDirectory();
   const templateDirectory = getTemplateDirectory();

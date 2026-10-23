@@ -2,12 +2,16 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { modelSchema } from "@opencircuit/config-yaml";
+import { configYamlSchema, modelSchema } from "@opencircuit/config-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import YAML from "yaml";
 
+import { loadCiscoCircuitProfile } from "./auth/ciscoCircuit.js";
 import { env } from "./env.js";
-import { installPackagedTemplates } from "./templateInstaller.js";
+import {
+  installPackagedCiscoProfile,
+  installPackagedTemplates,
+} from "./templateInstaller.js";
 
 describe("installPackagedTemplates", () => {
   const originalHome = env.ocircuitHome;
@@ -31,6 +35,8 @@ describe("installPackagedTemplates", () => {
     const expectedTemplates = [
       "config-anthropic.yaml",
       "config-byom.yaml",
+      "config-cisco-circuit.yaml",
+      "config-cisco-oauth.yaml",
       "config-cisco.yaml",
       "config-devnet.yaml",
       "config-gemini.yaml",
@@ -64,6 +70,8 @@ describe("installPackagedTemplates", () => {
     expect(result.installed).toEqual([
       "config-anthropic.yaml",
       "config-byom.yaml",
+      "config-cisco-circuit.yaml",
+      "config-cisco-oauth.yaml",
       "config-cisco.yaml",
       "config-devnet.yaml",
       "config-gemini.yaml",
@@ -78,6 +86,8 @@ describe("installPackagedTemplates", () => {
     expect(rerun.preserved).toEqual([
       "config-anthropic.yaml",
       "config-byom.yaml",
+      "config-cisco-circuit.yaml",
+      "config-cisco-oauth.yaml",
       "config-cisco.yaml",
       "config-devnet.yaml",
       "config-gemini.yaml",
@@ -121,5 +131,65 @@ describe("installPackagedTemplates", () => {
     expect(model.apiBase).toBe("https://api.meta.ai/v1/");
     expect(model.apiKey).toBe("${{ secrets.META_MODEL_API_KEY }}");
     expect(model.roles).toEqual(["chat"]);
+  });
+
+  it("installs OAuth templates that satisfy the shared config contract", () => {
+    installPackagedTemplates();
+    const oauthConfig = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-cisco-oauth.yaml"),
+        "utf8",
+      ),
+    );
+    const circuitConfig = YAML.parse(
+      fs.readFileSync(
+        path.join(temporaryHome, "templates", "config-cisco-circuit.yaml"),
+        "utf8",
+      ),
+    );
+
+    expect(configYamlSchema.parse(oauthConfig).auth).toMatchObject({
+      clientId: "replace-with-registered-client-id",
+      redirectPort: 0,
+      redirectPath: "/oauth/callback",
+    });
+    expect(configYamlSchema.parse(circuitConfig).models).toHaveLength(1);
+  });
+
+  it("installs a release-injected Cisco profile privately and preserves an existing one", () => {
+    const packagedProfile = path.join(temporaryHome, "packaged.env");
+    fs.writeFileSync(
+      packagedProfile,
+      [
+        "OCIRCUIT_CISCO_ISSUER=https://login.microsoftonline.com/00000000-0000-4000-8000-000000000000/v2.0",
+        "OCIRCUIT_CISCO_CLIENT_ID=11111111-1111-4111-8111-111111111111",
+        "OCIRCUIT_CISCO_SCOPES=openid offline_access",
+        "OCIRCUIT_CISCO_GATEWAY_BASE=https://organon.cisco.com/vscode-plugin",
+        "OCIRCUIT_CISCO_MODEL_API_VERSION=2024-07-01-preview",
+        "",
+      ].join("\n"),
+    );
+    const profilePath = path.join(temporaryHome, "cisco-circuit.env");
+
+    expect(installPackagedCiscoProfile(packagedProfile)).toBe("installed");
+    if (process.platform !== "win32") {
+      expect(fs.statSync(profilePath).mode & 0o777).toBe(0o600);
+    }
+    expect(loadCiscoCircuitProfile(profilePath).clientId).toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+
+    fs.writeFileSync(profilePath, "user-owned\n", { mode: 0o600 });
+    expect(installPackagedCiscoProfile(packagedProfile)).toBe("preserved");
+    expect(fs.readFileSync(profilePath, "utf8")).toBe("user-owned\n");
+  });
+
+  it("reports an unavailable profile for builds without one", () => {
+    expect(
+      installPackagedCiscoProfile(path.join(temporaryHome, "missing.env")),
+    ).toBe("unavailable");
+    expect(fs.existsSync(path.join(temporaryHome, "cisco-circuit.env"))).toBe(
+      false,
+    );
   });
 });

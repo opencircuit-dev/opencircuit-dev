@@ -1,0 +1,20 @@
+name: Open Circuit OAuth
+version: 1.0.0
+schema: v1
+auth:
+  enabled: true
+  # Replace these placeholders with the approved Cisco OIDC registration.
+  issuer: https://auth.example.com
+  clientId: replace-with-registered-client-id
+  redirectPort: 0
+  redirectPath: /oauth/callback
+  scopes:
+    - openid
+    - profile
+models:
+  - name: OpenAI-compatible model
+    provider: openai-compatible
+    model: replace-with-model
+    apiBase: https://api.example.com/v1/
+    roles:
+      - chat

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { authOptionsSchema } from "@opencircuit/config-types";
 import { commonModelSlugs } from "./commonSlugs.js";
 import { dataSchema } from "./data/index.js";
 import { mcpServerSchema, partialMcpServerSchema } from "./mcp/index.js";
@@ -104,6 +105,7 @@ export const baseConfigYamlSchema = z.object({
   metadata: z.record(z.string()).and(commonMetadataSchema.partial()).optional(),
   env: envRecord.optional(),
   requestOptions: requestOptionsSchema.optional(),
+  auth: authOptionsSchema.optional(),
 });
 
 const modelsUsesSchema = z

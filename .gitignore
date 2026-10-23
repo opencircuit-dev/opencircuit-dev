@@ -94,6 +94,7 @@ celerybeat.pid
 
 # Environments
 .env
+.ocircuit/cisco-circuit.env
 .venv
 env/
 venv/
@@ -177,3 +178,6 @@ keys
 .users_cache.json
 .copy-status
 .copy-log
+
+# Protected Cisco profile is injected only by the internal release job.
+extensions/cli/profiles/

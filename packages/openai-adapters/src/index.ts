@@ -241,6 +241,7 @@ export {
 
 // export
 export { AiSdkApi } from "./apis/AiSdk.js";
+export { CiscoCircuitApi } from "./apis/CiscoCircuit.js";
 export type { BaseLlmApi } from "./apis/base.js";
 export type {
   AiSdkConfig,

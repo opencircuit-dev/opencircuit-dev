@@ -17,7 +17,7 @@ vi.mock("../asciiArt.js", () => ({
 }));
 
 vi.mock("../utils/modelCapability.js", () => ({
-  isModelCapable: () => true,
+  isModelCapable: vi.fn(() => true),
 }));
 
 describe("IntroMessage", () => {
@@ -60,6 +60,24 @@ describe("IntroMessage", () => {
 
     expect(lastFrame()).toContain("Config:");
     expect(lastFrame()).toContain("Test Agent");
+  });
+
+  it("hides the capability warning only for entitled models", async () => {
+    const { isModelCapable } = await import("../utils/modelCapability.js");
+    vi.mocked(isModelCapable).mockReturnValue(false);
+    const model = {
+      name: "Gemma 4 31B (Cisco)",
+      provider: "openai-compatible",
+      model: "gemma-4-31b-it",
+    };
+
+    expect(render(<IntroMessage model={model} />).lastFrame()).toContain(
+      "Model Capability Warning",
+    );
+    expect(
+      render(<IntroMessage model={model} isEntitledModel />).lastFrame(),
+    ).not.toContain("Model Capability Warning");
+    vi.mocked(isModelCapable).mockReturnValue(true);
   });
 
   it("renders model information when model is provided", () => {

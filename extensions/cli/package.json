@@ -1,6 +1,6 @@
 {
   "name": "@opencircuit/cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Open Circuit command-line coding agent",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,7 +9,8 @@
     "dist",
     "README.md",
     "LICENSE.txt",
-    "templates"
+    "templates",
+    "profiles"
   ],
   "bin": {
     "oc": "dist/oc.js"
@@ -37,8 +38,8 @@
     "repomix:cli": "npx repomix --ignore sdk-repomix.xml -o cli-repomix.xml",
     "lint": "tsc --noEmit && eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "cd ../.. && npm exec prettier -- --write \"extensions/cli/**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "format:check": "cd ../.. && npm exec prettier -- --check \"extensions/cli/**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit",
     "watch:logs": "touch ~/.ocircuit/logs/oc.log && tail -f ~/.ocircuit/logs/oc.log",
     "release": "node ../../scripts/release-package.mjs --execute",
@@ -163,6 +164,7 @@
     "esbuild@0.25.9": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true,
     "protobufjs@7.6.6": true,
     "unrs-resolver@1.11.1": true,
     "unrs-resolver@1.12.2": true

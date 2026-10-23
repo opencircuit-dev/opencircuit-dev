@@ -96,7 +96,10 @@ export async function initializeServices(initOptions: ServiceInitOptions = {}) {
   serviceContainer.register(
     SERVICE_NAMES.AUTH,
     async () => {
-      return await authService.initialize();
+      return await authService.initialize(
+        commandOptions.config,
+        initOptions.headless,
+      );
     },
     [], // No dependencies
   );
@@ -107,7 +110,7 @@ export async function initializeServices(initOptions: ServiceInitOptions = {}) {
       const authState = await serviceContainer.get<AuthServiceState>(
         SERVICE_NAMES.AUTH,
       );
-      return apiClientService.initialize(authState.authConfig);
+      return apiClientService.initialize(authState);
     },
     [SERVICE_NAMES.AUTH], // Depends on auth
   );
@@ -242,6 +245,7 @@ export async function initializeServices(initOptions: ServiceInitOptions = {}) {
         configState.config,
         authState.authConfig,
         agentFileState,
+        authState,
       );
     },
     [SERVICE_NAMES.CONFIG, SERVICE_NAMES.AUTH, SERVICE_NAMES.AGENT_FILE], // Depends on config, auth, and agentFile

@@ -11,6 +11,8 @@ on:
       - "scripts/build-packages.js"
       - "scripts/check-cli-release-artifact.mjs"
       - "scripts/package-cli-internal.mjs"
+      - "scripts/cisco-release-profile.mjs"
+      - "scripts/cli-release-pack-report.mjs"
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"
@@ -24,6 +26,8 @@ on:
       - "scripts/build-packages.js"
       - "scripts/check-cli-release-artifact.mjs"
       - "scripts/package-cli-internal.mjs"
+      - "scripts/cisco-release-profile.mjs"
+      - "scripts/cli-release-pack-report.mjs"
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"
@@ -83,8 +87,12 @@ jobs:
           version="$(node -p "require('./extensions/cli/package.json').version")"
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Test release profile tooling
+        run: node --test scripts/cisco-release-profile.test.mjs scripts/package-cli-internal.test.mjs
+
+      # Validation build only; the protected profile is injected by release-cli-internal.yml.
       - name: Package internal archive
-        run: node scripts/package-cli-internal.mjs
+        run: node scripts/package-cli-internal.mjs --no-profile
 
       - name: Upload internal archive and checksum
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

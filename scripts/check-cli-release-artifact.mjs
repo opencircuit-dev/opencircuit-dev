@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { containsCiscoProfileData } from "./cisco-release-profile.mjs";
 import {
   isForbiddenReleaseFile,
   parseCliPackReport,
@@ -54,6 +55,8 @@ const requiredFiles = [
   "templates/config-gemini.yaml",
   "templates/config-byom.yaml",
   "templates/config-cisco.yaml",
+  "templates/config-cisco-circuit.yaml",
+  "templates/config-cisco-oauth.yaml",
   "templates/config-devnet.yaml",
   "templates/config-meta.yaml",
   "templates/config-olmo.yaml",
@@ -62,6 +65,16 @@ const missingFiles = requiredFiles.filter((file) => !files.includes(file));
 const forbiddenFiles = files.filter((file) =>
   isForbiddenReleaseFile(file, { allowInternalTemplates: true }),
 );
+// Public builds must never carry the protected Cisco profile.
+const profileDataFiles = files.filter((file) => {
+  const fullPath = path.resolve(process.cwd(), file);
+  const stat = fs.statSync(fullPath, { throwIfNoEntry: false });
+  const content =
+    stat?.isFile() && stat.size <= 32 * 1024 * 1024
+      ? fs.readFileSync(fullPath, "utf8")
+      : "";
+  return containsCiscoProfileData(file, content);
+});
 const errors = [];
 
 if (packageJson.name !== "@opencircuit/cli") {
@@ -79,6 +92,11 @@ if (missingFiles.length > 0) {
 if (forbiddenFiles.length > 0) {
   errors.push(`forbidden release files: ${forbiddenFiles.join(", ")}`);
 }
+if (profileDataFiles.length > 0) {
+  errors.push(
+    `Cisco profile data must not be in public builds: ${profileDataFiles.join(", ")}`,
+  );
+}
 
 const report = {
   check: "opencircuit-cli-release-artifact",
@@ -88,6 +106,7 @@ const report = {
   requiredFiles,
   missingFiles,
   forbiddenFiles,
+  profileDataFiles,
   status: errors.length === 0 ? "pass" : "fail",
 };
 console.log(JSON.stringify(report, null, 2));

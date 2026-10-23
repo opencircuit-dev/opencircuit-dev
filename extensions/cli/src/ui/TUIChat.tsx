@@ -107,6 +107,11 @@ function useTUIChatServices(remoteUrl?: string) {
   return { services, allServicesReady, isRemoteMode };
 }
 
+// Models served through the Cisco gateway come from the user's entitlement.
+function isEntitledModelState(model?: ModelServiceState | null): boolean {
+  return Boolean(model?.gateway);
+}
+
 // Organization names are no longer available (Hub integration removed)
 function useOrganizationName(_organizationId?: string): string | undefined {
   const organizationName = undefined;
@@ -408,6 +413,7 @@ const TUIChat: React.FC<TUIChatProps> = ({
           model={services.model?.model || undefined}
           mcpService={services.mcp?.mcpService || undefined}
           organizationName={organizationName}
+          isEntitledModel={isEntitledModelState(services.model)}
           chatHistory={chatHistory}
           queuedMessages={queuedMessages}
           renderMessage={renderMessage}

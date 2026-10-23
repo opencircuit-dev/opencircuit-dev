@@ -1,6 +1,31 @@
-import { extractToolCalls, getToolDisplayName } from "./index.js";
+import { serviceContainer } from "../services/index.js";
+
+import {
+  extractToolCalls,
+  getAllAvailableTools,
+  getToolDisplayName,
+} from "./index.js";
 
 describe("tools/index utilities", () => {
+  describe("getAllAvailableTools", () => {
+    it("gives Cisco-entitled models the full edit toolset", async () => {
+      const get = vi.spyOn(serviceContainer, "get").mockResolvedValue({
+        model: {
+          name: "Mellum2 12B Thinking (Cisco)",
+          provider: "openai-compatible",
+          model: "mellum2-12b-thinking",
+        },
+        gateway: {},
+        tools: [],
+      } as never);
+
+      const names = (await getAllAvailableTools(false)).map((t) => t.name);
+
+      expect(names).toEqual(expect.arrayContaining(["Edit", "MultiEdit"]));
+      get.mockRestore();
+    });
+  });
+
   describe("getToolDisplayName", () => {
     it("should return display name for known tool", () => {
       // The actual implementation returns the displayName when tool is found

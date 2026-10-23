@@ -310,11 +310,8 @@ models:
       - chat
 ```
 
-The release tarball packages eight starter templates directly:
-`config-openai.yaml`, `config-anthropic.yaml`, `config-gemini.yaml`,
-`config-byom.yaml`, `config-cisco.yaml`, `config-devnet.yaml`,
-`config-meta.yaml`, and `config-olmo.yaml`. Install
-them locally, without network access or lifecycle scripts, with:
+The release tarball packages starter templates directly. Install them locally,
+without network access or lifecycle scripts, with:
 
 ```bash
 oc init
@@ -324,6 +321,25 @@ oc init
 `~/.ocircuit/templates/`. Select exactly one template for the active
 configuration, copy it once to `~/.ocircuit/config.yaml`, and do not keep
 multiple provider configs active at the same time.
+
+### OAuth/OIDC sign-in
+
+The internal build also includes `config-cisco-oauth.yaml` as a contract
+example. Replace its issuer, client ID, model, and API endpoint with values
+from the approved provider registration before use. The authentication flow:
+
+- discovers and verifies the configured OIDC issuer and JWKS endpoint;
+- binds a one-time callback to an ephemeral `127.0.0.1` port;
+- uses authorization code flow with S256 PKCE, state, and nonce validation;
+- exchanges the code with an `application/x-www-form-urlencoded` request;
+- refreshes expiring access tokens and revokes them during logout when the
+  provider advertises a revocation endpoint.
+
+The default token store is memory-only. A production integration that needs
+tokens across processes must provide a `SecureTokenStore` backed by the host
+OS keychain; do not write access or refresh tokens to YAML, `.env`, logs, or
+plain files. `oc init` is explicit and idempotent; package installation does
+not execute provisioning or network authentication.
 
 ## Control daily token usage
 

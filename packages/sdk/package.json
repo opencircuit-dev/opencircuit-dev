@@ -14,6 +14,14 @@
     "dist/OpenCircuitClient.js.map",
     "dist/OpenCircuitClient.d.ts",
     "dist/OpenCircuitClient.d.ts.map",
+    "dist/AuthManager.js",
+    "dist/AuthManager.js.map",
+    "dist/AuthManager.d.ts",
+    "dist/AuthManager.d.ts.map",
+    "dist/OsTokenStore.js",
+    "dist/OsTokenStore.js.map",
+    "dist/OsTokenStore.d.ts",
+    "dist/OsTokenStore.d.ts.map",
     "README.md"
   ],
   "scripts": {
@@ -29,6 +37,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@opencircuit/config-types": "^1.0.14",
+    "jose": "6.2.13"
   },
   "engines": {
     "node": ">=24.19.0 <27"
