@@ -69,7 +69,20 @@ test("reads only private, regular release profile files", () => {
         readReleaseProfileSource({ OCIRCUIT_RELEASE_CISCO_PROFILE_FILE: link }),
       /regular file/,
     );
-    assert.throws(() => readReleaseProfileSource({}), /exactly one/);
+    fs.chmodSync(file, 0o600);
+    assert.equal(readReleaseProfileSource({}, file), valid);
+    assert.throws(
+      () =>
+        readReleaseProfileSource({
+          OCIRCUIT_RELEASE_CISCO_PROFILE: valid,
+          OCIRCUIT_RELEASE_CISCO_PROFILE_FILE: file,
+        }),
+      /only one/,
+    );
+    assert.throws(
+      () => readReleaseProfileSource({}, path.join(directory, "missing.env")),
+      /not found/,
+    );
 
     secureDelete(file);
     assert.equal(fs.existsSync(file), false);

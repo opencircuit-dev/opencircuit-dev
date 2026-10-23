@@ -242,15 +242,15 @@ From the repository root, run:
 
 ```bash
 npm --prefix extensions/cli run check:release-artifact
-OCIRCUIT_RELEASE_CISCO_PROFILE_FILE=<private-0600-profile> \
-  npm --prefix extensions/cli run release:internal-artifact
+npm --prefix extensions/cli run release:internal-artifact
 ```
 
-The Cisco Circuit profile (`OCIRCUIT_CISCO_*` values) is not stored in Git.
-Supply it from a protected source with exactly one of
-`OCIRCUIT_RELEASE_CISCO_PROFILE` (profile contents, for example from a CI
-secret) or `OCIRCUIT_RELEASE_CISCO_PROFILE_FILE` (a regular, owner-only `0600`
-file). The packager validates the schema, issuer and approved gateway, writes
+The Cisco Circuit profile (`OCIRCUIT_CISCO_*` values) is not stored in Git. The
+packager reads it from the release workstation's owner-only file
+`~/.ocircuit-release/cisco-circuit.env` (directory `0700`, file `0600`). Override
+the source with `OCIRCUIT_RELEASE_CISCO_PROFILE_FILE` (another owner-only file) or
+`OCIRCUIT_RELEASE_CISCO_PROFILE` (profile contents from a secret manager). The
+packager validates the schema, issuer and approved gateway, writes
 the profile only into a temporary staging copy of the package, verifies the
 packed copy, records its SHA-256 in the provenance file, and then overwrites and
 deletes the temporary file. `oc init` installs the packaged profile as
@@ -273,7 +273,9 @@ access to `opencircuit-dev/opencircuit-internal`. The job runs in the protected
 `internal-release` environment, which must define the secret
 `OCIRCUIT_CISCO_PROFILE` (profile contents) and the variable
 `OCIRCUIT_RELEASE_PROFILE_ID` (a non-secret identifier recorded in provenance).
-The workflow builds and tests
+GitHub Actions is not currently enabled for this repository, so internal
+releases are packaged on the release workstation as shown above; without the
+environment secret the workflow fails closed. The workflow builds and tests
 the requested version, then commits and pushes the tarball and checksum to the
 internal artifact repository root, replacing its previous root-level version.
 Earlier releases remain available in the repository's commit history.

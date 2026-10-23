@@ -10,10 +10,18 @@ import {
   rmSync,
   writeSync,
 } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export const PACKAGED_PROFILE_PATH = "profiles/cisco-circuit.env";
 export const PROFILE_CONTENT_ENV = "OCIRCUIT_RELEASE_CISCO_PROFILE";
 export const PROFILE_FILE_ENV = "OCIRCUIT_RELEASE_CISCO_PROFILE_FILE";
+// Owner-only profile kept outside Git on the protected release workstation.
+export const DEFAULT_PROFILE_FILE = join(
+  homedir(),
+  ".ocircuit-release",
+  "cisco-circuit.env",
+);
 
 // Must stay aligned with the runtime checks in extensions/cli/src/auth/ciscoCircuit.ts.
 const APPROVED_ISSUER_ORIGIN = "https://login.microsoftonline.com";
@@ -32,18 +40,34 @@ const KEY_ORDER = [
 const REQUIRED_KEYS = new Set(KEY_ORDER.slice(0, 4).concat(KEY_ORDER[5]));
 const PROFILE_ASSIGNMENT = /^[ \t]*OCIRCUIT_CISCO_[A-Z_]+[ \t]*=[ \t]*\S/m;
 
-/** Reads profile text from exactly one protected release input. */
-export function readReleaseProfileSource(env = process.env) {
+/**
+ * Reads profile text from one protected release input, defaulting to the
+ * owner-only workstation file when no override is supplied.
+ */
+export function readReleaseProfileSource(
+  env = process.env,
+  defaultFile = DEFAULT_PROFILE_FILE,
+) {
   const content = env[PROFILE_CONTENT_ENV];
-  const file = env[PROFILE_FILE_ENV];
-  if (Boolean(content) === Boolean(file)) {
+  if (content && env[PROFILE_FILE_ENV]) {
     throw new Error(
-      `Provide exactly one of ${PROFILE_CONTENT_ENV} or ${PROFILE_FILE_ENV}`,
+      `Provide only one of ${PROFILE_CONTENT_ENV} or ${PROFILE_FILE_ENV}`,
     );
   }
   if (content) return content;
+  const file = env[PROFILE_FILE_ENV] || defaultFile;
 
-  const metadata = lstatSync(file);
+  let metadata;
+  try {
+    metadata = lstatSync(file);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error(
+        `Cisco release profile not found at ${file}; provide it via ${PROFILE_FILE_ENV} or ${PROFILE_CONTENT_ENV}, or package with --no-profile`,
+      );
+    }
+    throw error;
+  }
   if (!metadata.isFile()) {
     throw new Error("Cisco release profile must be a regular file");
   }
