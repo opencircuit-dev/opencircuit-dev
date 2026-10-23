@@ -24,85 +24,98 @@ afterEach(async () => {
 });
 
 describe("AuthManager", () => {
-  it("uses PKCE, validates state, exchanges the code, and returns tokens", async () => {
-    const provider = await createProvider();
-    const browserUrls: string[] = [];
-    const manager = new AuthManager(
-      createConfig({
-        authorizationEndpoint: provider.authorizationEndpoint,
-        revocationEndpoint: provider.revocationEndpoint,
-        tokenEndpoint: provider.tokenEndpoint,
-      }),
-      { openBrowser: (url) => browserUrls.push(url) },
-    );
+  it.each([undefined, "cisco-circuit"] as const)(
+    "uses PKCE and a reachable matching callback for profile %s",
+    async (profile) => {
+      const provider = await createProvider();
+      const browserUrls: string[] = [];
+      const manager = new AuthManager(
+        createConfig({
+          ...(profile ? { profile } : {}),
+          authorizationEndpoint: provider.authorizationEndpoint,
+          revocationEndpoint: provider.revocationEndpoint,
+          tokenEndpoint: provider.tokenEndpoint,
+        }),
+        { openBrowser: (url) => browserUrls.push(url) },
+      );
 
-    const authentication = manager.authenticate();
-    const authorizationUrl = new URL(
-      await waitForBrowserUrl(browserUrls, authentication),
-    );
-    const verifierChallenge =
-      authorizationUrl.searchParams.get("code_challenge");
-    const redirectUri = authorizationUrl.searchParams.get("redirect_uri");
+      const authentication = manager.authenticate();
+      const authorizationUrl = new URL(
+        await waitForBrowserUrl(browserUrls, authentication),
+      );
+      const verifierChallenge =
+        authorizationUrl.searchParams.get("code_challenge");
+      const redirectUri = authorizationUrl.searchParams.get("redirect_uri");
 
-    expect(authorizationUrl.searchParams.get("response_type")).toBe("code");
-    expect(authorizationUrl.searchParams.get("code_challenge_method")).toBe(
-      "S256",
-    );
-    expect(authorizationUrl.searchParams.get("state")).toMatch(
-      /^[A-Za-z0-9_-]{43}$/,
-    );
-    expect(authorizationUrl.searchParams.get("nonce")).toBeNull();
-    expect(redirectUri).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/oauth\/callback$/);
+      expect(authorizationUrl.searchParams.get("response_type")).toBe("code");
+      expect(authorizationUrl.searchParams.get("code_challenge_method")).toBe(
+        "S256",
+      );
+      expect(authorizationUrl.searchParams.get("state")).toMatch(
+        /^[A-Za-z0-9_-]{43}$/,
+      );
+      expect(authorizationUrl.searchParams.get("nonce")).toBeNull();
+      expect(redirectUri).toMatch(
+        profile
+          ? /^http:\/\/localhost:\d+$/
+          : /^http:\/\/127\.0\.0\.1:\d+\/oauth\/callback$/,
+      );
 
-    const callback = new URL(redirectUri!);
-    callback.searchParams.set("code", "authorization-code");
-    callback.searchParams.set(
-      "state",
-      authorizationUrl.searchParams.get("state")!,
-    );
-    await expect(fetch(callback)).resolves.toMatchObject({ status: 200 });
+      const callback = new URL(redirectUri!);
+      callback.searchParams.set("code", "authorization-code");
+      callback.searchParams.set(
+        "state",
+        authorizationUrl.searchParams.get("state")!,
+      );
+      await expect(fetch(callback)).resolves.toMatchObject({ status: 200 });
 
-    const tokenSet = await authentication;
-    const tokenRequest = provider.tokenRequests[0];
-    const verifier = tokenRequest.get("code_verifier");
+      const tokenSet = await authentication;
+      const tokenRequest = provider.tokenRequests[0];
+      const verifier = tokenRequest.get("code_verifier");
 
-    expect(tokenSet?.accessToken).toBe("access-token");
-    expect(tokenRequest.get("grant_type")).toBe("authorization_code");
-    expect(tokenRequest.get("code")).toBe("authorization-code");
-    expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(verifierChallenge).toBe(
-      createHash("sha256").update(verifier!).digest("base64url"),
-    );
-  });
+      expect(tokenSet?.accessToken).toBe("access-token");
+      expect(tokenRequest.get("grant_type")).toBe("authorization_code");
+      expect(tokenRequest.get("code")).toBe("authorization-code");
+      expect(tokenRequest.get("redirect_uri")).toBe(redirectUri);
+      expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(verifierChallenge).toBe(
+        createHash("sha256").update(verifier!).digest("base64url"),
+      );
+    },
+  );
 
-  it("rejects a callback with a mismatched state before exchanging a token", async () => {
-    const provider = await createProvider();
-    const browserUrls: string[] = [];
-    const manager = new AuthManager(
-      createConfig({
-        authorizationEndpoint: provider.authorizationEndpoint,
-        tokenEndpoint: provider.tokenEndpoint,
-      }),
-      { openBrowser: (url) => browserUrls.push(url) },
-    );
+  it.each([undefined, "cisco-circuit"] as const)(
+    "rejects mismatched state for profile %s before token exchange",
+    async (profile) => {
+      const provider = await createProvider();
+      const browserUrls: string[] = [];
+      const manager = new AuthManager(
+        createConfig({
+          ...(profile ? { profile } : {}),
+          authorizationEndpoint: provider.authorizationEndpoint,
+          tokenEndpoint: provider.tokenEndpoint,
+        }),
+        { openBrowser: (url) => browserUrls.push(url) },
+      );
 
-    const authentication = manager.authenticate();
-    const authorizationUrl = new URL(
-      await waitForBrowserUrl(browserUrls, authentication),
-    );
-    const callback = new URL(
-      authorizationUrl.searchParams.get("redirect_uri")!,
-    );
-    callback.searchParams.set("code", "attacker-code");
-    callback.searchParams.set("state", "wrong-state");
+      const authentication = manager.authenticate();
+      const authorizationUrl = new URL(
+        await waitForBrowserUrl(browserUrls, authentication),
+      );
+      const callback = new URL(
+        authorizationUrl.searchParams.get("redirect_uri")!,
+      );
+      callback.searchParams.set("code", "attacker-code");
+      callback.searchParams.set("state", "wrong-state");
 
-    await expect(fetch(callback)).resolves.toMatchObject({ status: 400 });
-    await expect(authentication).rejects.toMatchObject({
-      constructor: OAuthError,
-      message: "OAuth state validation failed",
-    });
-    expect(provider.tokenRequests).toHaveLength(0);
-  });
+      await expect(fetch(callback)).resolves.toMatchObject({ status: 400 });
+      await expect(authentication).rejects.toMatchObject({
+        constructor: OAuthError,
+        message: "OAuth state validation failed",
+      });
+      expect(provider.tokenRequests).toHaveLength(0);
+    },
+  );
 
   it("does not accept an OAuth error callback without a valid state", async () => {
     const provider = await createProvider();

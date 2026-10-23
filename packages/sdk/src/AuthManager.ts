@@ -298,7 +298,12 @@ export class AuthManager {
     const codeVerifier = randomBase64Url(32);
     const state = randomBase64Url(32);
     const nonce = metadata.issuer ? randomBase64Url(32) : undefined;
-    const redirectPath = this.auth.redirectPath ?? DEFAULT_REDIRECT_PATH;
+    // Circuit's native-client registration uses MSAL's localhost/root callback.
+    const circuitProfile = this.auth.profile === "cisco-circuit";
+    const redirectHost = circuitProfile ? "localhost" : "127.0.0.1";
+    const redirectPath = circuitProfile
+      ? "/"
+      : (this.auth.redirectPath ?? DEFAULT_REDIRECT_PATH);
     const server = createServer();
 
     return new Promise((resolve, reject) => {
@@ -376,7 +381,7 @@ export class AuthManager {
             code,
             codeVerifier,
             nonce,
-            redirectUri: currentRedirectUri(server, redirectPath),
+            redirectUri: currentRedirectUri(server, redirectPath, redirectHost),
             state,
           });
         } catch (error) {
@@ -395,10 +400,14 @@ export class AuthManager {
       });
 
       server.listen(
-        { host: "127.0.0.1", port: this.auth.redirectPort ?? 0 },
+        { host: redirectHost, port: this.auth.redirectPort ?? 0 },
         () => {
           try {
-            const redirectUri = currentRedirectUri(server, redirectPath);
+            const redirectUri = currentRedirectUri(
+              server,
+              redirectPath,
+              redirectHost,
+            );
             const authorizationUrl = new URL(metadata.authorizationEndpoint);
             authorizationUrl.searchParams.set(
               "client_id",
@@ -586,12 +595,13 @@ export class AuthManager {
 function currentRedirectUri(
   server: ReturnType<typeof createServer>,
   path: string,
+  host: "localhost" | "127.0.0.1",
 ): string {
   const address = server.address();
   if (!address || typeof address === "string") {
     throw new OAuthError("Local OAuth server did not expose a port");
   }
-  return `http://127.0.0.1:${(address as AddressInfo).port}${path}`;
+  return `http://${host}:${(address as AddressInfo).port}${host === "localhost" && path === "/" ? "" : path}`;
 }
 
 function randomBase64Url(bytes: number): string {
