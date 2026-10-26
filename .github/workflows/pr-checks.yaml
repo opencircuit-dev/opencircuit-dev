@@ -56,6 +56,8 @@ jobs:
 
       - name: Guard retired VS Code surfaces
         run: npm run test:retired-surface-guard
+      - name: Test required-check and tool-free review boundaries
+        run: node --test scripts/verify-pr-required-checks.test.mjs scripts/verify-agent-path.test.mjs scripts/review-agent.test.mjs
 
   core-checks:
     needs: changes
@@ -201,10 +203,24 @@ jobs:
       - packages-checks
 
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: ".nvmrc"
+      - name: Independently verify skip conditions
+        id: profiles
+        uses: ./.github/actions/detect-change-profiles
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}
+          head-sha: ${{ github.sha }}
       - name: Verify required PR checks
         env:
           CHECK_WORKFLOW: core
           CLI_CORE: ${{ needs.changes.outputs.cli_core }}
+          VERIFIED_CLI_CORE: ${{ steps.profiles.outputs.cli_core }}
           RESULT_CHANGES: ${{ needs.changes.result }}
           RESULT_PRETTIER_CHECK: ${{ needs.prettier-check.result }}
           RESULT_GET_PACKAGES_MATRIX: ${{ needs.get-packages-matrix.result }}

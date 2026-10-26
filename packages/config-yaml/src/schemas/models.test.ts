@@ -1,14 +1,12 @@
 import { requestOptionsSchema } from "./models.js";
 
 describe("requestOptionsSchema", () => {
-  it("preserves trusted local URL origins", () => {
-    expect(
+  it("rejects configuration that would authorize private URL destinations", () => {
+    expect(() =>
       requestOptionsSchema.parse({
         localUrlOrigins: ["http://localhost:3000"],
       }),
-    ).toEqual({
-      localUrlOrigins: ["http://localhost:3000"],
-    });
+    ).toThrow();
   });
 
   it("rejects non-string local URL origins", () => {

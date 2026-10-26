@@ -1,15 +1,16 @@
 import { JSDOM } from "jsdom";
+import { fetchUntrustedUrl } from "@opencircuit/fetch";
 
-import type { FetchFunction } from "../index.js";
+import type { RequestOptions } from "../index.js";
 
 export async function findFaviconPath(
   url: URL,
-  fetcher: FetchFunction,
+  requestOptions?: RequestOptions,
 ): Promise<string | undefined> {
   const baseUrl = url.origin;
 
   try {
-    const response = await fetcher(baseUrl);
+    const response = await fetchUntrustedUrl(baseUrl, {}, requestOptions);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -37,10 +38,10 @@ export async function findFaviconPath(
 
 export async function getFaviconBase64(
   faviconUrl: string,
-  fetcher: FetchFunction,
+  requestOptions?: RequestOptions,
 ): Promise<string | undefined> {
   try {
-    const response = await fetcher(faviconUrl);
+    const response = await fetchUntrustedUrl(faviconUrl, {}, requestOptions);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -64,11 +65,11 @@ export async function getFaviconBase64(
 
 export async function fetchFavicon(
   url: URL,
-  fetcher: FetchFunction,
+  requestOptions?: RequestOptions,
 ): Promise<string | undefined> {
-  const faviconPath = await findFaviconPath(url, fetcher);
+  const faviconPath = await findFaviconPath(url, requestOptions);
   if (faviconPath) {
-    return getFaviconBase64(faviconPath, fetcher);
+    return getFaviconBase64(faviconPath, requestOptions);
   }
   return undefined;
 }

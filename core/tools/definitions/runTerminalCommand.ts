@@ -3,6 +3,7 @@ import { Tool } from "../..";
 import { BUILT_IN_GROUP_NAME, BuiltInToolNames } from "../builtIn";
 import {
   evaluateTerminalCommandSecurity,
+  getTerminalShell,
   ToolPolicy,
 } from "@opencircuit/terminal-security";
 
@@ -11,16 +12,7 @@ import {
  * @returns The preferred shell command or path
  */
 function getPreferredShell(): string {
-  const platform = os.platform();
-
-  if (platform === "win32") {
-    return "powershell.exe";
-  } else if (platform === "darwin") {
-    return process.env.SHELL || "/bin/zsh";
-  } else {
-    // Linux and other Unix-like systems
-    return process.env.SHELL || "/bin/bash";
-  }
+  return getTerminalShell("").shell;
 }
 
 const PLATFORM_INFO = `Choose terminal commands and scripts optimized for ${os.platform()} and ${os.arch()} and shell ${getPreferredShell()}.`;

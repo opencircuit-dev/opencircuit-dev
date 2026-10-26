@@ -4,13 +4,13 @@ on:
   workflow_call:
     inputs:
       agents-path:
-        description: "Agent path; only the repository agent directory is supported"
+        description: "Reviewed agent criteria directory"
         required: false
         default: ".ocircuit/agents"
         type: string
     secrets:
       ANTHROPIC_API_KEY:
-        description: "Anthropic API key for Claude"
+        description: "Provider credential used only by the fixed tool-free broker"
         required: true
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
   validate-caller:
     runs-on: ubuntu-latest
     steps:
-      - name: Require a push to the repository default branch
+      - name: Require a trusted default-branch push
         env:
           CALLER_REPOSITORY: ${{ github.repository }}
           CALLER_EVENT: ${{ github.event_name }}
@@ -31,7 +31,7 @@ jobs:
           if [ "$CALLER_REPOSITORY" != "opencircuit-dev/opencircuit-dev" ] ||
             [ "$CALLER_EVENT" != "push" ] ||
             [ "$CALLER_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
-            echo "Open Circuit Agents only runs for trusted default-branch pushes."
+            echo "Only trusted default-branch pushes may request review."
             exit 1
           fi
 
@@ -40,40 +40,27 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.discover.outputs.matrix }}
-      has-agents: ${{ steps.discover.outputs.has_agents }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-
-      - name: Discover agents
+          persist-credentials: false
+      - name: Verify reviewed criteria
         id: discover
         env:
           AGENTS_PATH: ${{ inputs.agents-path }}
         run: |
           set -euo pipefail
-          if [ "$AGENTS_PATH" != ".ocircuit/agents" ]; then
-            echo "Only .ocircuit/agents is an approved agent path."
-            exit 1
-          fi
-
+          test "$AGENTS_PATH" = ".ocircuit/agents"
           MATRIX="$(node scripts/verify-agent-path.mjs --discover)"
-          COUNT="$(node -e 'console.log(JSON.parse(process.argv[1]).length)' "$MATRIX")"
-          HAS_AGENTS="false"
-          if [ "$COUNT" -gt 0 ]; then
-            HAS_AGENTS="true"
-          fi
+          node -e 'if (JSON.parse(process.argv[1]).length !== 5) process.exit(1)' "$MATRIX"
           printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
-          printf 'has_agents=%s\n' "$HAS_AGENTS" >> "$GITHUB_OUTPUT"
-          echo "Found $COUNT approved agent(s)"
 
-  run-agent:
+  analyze:
     needs: discover
-    if: needs.discover.outputs.has-agents == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -82,101 +69,49 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: "20"
-
-      - name: Install Open Circuit CLI
-        run: npm i -g @opencircuit/cli
-
-      - name: Extract agent name
-        id: agent-name
-        env:
-          AGENT_FILE: ${{ matrix.agent }}
+          node-version-file: ".nvmrc"
+      - name: Prepare bounded review input without credentials
         run: |
           set -euo pipefail
-          node scripts/verify-agent-path.mjs "$AGENT_FILE"
-          AGENT_NAME=$(basename "$AGENT_FILE" .md)
-          printf 'name=%s\n' "$AGENT_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Create Check Run
-        id: check
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        env:
-          AGENT_NAME: ${{ steps.agent-name.outputs.name }}
-        with:
-          script: |
-            const { data: check } = await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: `Open Circuit: ${process.env.AGENT_NAME}`,
-              head_sha: context.sha,
-              status: 'in_progress',
-              started_at: new Date().toISOString(),
-            });
-            core.setOutput('id', check.id);
-
-      - name: Run agent
-        id: run
+          git --no-pager diff --no-ext-diff --no-textconv HEAD^ HEAD -- > "$RUNNER_TEMP/review.diff"
+      - name: Tool-free review (no agent executable or repository tools)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AGENT_FILE: ${{ matrix.agent }}
-        run: |
-          set -euo pipefail
-          node scripts/verify-agent-path.mjs "$AGENT_FILE"
+          DIFF_FILE: ${{ runner.temp }}/review.diff
+        run: node scripts/review-agent.mjs
 
-          if env -i PATH="$PATH" HOME="$HOME" TERM="${TERM:-xterm}" \
-            ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
-            oc -p --agent "$AGENT_FILE" >/dev/null 2>&1; then
-            printf 'success=true\n' >> "$GITHUB_OUTPUT"
-            echo "Agent completed successfully."
-          else
-            printf 'success=false\n' >> "$GITHUB_OUTPUT"
-            echo "Agent failed; output was suppressed."
-          fi
-
-      - name: Write job summary
-        if: always()
-        env:
-          AGENT_SUCCESS: ${{ steps.run.outputs.success }}
-          AGENT_NAME: ${{ steps.agent-name.outputs.name }}
-        run: |
-          set -euo pipefail
-          echo "## 🤖 Agent: $AGENT_NAME" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "$AGENT_SUCCESS" == "true" ]; then
-            echo "✅ **Status:** Completed successfully" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Fail if agent failed
-        if: steps.run.outputs.success != 'true'
-        run: exit 1
-
-      - name: Update Check Run
-        if: always()
+  publish:
+    if: always() && needs.validate-caller.result == 'success'
+    needs: [validate-caller, discover, analyze]
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    steps:
+      - name: Publish fixed status only, without checkout or provider credentials
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
-          AGENT_SUCCESS: ${{ steps.run.outputs.success }}
-          CHECK_RUN_ID: ${{ steps.check.outputs.id }}
+          CALLER_RESULT: ${{ needs.validate-caller.result }}
+          DISCOVER_RESULT: ${{ needs.discover.result }}
+          ANALYZE_RESULT: ${{ needs.analyze.result }}
         with:
           script: |
-            const success = process.env.AGENT_SUCCESS === 'true';
-
-            await github.rest.checks.update({
+            const success = [process.env.CALLER_RESULT, process.env.DISCOVER_RESULT, process.env.ANALYZE_RESULT]
+              .every(result => result === 'success');
+            await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              check_run_id: parseInt(process.env.CHECK_RUN_ID, 10),
+              name: 'Open Circuit: tool-free review',
+              head_sha: context.sha,
               status: 'completed',
               conclusion: success ? 'success' : 'failure',
-              completed_at: new Date().toISOString(),
               output: {
-                title: success ? 'Agent completed' : 'Agent failed',
-                summary: success
-                  ? 'Agent completed successfully.'
-                  : 'Agent failed; output was suppressed.',
+                title: success ? 'Review passed' : 'Review requires human attention',
+                summary: 'Tool-free analysis only. No model output, credentials or repository tools are published or executed.',
               },
             });
+            if (!success) core.setFailed('Tool-free review did not pass.');

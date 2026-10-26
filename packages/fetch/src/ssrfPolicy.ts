@@ -1,6 +1,5 @@
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
-import { RequestOptions } from "@opencircuit/config-types";
 
 export interface ResolvedNetworkDestination {
   hostname: string;
@@ -55,10 +54,7 @@ function isLocalAddress(address: string, family: number): boolean {
   return localAddresses.check(address, family === 4 ? "ipv4" : "ipv6");
 }
 
-export function isAllowedDestinationAddress(
-  address: string,
-  allowLocal: boolean,
-): boolean {
+export function isAllowedDestinationAddress(address: string): boolean {
   const family = isIP(address);
   if (family === 0) {
     return false;
@@ -77,7 +73,7 @@ export function isAllowedDestinationAddress(
   }
 
   if (isLocalAddress(address, family)) {
-    return allowLocal;
+    return false;
   }
 
   return family === 4 || globalIpv6Addresses.check(address, "ipv6");
@@ -86,24 +82,17 @@ export function isAllowedDestinationAddress(
 export function validateResolvedNetworkDestination(
   url: URL,
   addresses: Array<{ address: string; family: number }>,
-  requestOptions?: RequestOptions,
 ): ResolvedNetworkDestination {
-  const allowLocal = validateDestinationUrl(url, requestOptions);
+  validateDestinationUrl(url);
 
   if (
     addresses.length === 0 ||
     addresses.some(
-      ({ address }) => !isAllowedDestinationAddress(address, allowLocal),
+      ({ address, family }) =>
+        isIP(address) !== family || !isAllowedDestinationAddress(address),
     )
   ) {
     throw new Error("URL resolves to a disallowed network destination");
-  }
-
-  const localResults = addresses.map(({ address, family }) =>
-    isLocalAddress(address, family),
-  );
-  if (localResults.some(Boolean) && !localResults.every(Boolean)) {
-    throw new Error("URL resolves to mixed local and public destinations");
   }
 
   return {
@@ -118,36 +107,25 @@ function normalizeHostname(hostname: string): string {
     : hostname;
 }
 
-function hasAllowedOrigin(url: URL, requestOptions?: RequestOptions): boolean {
-  return requestOptions?.localUrlOrigins?.includes(url.origin) ?? false;
-}
-
-function validateDestinationUrl(
-  url: URL,
-  requestOptions?: RequestOptions,
-): boolean {
+function validateDestinationUrl(url: URL): void {
   if (
-    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    url.protocol !== "https:" ||
     url.username.length > 0 ||
     url.password.length > 0
   ) {
-    throw new Error("URL must use HTTP(S) without embedded credentials");
+    throw new Error("URL must use HTTPS without embedded credentials");
   }
 
-  const allowLocal = hasAllowedOrigin(url, requestOptions);
-  const defaultPort = url.protocol === "https:" ? "443" : "80";
-  if (!allowLocal && url.port.length > 0 && url.port !== defaultPort) {
+  if (url.port.length > 0 && url.port !== "443") {
     throw new Error("URL uses a non-default port not allowed by policy");
   }
-  return allowLocal;
 }
 
 export async function resolveNetworkDestination(
   url: URL,
-  requestOptions?: RequestOptions,
   lookupAll: typeof lookup = lookup,
 ): Promise<ResolvedNetworkDestination> {
-  validateDestinationUrl(url, requestOptions);
+  validateDestinationUrl(url);
   const hostname = normalizeHostname(url.hostname);
   const literalFamily = isIP(hostname);
   const addresses =
@@ -155,5 +133,5 @@ export async function resolveNetworkDestination(
       ? [{ address: hostname, family: literalFamily }]
       : await lookupAll(hostname, { all: true, verbatim: true });
 
-  return validateResolvedNetworkDestination(url, addresses, requestOptions);
+  return validateResolvedNetworkDestination(url, addresses);
 }

@@ -4,6 +4,7 @@ import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { BodyInit, RequestInit, Response } from "node-fetch";
 import { isIP } from "node:net";
+import { rootCertificates } from "node:tls";
 import { getAgentOptions } from "./getAgentOptions.js";
 import patchedFetch from "./node-fetch-patch.js";
 import { getProxy, shouldBypassProxy } from "./util.js";
@@ -92,7 +93,14 @@ export async function fetchwithRequestOptions(
     url.host = "127.0.0.1";
   }
 
-  const agentOptions = await getAgentOptions(requestOptions);
+  const agentOptions = destination
+    ? {
+        ca: [...rootCertificates],
+        rejectUnauthorized: true,
+        timeout: (requestOptions?.timeout ?? 15) * 1000,
+        keepAlive: false,
+      }
+    : await getAgentOptions(requestOptions);
 
   // Get proxy from options or environment variables
   const proxy = destination
@@ -242,7 +250,7 @@ export async function fetchwithRequestOptions(
       logError(error);
     }
 
-    if (error instanceof Error && error.name === "AbortError") {
+    if (!destination && error instanceof Error && error.name === "AbortError") {
       // Return a Response object that streamResponse etc can handle
       return new Response(null, {
         status: 499, // Client Closed Request

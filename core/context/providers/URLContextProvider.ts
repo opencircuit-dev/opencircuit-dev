@@ -8,7 +8,7 @@ import {
   ContextItem,
   ContextProviderDescription,
   ContextProviderExtras,
-  FetchFunction,
+  RequestOptions,
 } from "../../index.js";
 import { fetchFavicon } from "../../util/fetchFavicon";
 
@@ -24,9 +24,7 @@ class URLContextProvider extends BaseContextProvider {
     query: string,
     extras: ContextProviderExtras,
   ): Promise<ContextItem[]> {
-    return await getUrlContextItems(query, (url, init) =>
-      fetchUntrustedUrl(url, init, extras.config.requestOptions),
-    );
+    return await getUrlContextItems(query, extras.config.requestOptions);
   }
 }
 
@@ -34,18 +32,17 @@ export default URLContextProvider;
 
 export async function getUrlContextItems(
   query: string,
-  fetchFn: FetchFunction,
+  requestOptions?: RequestOptions,
 ): Promise<ContextItem[]> {
   const url = new URL(query);
-  const icon = await fetchFavicon(url, fetchFn);
-  const resp = await fetchFn(url);
+  const resp = await fetchUntrustedUrl(url, {}, requestOptions);
 
   // Check if the response is not OK
   if (!resp.ok) {
     throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
   }
-
   const html = await resp.text();
+  const icon = await fetchFavicon(url, requestOptions);
 
   const dom = new JSDOM(html);
   let reader = new Readability(dom.window.document);

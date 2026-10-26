@@ -76,7 +76,12 @@ test("validates existing regular files and rejects symlinks", () => {
   fs.mkdirSync(agentsDirectory, { recursive: true });
   fs.writeFileSync(
     path.join(agentsDirectory, "breaking-change-detector.md"),
-    "fixture",
+    fs.readFileSync(
+      new URL(
+        "../.ocircuit/agents/breaking-change-detector.md",
+        import.meta.url,
+      ),
+    ),
   );
   fs.writeFileSync(path.join(workingDirectory, "outside.md"), "fixture");
   fs.symlinkSync(
@@ -103,6 +108,18 @@ test("validates existing regular files and rejects symlinks", () => {
       /symbolic link/,
     );
     assert.throws(() => discoverAgents(workingDirectory), /symbolic links/);
+    fs.appendFileSync(
+      path.join(agentsDirectory, "breaking-change-detector.md"),
+      "\nmodified",
+    );
+    assert.throws(
+      () =>
+        validateAgentPath(
+          ".ocircuit/agents/breaking-change-detector.md",
+          workingDirectory,
+        ),
+      /SHA-256/,
+    );
   } finally {
     fs.rmSync(workingDirectory, { recursive: true, force: true });
   }
@@ -116,11 +133,18 @@ test("discovers sorted approved Markdown paths only", () => {
   fs.mkdirSync(agentsDirectory, { recursive: true });
   fs.writeFileSync(
     path.join(agentsDirectory, "error-message-quality.md"),
-    "fixture",
+    fs.readFileSync(
+      new URL("../.ocircuit/agents/error-message-quality.md", import.meta.url),
+    ),
   );
   fs.writeFileSync(
     path.join(agentsDirectory, "breaking-change-detector.md"),
-    "fixture",
+    fs.readFileSync(
+      new URL(
+        "../.ocircuit/agents/breaking-change-detector.md",
+        import.meta.url,
+      ),
+    ),
   );
   fs.writeFileSync(path.join(agentsDirectory, "notes.txt"), "ignored");
 

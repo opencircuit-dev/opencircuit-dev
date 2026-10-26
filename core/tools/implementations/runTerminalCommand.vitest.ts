@@ -175,7 +175,7 @@ describe("runTerminalCommandImpl", () => {
   });
 
   it.skipIf(process.platform === "win32" || !fs.existsSync("/bin/bash"))(
-    "continues loading the trusted login-shell profile",
+    "does not load profiles or select the parent SHELL",
     async () => {
       const originalHome = process.env.HOME;
       const originalShell = process.env.SHELL;
@@ -188,7 +188,7 @@ describe("runTerminalCommandImpl", () => {
         "export OC_SECURITY_SYNTHETIC_PROFILE=synthetic-profile-value\n",
       );
       process.env.HOME = profileHome;
-      process.env.SHELL = "/bin/bash";
+      process.env.SHELL = "/nonexistent/untrusted-shell";
 
       try {
         const result = await runTerminalCommandImpl(
@@ -200,7 +200,8 @@ describe("runTerminalCommandImpl", () => {
           createMockExtras(),
         );
 
-        expect(result[0].content.trim()).toBe("synthetic-profile-value");
+        expect(result[0].content).toContain("null");
+        expect(result[0].content).not.toContain("synthetic-profile-value");
       } finally {
         if (originalHome === undefined) {
           delete process.env.HOME;

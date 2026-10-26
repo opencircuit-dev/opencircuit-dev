@@ -1,4 +1,6 @@
 import { parse } from "shell-quote";
+import path from "node:path";
+import { evaluateChmod, type TerminalSecurityContext } from "./chmodPolicy.js";
 import { ToolPolicy } from "./types.js";
 
 /**
@@ -32,6 +34,7 @@ type ParsedToken = string | ShellOperator | GlobPattern | CommentToken;
 export function evaluateTerminalCommandSecurity(
   basePolicy: ToolPolicy,
   command: string | null | undefined,
+  context?: TerminalSecurityContext,
 ): ToolPolicy {
   // If tool is already disabled, keep it disabled
   if (basePolicy === "disabled") {
@@ -48,49 +51,102 @@ export function evaluateTerminalCommandSecurity(
   if (normalizedCommand === "") {
     return basePolicy;
   }
+  if (/\\\r?\n/.test(normalizedCommand)) return "disabled";
+  const lines = splitShellLines(normalizedCommand);
+  if (lines.length > 1) {
+    return getMostRestrictive(
+      basePolicy,
+      ...lines
+        .filter((line) => line.trim())
+        .map((line) => evaluateTerminalCommandSecurity(basePolicy, line)),
+    );
+  }
 
   try {
-    if (hasKnownCriticalAssignedCommand(normalizedCommand)) {
+    const policyTokens = parse(normalizedCommand, () => "__OC_UNRESOLVED__");
+    if (
+      policyTokens.some((token) =>
+        typeof token === "string"
+          ? token.includes("__OC_UNRESOLVED__")
+          : "op" in token &&
+            ![";", "&&", "||", "|", "&", ">", ">>", "<", "glob"].includes(
+              token.op,
+            ),
+      ) ||
+      hasCommandSubstitution(normalizedCommand)
+    ) {
       return "disabled";
     }
-
-    // Split on line breaks to handle multi-line commands
-    // Newlines are command separators in shells, similar to semicolons
-    const commandLines = normalizedCommand.split(/\r?\n|\r/);
-
-    // If there are multiple lines, evaluate each separately
-    if (commandLines.length > 1) {
-      let mostRestrictivePolicy: ToolPolicy = basePolicy;
-
-      for (const line of commandLines) {
-        const trimmedLine = line.trim();
-
-        // Skip empty lines
-        if (trimmedLine === "") {
-          continue;
-        }
-
-        // Parse and evaluate this line
-        const tokens = parse(trimmedLine);
-        const linePolicy = evaluateTokensSecurity(
-          tokens,
-          basePolicy,
-          trimmedLine,
-        );
-
-        // Track the most restrictive policy
-        mostRestrictivePolicy = getMostRestrictive(
-          mostRestrictivePolicy,
-          linePolicy,
-        );
-
-        // If we found a disabled command, return immediately
-        if (mostRestrictivePolicy === "disabled") {
+    let commandStart = true;
+    for (const [index, token] of policyTokens.entries()) {
+      if (typeof token !== "string") {
+        if (commandStart && "op" in token && token.op === "glob")
           return "disabled";
-        }
+        if (
+          commandStart &&
+          "op" in token &&
+          [">", ">>", "<"].includes(token.op)
+        )
+          return "disabled";
+        if ("op" in token && [";", "&&", "||", "|", "&"].includes(token.op))
+          commandStart = true;
+        continue;
       }
-
-      return mostRestrictivePolicy;
+      if (commandStart) {
+        const name = path.posix
+          .basename(token.replaceAll("\\", "/"))
+          .toLowerCase();
+        if (
+          /^\d+$/.test(token) ||
+          /^[A-Za-z_][A-Za-z0-9_]*=/.test(token) ||
+          [
+            "sh",
+            "bash",
+            "zsh",
+            "dash",
+            "fish",
+            "ksh",
+            "csh",
+            "tcsh",
+            "env",
+            "xargs",
+            "command",
+            "builtin",
+            "alias",
+            "unalias",
+            "function",
+            "source",
+            ".",
+            "eval",
+            "exec",
+            "if",
+            "then",
+            "for",
+            "while",
+            "until",
+            "case",
+            "do",
+            "{",
+            "}",
+            "!",
+            "export",
+            "set",
+          ].includes(name)
+        )
+          return "disabled";
+        if (name === "chmod") {
+          const literalTokens = policyTokens.filter(
+            (item): item is string => typeof item === "string",
+          );
+          if (literalTokens.length !== policyTokens.length || index !== 0)
+            return "disabled";
+          return getMostRestrictive(
+            basePolicy,
+            evaluateChmod(literalTokens.slice(1), context),
+          );
+        }
+        commandStart = false;
+      }
     }
 
     // Single line command - parse and evaluate normally
@@ -99,44 +155,32 @@ export function evaluateTerminalCommandSecurity(
     // Evaluate security of the parsed tokens
     return evaluateTokensSecurity(tokens, basePolicy, normalizedCommand);
   } catch (error) {
-    // If parsing fails, be conservative and require permission
+    // Unsupported syntax must not become executable through auto/allow mode.
     console.error("Failed to parse command:", error);
-    return "allowedWithPermission";
+    return "disabled";
   }
 }
 
-function hasKnownCriticalAssignedCommand(command: string): boolean {
-  const assignments =
-    /(?:^|[;&|]\s*)([A-Za-z_][A-Za-z0-9_]*)=(?:"([^"]*)"|'([^']*)'|([^\s;&|]+))/g;
-
-  for (const assignment of command.matchAll(assignments)) {
-    const name = assignment[1];
-    const value = assignment[2] ?? assignment[3] ?? assignment[4] ?? "";
-    const assignmentEnd = assignment.index + assignment[0].length;
-    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const invocations = new RegExp(
-      `(?:^|[;&|]\\s*)\\$(?:${escapedName}\\b|\\{${escapedName}\\})([^\\n;&|]*)`,
-      "g",
-    );
-
-    for (const invocation of command.matchAll(invocations)) {
-      if (invocation.index < assignmentEnd) {
-        continue;
-      }
-
-      const expandedCommand = `${value}${invocation[1]}`;
-      const nestedPolicy = evaluateTokensSecurity(
-        parse(expandedCommand),
-        "allowedWithoutPermission",
-        expandedCommand,
-      );
-      if (nestedPolicy === "disabled") {
-        return true;
-      }
+function splitShellLines(command: string): string[] {
+  let quote: "'" | '"' | undefined;
+  let start = 0;
+  const lines: string[] = [];
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i];
+    if (char === "\\" && quote !== "'") {
+      i++;
+      continue;
+    }
+    if (char === "'" && quote !== '"') quote = quote === "'" ? undefined : "'";
+    else if (char === '"' && quote !== "'")
+      quote = quote === '"' ? undefined : '"';
+    else if (!quote && (char === "\n" || char === "\r")) {
+      lines.push(command.slice(start, i));
+      start = i + 1;
     }
   }
-
-  return false;
+  lines.push(command.slice(start));
+  return lines;
 }
 
 /**
@@ -406,18 +450,20 @@ function evaluateSingleCommand(
   }
 
   // The first token is the command
-  const baseCommand = commandTokens[0].toLowerCase();
+  const baseCommand = path.posix
+    .basename(commandTokens[0].replaceAll("\\", "/"))
+    .toLowerCase();
   const args = commandTokens.slice(1);
 
   // Check for critical commands that should always be disabled
   if (isCriticalCommand(baseCommand, args)) {
     return "disabled";
   }
+  if (/[\\/]/.test(commandTokens[0])) return "allowedWithPermission";
 
   // Handle variable expansion patterns
   if (baseCommand.startsWith("$")) {
-    // Command is a variable - could be anything, so require permission
-    return "allowedWithPermission";
+    return "disabled";
   }
 
   // Check for high-risk commands that require permission
@@ -1136,19 +1182,28 @@ function isSafeCommand(baseCommand: string, args: string[]): boolean {
  * Checks for command substitution patterns
  */
 function hasCommandSubstitution(command: string): boolean {
-  // Backticks
-  if (command.includes("`")) {
-    return true;
-  }
-
-  // $() substitution
-  if (command.includes("$(")) {
-    return true;
-  }
-
-  // Process substitution <() or >()
-  if (command.match(/<\(|>\(/)) {
-    return true;
+  let quote: "'" | '"' | undefined;
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i];
+    if (char === "\\" && quote !== "'") {
+      i++;
+      continue;
+    }
+    if (char === "'" && quote !== '"') {
+      quote = quote === "'" ? undefined : "'";
+      continue;
+    }
+    if (char === '"' && quote !== "'") {
+      quote = quote === '"' ? undefined : '"';
+      continue;
+    }
+    if (quote === "'") continue;
+    if (
+      char === "`" ||
+      (char === "$" && command[i + 1] === "(") ||
+      (!quote && (char === "<" || char === ">") && command[i + 1] === "(")
+    )
+      return true;
   }
 
   return false;
