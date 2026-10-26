@@ -1,4 +1,5 @@
 import { ConfigResult } from "@opencircuit/config-yaml";
+import { fetchUntrustedUrl } from "@opencircuit/fetch";
 import { open, type Database } from "sqlite";
 import sqlite3 from "sqlite3";
 
@@ -679,7 +680,9 @@ export default class DocsService {
 
       const favicon =
         faviconUrl ||
-        (await fetchFavicon(new URL(siteIndexingConfig.startUrl)));
+        (await fetchFavicon(new URL(siteIndexingConfig.startUrl), (url, init) =>
+          fetchUntrustedUrl(url, init, this.config.requestOptions),
+        ));
 
       if (this.shouldCancel(startUrl, startedWithEmbedder)) {
         return;
@@ -1167,7 +1170,11 @@ export default class DocsService {
 
   private async updateMetadataInSqlite(siteIndexingConfig: SiteIndexingConfig) {
     const { startUrl, title, faviconUrl } = siteIndexingConfig;
-    const favicon = faviconUrl || (await fetchFavicon(new URL(startUrl)));
+    const favicon =
+      faviconUrl ||
+      (await fetchFavicon(new URL(startUrl), (url, init) =>
+        fetchUntrustedUrl(url, init, this.config.requestOptions),
+      ));
     if (!this.config.selectedModelByRole.embed) {
       console.warn(
         `Attempting to add metadata for ${startUrl} without embeddings provider specified`,

@@ -1072,6 +1072,7 @@ export interface RequestOptions {
   headers?: { [key: string]: string };
   extraBodyProperties?: { [key: string]: any };
   noProxy?: string[];
+  localUrlOrigins?: string[];
   clientCertificate?: ClientCertificateOptions;
 }
 

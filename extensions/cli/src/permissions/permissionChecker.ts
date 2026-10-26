@@ -165,6 +165,16 @@ export function checkToolPermission(
       };
     }
 
+    if (
+      evaluatedPolicy === "allowedWithPermission" &&
+      basePermission === "allow"
+    ) {
+      return {
+        permission: "ask",
+        matchedPolicy,
+      };
+    }
+
     // Otherwise, user preference wins - return the original base permission
     return {
       permission: basePermission,

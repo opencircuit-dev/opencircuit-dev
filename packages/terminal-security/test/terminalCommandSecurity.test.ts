@@ -142,6 +142,21 @@ describe("evaluateTerminalCommandSecurity", () => {
         expect(result).toBe("disabled");
       });
 
+      it("should not downgrade critical commands hidden in literal assignments", () => {
+        expect(
+          evaluateTerminalCommandSecurity(
+            "allowedWithoutPermission",
+            'CMD="rm -rf /"; $CMD',
+          ),
+        ).toBe("disabled");
+        expect(
+          evaluateTerminalCommandSecurity(
+            "allowedWithoutPermission",
+            'CMD="sudo"; $CMD ls',
+          ),
+        ).toBe("disabled");
+      });
+
       it("should detect sudo in command chains", () => {
         const result = evaluateTerminalCommandSecurity(
           "allowedWithoutPermission",
@@ -174,6 +189,21 @@ describe("evaluateTerminalCommandSecurity", () => {
           "chmod u+s exploit",
         );
         expect(result).toBe("disabled");
+      });
+
+      it("should require permission for other symbolic and numeric modes", () => {
+        for (const command of [
+          "chmod a+rwx /etc/passwd",
+          "chmod 755 /etc/passwd",
+          "chmod +x /tmp/fixture.sh",
+        ]) {
+          expect(
+            evaluateTerminalCommandSecurity(
+              "allowedWithoutPermission",
+              command,
+            ),
+          ).toBe("allowedWithPermission");
+        }
       });
 
       it("should disable chown to root", () => {

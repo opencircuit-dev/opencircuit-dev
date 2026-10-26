@@ -28,7 +28,7 @@ describe("findFaviconPath", () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
     const url = new URL("https://example.com");
-    const faviconPath = await findFaviconPath(url);
+    const faviconPath = await findFaviconPath(url, global.fetch);
 
     expect(faviconPath).toBe("https://example.com/favicon.ico");
     expect(global.fetch).toHaveBeenCalledWith("https://example.com");
@@ -49,7 +49,7 @@ describe("findFaviconPath", () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
     const url = new URL("https://example.com");
-    const faviconPath = await findFaviconPath(url);
+    const faviconPath = await findFaviconPath(url, global.fetch);
 
     expect(faviconPath).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledWith("https://example.com");
@@ -59,7 +59,7 @@ describe("findFaviconPath", () => {
     global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
 
     const url = new URL("https://example.com");
-    const faviconPath = await findFaviconPath(url);
+    const faviconPath = await findFaviconPath(url, global.fetch);
 
     expect(faviconPath).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledWith("https://example.com");
@@ -74,7 +74,7 @@ describe("findFaviconPath", () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
     const url = new URL("https://example.com");
-    const faviconPath = await findFaviconPath(url);
+    const faviconPath = await findFaviconPath(url, global.fetch);
 
     expect(faviconPath).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledWith("https://example.com");
@@ -97,7 +97,7 @@ describe("findFaviconPath", () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
     const url = new URL("https://example.com");
-    const faviconPath = await findFaviconPath(url);
+    const faviconPath = await findFaviconPath(url, global.fetch);
 
     expect(faviconPath).toBe("https://example.com/favicon.ico");
     expect(global.fetch).toHaveBeenCalledWith("https://example.com");
@@ -128,7 +128,7 @@ describe("getFaviconBase64", () => {
       );
 
     const faviconUrl = "https://example.com/favicon.ico";
-    const base64DataUri = await getFaviconBase64(faviconUrl);
+    const base64DataUri = await getFaviconBase64(faviconUrl, global.fetch);
 
     const expectedBase64 = Buffer.from(iconData).toString("base64");
 
@@ -140,7 +140,7 @@ describe("getFaviconBase64", () => {
     global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
 
     const faviconUrl = "https://example.com/favicon.ico";
-    const base64DataUri = await getFaviconBase64(faviconUrl);
+    const base64DataUri = await getFaviconBase64(faviconUrl, global.fetch);
 
     expect(base64DataUri).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledWith(faviconUrl);
@@ -155,7 +155,7 @@ describe("getFaviconBase64", () => {
     global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
     const faviconUrl = "https://example.com/favicon.ico";
-    const base64DataUri = await getFaviconBase64(faviconUrl);
+    const base64DataUri = await getFaviconBase64(faviconUrl, global.fetch);
 
     expect(base64DataUri).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledWith(faviconUrl);
@@ -180,7 +180,7 @@ describe("getFaviconBase64", () => {
       );
 
     const faviconUrl = "https://example.com/favicon.ico";
-    const base64DataUri = await getFaviconBase64(faviconUrl);
+    const base64DataUri = await getFaviconBase64(faviconUrl, global.fetch);
 
     const expectedBase64 = Buffer.from(iconData).toString("base64");
 
@@ -233,7 +233,7 @@ describe("fetchFavicon", () => {
         Buffer.from(str, "binary").toString("base64"),
       );
 
-    const result = await fetchFavicon(url);
+    const result = await fetchFavicon(url, global.fetch);
 
     const expectedBase64 = Buffer.from(iconData).toString("base64");
 
@@ -265,7 +265,7 @@ describe("fetchFavicon", () => {
 
     global.fetch = fetchMock;
 
-    const result = await fetchFavicon(url);
+    const result = await fetchFavicon(url, global.fetch);
 
     expect(result).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledTimes(1);

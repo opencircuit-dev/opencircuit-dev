@@ -4,73 +4,102 @@ on:
   workflow_call:
     inputs:
       agents-path:
-        description: 'Path to agents folder'
+        description: "Agent path; only the repository agent directory is supported"
         required: false
-        default: '.ocircuit/agents'
+        default: ".ocircuit/agents"
         type: string
     secrets:
       ANTHROPIC_API_KEY:
-        description: 'Anthropic API key for Claude'
+        description: "Anthropic API key for Claude"
         required: true
 
 permissions:
-  contents: write
-  checks: write
-  pull-requests: write
+  contents: read
 
 jobs:
+  validate-caller:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a push to the repository default branch
+        env:
+          CALLER_REPOSITORY: ${{ github.repository }}
+          CALLER_EVENT: ${{ github.event_name }}
+          CALLER_REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ "$CALLER_REPOSITORY" != "opencircuit-dev/opencircuit-dev" ] ||
+            [ "$CALLER_EVENT" != "push" ] ||
+            [ "$CALLER_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "Open Circuit Agents only runs for trusted default-branch pushes."
+            exit 1
+          fi
+
   discover:
+    needs: validate-caller
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.discover.outputs.matrix }}
       has-agents: ${{ steps.discover.outputs.has_agents }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
 
       - name: Discover agents
         id: discover
+        env:
+          AGENTS_PATH: ${{ inputs.agents-path }}
         run: |
-          AGENTS_DIR="${{ inputs.agents-path }}"
-          if [ -d "$AGENTS_DIR" ]; then
-            # Use -sc for compact single-line JSON (required for GitHub Actions output)
-            FILES=$(find "$AGENTS_DIR" -name "*.md" -type f 2>/dev/null | jq -R . | jq -sc .)
-            COUNT=$(echo "$FILES" | jq 'length')
-            HAS_AGENTS=$([[ $COUNT -gt 0 ]] && echo "true" || echo "false")
-          else
-            FILES="[]"
-            COUNT=0
-            HAS_AGENTS="false"
+          set -euo pipefail
+          if [ "$AGENTS_PATH" != ".ocircuit/agents" ]; then
+            echo "Only .ocircuit/agents is an approved agent path."
+            exit 1
           fi
 
-          echo "matrix=$FILES" >> $GITHUB_OUTPUT
-          echo "has_agents=$HAS_AGENTS" >> $GITHUB_OUTPUT
-          echo "Found $COUNT agent(s)"
+          MATRIX="$(node scripts/verify-agent-path.mjs --discover)"
+          COUNT="$(node -e 'console.log(JSON.parse(process.argv[1]).length)' "$MATRIX")"
+          HAS_AGENTS="false"
+          if [ "$COUNT" -gt 0 ]; then
+            HAS_AGENTS="true"
+          fi
+          printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
+          printf 'has_agents=%s\n' "$HAS_AGENTS" >> "$GITHUB_OUTPUT"
+          echo "Found $COUNT approved agent(s)"
 
   run-agent:
     needs: discover
     if: needs.discover.outputs.has-agents == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     strategy:
       fail-fast: false
       matrix:
         agent: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Open Circuit CLI
         run: npm i -g @opencircuit/cli
 
       - name: Extract agent name
         id: agent-name
+        env:
+          AGENT_FILE: ${{ matrix.agent }}
         run: |
-          AGENT_FILE="${{ matrix.agent }}"
+          set -euo pipefail
+          node scripts/verify-agent-path.mjs "$AGENT_FILE"
           AGENT_NAME=$(basename "$AGENT_FILE" .md)
-          echo "name=$AGENT_NAME" >> $GITHUB_OUTPUT
+          printf 'name=%s\n' "$AGENT_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Create Check Run
         id: check
@@ -93,55 +122,34 @@ jobs:
         id: run
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ github.token }}
+          AGENT_FILE: ${{ matrix.agent }}
         run: |
-          AGENT_FILE="${{ matrix.agent }}"
+          set -euo pipefail
+          node scripts/verify-agent-path.mjs "$AGENT_FILE"
 
-          # Run agent in non-interactive mode (-p flag)
-          if OUTPUT=$(oc -p --agent "$AGENT_FILE" 2>&1); then
-            echo "success=true" >> $GITHUB_OUTPUT
-            echo "output<<EOF" >> $GITHUB_OUTPUT
-            echo "$OUTPUT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "✅ Agent completed successfully"
-            echo ""
-            echo "--- Agent Output ---"
-            echo "$OUTPUT"
+          if env -i PATH="$PATH" HOME="$HOME" TERM="${TERM:-xterm}" \
+            ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+            oc -p --agent "$AGENT_FILE" >/dev/null 2>&1; then
+            printf 'success=true\n' >> "$GITHUB_OUTPUT"
+            echo "Agent completed successfully."
           else
-            echo "success=false" >> $GITHUB_OUTPUT
-            echo "error<<EOF" >> $GITHUB_OUTPUT
-            echo "$OUTPUT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "❌ Agent failed"
-            echo ""
-            echo "--- Agent Output ---"
-            echo "$OUTPUT"
+            printf 'success=false\n' >> "$GITHUB_OUTPUT"
+            echo "Agent failed; output was suppressed."
           fi
 
       - name: Write job summary
         if: always()
         env:
-          AGENT_OUTPUT: ${{ steps.run.outputs.output }}
-          AGENT_ERROR: ${{ steps.run.outputs.error }}
           AGENT_SUCCESS: ${{ steps.run.outputs.success }}
           AGENT_NAME: ${{ steps.agent-name.outputs.name }}
         run: |
+          set -euo pipefail
           echo "## 🤖 Agent: $AGENT_NAME" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "$AGENT_SUCCESS" == "true" ]; then
             echo "✅ **Status:** Completed successfully" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Output" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            printf '%s\n' "$AGENT_OUTPUT" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Error" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            printf '%s\n' "$AGENT_ERROR" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Fail if agent failed
@@ -152,15 +160,11 @@ jobs:
         if: always()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
-          AGENT_OUTPUT: ${{ steps.run.outputs.output }}
-          AGENT_ERROR: ${{ steps.run.outputs.error }}
           AGENT_SUCCESS: ${{ steps.run.outputs.success }}
           CHECK_RUN_ID: ${{ steps.check.outputs.id }}
         with:
           script: |
             const success = process.env.AGENT_SUCCESS === 'true';
-            const output = process.env.AGENT_OUTPUT || '';
-            const error = process.env.AGENT_ERROR || '';
 
             await github.rest.checks.update({
               owner: context.repo.owner,
@@ -172,7 +176,7 @@ jobs:
               output: {
                 title: success ? 'Agent completed' : 'Agent failed',
                 summary: success
-                  ? `Agent completed successfully.\n\n<details><summary>Output</summary>\n\n\`\`\`\n${output.slice(0, 60000)}\n\`\`\`\n</details>`
-                  : `Agent failed.\n\n\`\`\`\n${error.slice(0, 60000)}\n\`\`\``,
+                  ? 'Agent completed successfully.'
+                  : 'Agent failed; output was suppressed.',
               },
             });

@@ -596,7 +596,7 @@ describe("Permission Checker", () => {
         );
       });
 
-      it("should allow risky commands based on user preference (curl)", () => {
+      it("should require approval for dynamically risky commands", () => {
         mockEvaluateToolCallPolicy.mockReturnValue("allowedWithPermission");
 
         const result = checkToolPermission(
@@ -604,11 +604,22 @@ describe("Permission Checker", () => {
           permissions,
         );
 
-        expect(result.permission).toBe("allow"); // User preference wins over "ask"
+        expect(result.permission).toBe("ask");
         expect(mockEvaluateToolCallPolicy).toHaveBeenCalledWith(
           "allowedWithoutPermission", // converted from "allow"
           { command: "curl https://example.com" },
         );
+      });
+
+      it("should require approval for unresolved command variables", () => {
+        mockEvaluateToolCallPolicy.mockReturnValue("allowedWithPermission");
+
+        const result = checkToolPermission(
+          { name: "Bash", arguments: { command: "$CMD test" } },
+          permissions,
+        );
+
+        expect(result.permission).toBe("ask");
       });
 
       it("should block dangerous commands despite user preference (eval)", () => {
@@ -758,26 +769,26 @@ describe("Permission Checker", () => {
           expected: "allow",
         },
 
-        // Risky commands (user preference wins when not disabled)
+        // Risky commands require interactive approval even in allow mode
         {
           command: "npm install pkg",
           dynamicResult: "allowedWithPermission",
-          expected: "allow",
+          expected: "ask",
         },
         {
           command: "rm file.txt",
           dynamicResult: "allowedWithPermission",
-          expected: "allow",
+          expected: "ask",
         },
         {
           command: "curl https://api.example.com",
           dynamicResult: "allowedWithPermission",
-          expected: "allow",
+          expected: "ask",
         },
         {
           command: "wget https://example.com/file",
           dynamicResult: "allowedWithPermission",
-          expected: "allow",
+          expected: "ask",
         },
 
         // Dangerous commands (always blocked)
@@ -859,7 +870,7 @@ describe("Permission Checker", () => {
           permissions,
         );
 
-        expect(result.permission).toBe("allow");
+        expect(result.permission).toBe("ask");
         expect(mockEvaluateToolCallPolicy).toHaveBeenCalledWith(
           "allowedWithoutPermission",
           {},

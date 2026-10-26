@@ -61,9 +61,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli_core == 'true'
     runs-on: ubuntu-latest
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -119,9 +116,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli_core == 'true'
     runs-on: ubuntu-latest
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup packages
@@ -194,10 +188,7 @@ jobs:
           RELACE_API_KEY: ${{ secrets.RELACE_API_KEY }}
           INCEPTION_API_KEY: ${{ secrets.INCEPTION_API_KEY }}
 
-  # GitHub does not have a way of requiring that all checks pass (you must manually select each job)
-  # This action at least lets us manage the list of required tests via source control
-
-  # so that creators of new jobs can add them to this list
+  # Keep conditional skips tied to the same profile condition as the jobs.
   require-all-checks-to-pass:
     if: always()
     runs-on: ubuntu-latest
@@ -210,8 +201,14 @@ jobs:
       - packages-checks
 
     steps:
-      - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35
-        with:
-          allowed-skips: changes,core-checks,binary-checks,packages-checks
-          jobs: ${{ toJSON(needs) }}
+      - name: Verify required PR checks
+        env:
+          CHECK_WORKFLOW: core
+          CLI_CORE: ${{ needs.changes.outputs.cli_core }}
+          RESULT_CHANGES: ${{ needs.changes.result }}
+          RESULT_PRETTIER_CHECK: ${{ needs.prettier-check.result }}
+          RESULT_GET_PACKAGES_MATRIX: ${{ needs.get-packages-matrix.result }}
+          RESULT_CORE_CHECKS: ${{ needs.core-checks.result }}
+          RESULT_BINARY_CHECKS: ${{ needs.binary-checks.result }}
+          RESULT_PACKAGES_CHECKS: ${{ needs.packages-checks.result }}
+        run: node scripts/verify-pr-required-checks.mjs

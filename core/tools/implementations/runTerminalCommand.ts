@@ -1,6 +1,7 @@
 import iconv from "iconv-lite";
 import childProcess from "node:child_process";
 import os from "node:os";
+import path from "node:path";
 import { OCircuitError, OCircuitErrorReason } from "../../util/errors";
 
 // Default timeout for terminal commands (2 minutes)
@@ -87,15 +88,68 @@ function resolveWorkingDirectory(workspaceDirs: string[]): string {
   }
 }
 
-// Add color-supporting environment variables
-const getColorEnv = () => ({
-  ...process.env,
-  FORCE_COLOR: "1",
-  COLORTERM: "truecolor",
-  TERM: "xterm-256color",
-  CLICOLOR: "1",
-  CLICOLOR_FORCE: "1",
-});
+function isSafePath(value: string | undefined): value is string {
+  if (!value) {
+    return false;
+  }
+  const entries = value.split(path.delimiter);
+  return (
+    entries.length > 0 &&
+    entries.every(
+      (entry) =>
+        entry.length > 0 &&
+        !/[\u0000-\u001f\u007f]/.test(entry) &&
+        !entry.split(/[\\/]/).includes("..") &&
+        path.isAbsolute(entry),
+    )
+  );
+}
+
+function getTerminalEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+
+  if (isSafePath(process.env.PATH)) {
+    env.PATH = process.env.PATH;
+  }
+
+  const home = os.homedir();
+  if (home && path.isAbsolute(home)) {
+    if (process.platform === "win32") {
+      env.USERPROFILE = home;
+    } else {
+      env.HOME = home;
+    }
+  }
+
+  for (const name of ["LANG", "LC_ALL", "LC_CTYPE", "LANGUAGE"]) {
+    const value = process.env[name];
+    if (value && /^[A-Za-z0-9_.@:-]+$/.test(value)) {
+      env[name] = value;
+    }
+  }
+
+  if (process.platform === "win32") {
+    for (const name of ["SystemRoot", "ComSpec", "PATHEXT", "TEMP", "TMP"]) {
+      const value = process.env[name];
+      if (
+        value &&
+        !/[\u0000-\u001f\u007f]/.test(value) &&
+        (name === "PATHEXT" || path.isAbsolute(value))
+      ) {
+        env[name] = value;
+      }
+    }
+  }
+
+  return {
+    ...env,
+    FORCE_COLOR: "1",
+    COLORTERM: "truecolor",
+    TERM: "xterm-256color",
+    CLICOLOR: "1",
+    CLICOLOR_FORCE: "1",
+  };
+}
 
 // Only spawn processes locally when there is no remote workspace.
 // With extensionKind: ["ui", "workspace"], the extension host almost always
@@ -148,7 +202,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
           const { shell, args } = getShellCommand(command);
           const childProc = childProcess.spawn(shell, args, {
             cwd,
-            env: getColorEnv(), // Add enhanced environment for colors
+            env: getTerminalEnv(),
           });
 
           // Track this process for foreground cancellation
@@ -387,7 +441,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
                 nonStreamingArgs,
                 {
                   cwd,
-                  env: getColorEnv(),
+                  env: getTerminalEnv(),
                 },
               );
 
@@ -507,7 +561,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
             getShellCommand(command);
           const childProc = childProcess.spawn(detachedShell, detachedArgs, {
             cwd,
-            env: getColorEnv(), // Add color environment
+            env: getTerminalEnv(),
             // Detach the process so it's not tied to the parent
             detached: true,
             // Redirect to /dev/null equivalent (works cross-platform)

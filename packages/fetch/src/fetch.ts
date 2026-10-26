@@ -3,9 +3,11 @@ import * as followRedirects from "follow-redirects";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { BodyInit, RequestInit, Response } from "node-fetch";
+import { isIP } from "node:net";
 import { getAgentOptions } from "./getAgentOptions.js";
 import patchedFetch from "./node-fetch-patch.js";
 import { getProxy, shouldBypassProxy } from "./util.js";
+import { ResolvedNetworkDestination } from "./ssrfPolicy.js";
 
 const { http, https } = (followRedirects as any).default;
 
@@ -83,19 +85,68 @@ export async function fetchwithRequestOptions(
   url_: URL | string,
   init?: RequestInit,
   requestOptions?: RequestOptions,
+  destination?: ResolvedNetworkDestination,
 ): Promise<Response> {
   const url = typeof url_ === "string" ? new URL(url_) : url_;
-  if (url.host === "localhost") {
+  if (!destination && url.host === "localhost") {
     url.host = "127.0.0.1";
   }
 
   const agentOptions = await getAgentOptions(requestOptions);
 
   // Get proxy from options or environment variables
-  const proxy = getProxy(url.protocol, requestOptions);
+  const proxy = destination
+    ? undefined
+    : getProxy(url.protocol, requestOptions);
 
   // Check if should bypass proxy based on requestOptions or NO_PROXY env var
-  const shouldBypass = shouldBypassProxy(url.hostname, requestOptions);
+  const shouldBypass = destination
+    ? true
+    : shouldBypassProxy(url.hostname, requestOptions);
+
+  if (destination) {
+    agentOptions.lookup = (
+      hostname: string,
+      options: { all?: boolean; family?: number },
+      callback: (
+        error: NodeJS.ErrnoException | null,
+        address: string | Array<{ address: string; family: number }>,
+        family?: number,
+      ) => void,
+    ) => {
+      const normalizedHostname =
+        hostname.startsWith("[") && hostname.endsWith("]")
+          ? hostname.slice(1, -1)
+          : hostname;
+      if (normalizedHostname !== destination.hostname) {
+        callback(
+          new Error("Connection hostname differs from validated URL"),
+          "",
+        );
+        return;
+      }
+
+      const addresses = destination.addresses.filter(
+        ({ family }) => !options.family || family === options.family,
+      );
+      if (addresses.length === 0) {
+        callback(
+          new Error("No validated address matches the requested family"),
+          "",
+        );
+        return;
+      }
+
+      if (options.all) {
+        callback(null, addresses);
+      } else {
+        callback(null, addresses[0].address, addresses[0].family);
+      }
+    };
+    if (url.protocol === "https:" && isIP(destination.hostname) === 0) {
+      agentOptions.servername = destination.hostname;
+    }
+  }
 
   // Create agent
   const protocol = url.protocol === "https:" ? https : http;
@@ -137,7 +188,7 @@ export async function fetchwithRequestOptions(
   };
 
   // Replace localhost with 127.0.0.1
-  if (url.hostname === "localhost") {
+  if (!destination && url.hostname === "localhost") {
     url.hostname = "127.0.0.1";
   }
 

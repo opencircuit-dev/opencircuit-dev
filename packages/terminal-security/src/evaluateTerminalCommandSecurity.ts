@@ -50,6 +50,10 @@ export function evaluateTerminalCommandSecurity(
   }
 
   try {
+    if (hasKnownCriticalAssignedCommand(normalizedCommand)) {
+      return "disabled";
+    }
+
     // Split on line breaks to handle multi-line commands
     // Newlines are command separators in shells, similar to semicolons
     const commandLines = normalizedCommand.split(/\r?\n|\r/);
@@ -99,6 +103,40 @@ export function evaluateTerminalCommandSecurity(
     console.error("Failed to parse command:", error);
     return "allowedWithPermission";
   }
+}
+
+function hasKnownCriticalAssignedCommand(command: string): boolean {
+  const assignments =
+    /(?:^|[;&|]\s*)([A-Za-z_][A-Za-z0-9_]*)=(?:"([^"]*)"|'([^']*)'|([^\s;&|]+))/g;
+
+  for (const assignment of command.matchAll(assignments)) {
+    const name = assignment[1];
+    const value = assignment[2] ?? assignment[3] ?? assignment[4] ?? "";
+    const assignmentEnd = assignment.index + assignment[0].length;
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const invocations = new RegExp(
+      `(?:^|[;&|]\\s*)\\$(?:${escapedName}\\b|\\{${escapedName}\\})([^\\n;&|]*)`,
+      "g",
+    );
+
+    for (const invocation of command.matchAll(invocations)) {
+      if (invocation.index < assignmentEnd) {
+        continue;
+      }
+
+      const expandedCommand = `${value}${invocation[1]}`;
+      const nestedPolicy = evaluateTokensSecurity(
+        parse(expandedCommand),
+        "allowedWithoutPermission",
+        expandedCommand,
+      );
+      if (nestedPolicy === "disabled") {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
