@@ -21,6 +21,33 @@ only after dependencies have already been installed from the current lockfiles.
 - Node.js `24.19.0`, pinned by `.nvmrc` and `.node-version`.
 - npm with the committed package lockfiles.
 
+## Dependency remediation and release planning
+
+The retained schemas use Zod 4.6.7 and native draft-7 JSON schema generation.
+OpenAI is pinned to 6.0.0, whose published types retain the existing Responses
+audio-input contract; newer SDK versions require a separate compatibility
+review. Puppeteer 25.16.0 removes the old Zod 3 browser dependency, and its
+browser-download install hook has an exact-version approval. Happy DOM 21.0.4
+and Vitest 5.0.5 update the CLI test environment.
+
+The reusable release workflow calls `scripts/release-package.mjs --execute`
+instead of semantic-release. From a retained package directory, run
+`node ../../scripts/release-package.mjs --dry-run` to inspect the proposed
+version, package-specific tag, and changelog without publishing. CLI
+`semantic-release` npm script names remain compatibility aliases. Publishing
+requires a clean main checkout in the canonical public GitHub Actions
+repository and environment-supplied credentials; source branches are not pushed.
+
+The Core deprecation baseline removes the retired jsdom warning chain and
+records the newly reported warning for the already-present
+`babel-plugin-istanbul` -> `test-exclude@7` -> `glob@10.5.0` chain. The expiry
+is unchanged; this warning record is not a vulnerability exception.
+
+See `CI_RELEASE_AUDIT.md` for the unresolved Azure/MSAL audit blocker.
+Rollback must revert the migration commit with all affected manifests,
+lockfiles, schema changes, and release scripts together, then reinstall and
+rebuild; it restores the prior advisories and is not an audit remediation.
+
 ## CI and release secrets
 
 Secrets are supplied by the CI environment and must never be committed:

@@ -10,7 +10,7 @@ import {
 import { fetchwithRequestOptions } from "@opencircuit/fetch";
 import * as URI from "uri-js";
 import { fileURLToPath } from "url";
-import { AnyZodObject } from "zod";
+import { ZodObject } from "zod";
 import { Core } from "../core.js";
 import { IdeInfo, IdeSettings, OCircuitConfig } from "../index.js";
 import { getDevDataFilePath } from "../util/paths.js";
@@ -37,7 +37,7 @@ export class DataLogger {
     body: Record<string, any>,
     eventName: string,
     schema: string,
-    zodSchema: AnyZodObject,
+    zodSchema: ZodObject,
   ): Promise<Record<string, any>> {
     const newBody = { ...body };
     const ideSettings = await this.ideSettingsPromise;

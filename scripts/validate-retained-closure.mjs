@@ -36,7 +36,7 @@ const commands = [
       ]
     : []),
   {
-    name: "Root release-tooling audit exception",
+    name: "Root release-tooling audit",
     command: process.execPath,
     args: ["scripts/check-release-tooling-audit-exception.mjs"],
     cwd: repositoryRoot,
@@ -45,6 +45,12 @@ const commands = [
     name: "Root production audit",
     command: npmCommand,
     args: ["audit", "--omit=dev", "--audit-level=high"],
+    cwd: repositoryRoot,
+  },
+  {
+    name: "Release planning and audit safety tests",
+    command: process.execPath,
+    args: ["--test", "tests/characterization/release-package.test.mjs"],
     cwd: repositoryRoot,
   },
   {
@@ -137,7 +143,7 @@ const commands = [
     cwd: path.join(repositoryRoot, "extensions/cli"),
   },
   {
-    name: "CLI release-tooling audit exception",
+    name: "CLI release-tooling audit",
     command: process.execPath,
     args: ["../../scripts/check-release-tooling-audit-exception.mjs"],
     cwd: path.join(repositoryRoot, "extensions/cli"),

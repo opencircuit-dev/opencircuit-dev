@@ -332,6 +332,7 @@ describe("fromResponsesChunk", () => {
     };
     const toolDone: ResponseFunctionCallArgumentsDoneEvent = {
       type: "response.function_call_arguments.done",
+      name: "searchDocs",
       sequence_number: 4,
       item_id: "tool_item_1",
       output_index: 0,

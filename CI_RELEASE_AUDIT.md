@@ -19,10 +19,11 @@ Canonical repository: `open-circuit-dev/open-circuit`
   compatibility validation.
 - Root, Core, and CLI production closures retain strict high-severity audit
   gates.
-  Development-only release tooling is checked by a fail-closed, expiring
-  exception at `scripts/dependency-audit-exceptions.json`; it accepts only the
-  three exact npm-bundled findings, versions, paths, and advisory URLs recorded
-  there. Any new or changed finding fails validation.
+  Development-only release tooling is checked by a fail-closed zero-finding
+  gate in `scripts/check-release-tooling-audit-exception.mjs` (the historical
+  entry-point name is preserved). There are no vulnerability exceptions.
+  Conventional changelog/recommendation libraries and the host npm CLI replace
+  semantic-release's vulnerable bundled npm dependency.
 
 ## Deferred references
 
@@ -48,9 +49,22 @@ path.
 
 ## Validation evidence
 
-The retained-closure profile passes root dependency checks, shared package
-builds, Core install-script/dependency/audit/build/typecheck/lint checks, CLI
-install-script/dependency/audit/typecheck/build, and CLI smoke tests. The
-runtime-boundary assertion is structurally valid and the loopback request
-passes, but the local run reports Node `v26.7.0` instead of the repository pin
-`24.19.0`; run that final assertion on the pinned Ubuntu/Node environment.
+The dependency remediation was validated on macOS with Node `24.19.0` and
+npm `12.0.2`. Root and CLI full audits report zero vulnerabilities. The exact
+retained-closure profile passes root installs/audits, release-planning tests,
+shared builds, and Core installs/policies, then stops at the Core audit.
+
+The remaining blocker is `tedious@18.6.2` -> `@azure/identity@4.14.0` ->
+`@azure/msal-node@6.0.1`: GHSA-xcx6-jx8p-x3h5 affects MSAL 5 through 7.0.2.
+MSAL 7.1.1 is fixed, but Identity's latest stable release requires `^6.0.0`,
+and its current beta retains that requirement. Do not force MSAL 7 through an
+unsupported major-version override. The older Identity 4.12/MSAL 3 lineage
+also retains a vulnerable uuid dependency, so it is not an audit-clean fallback.
+A supported parent release or separately reviewed Azure authentication
+migration is required before this gate can pass.
+
+Core build/typecheck/lint, OpenAI/YAML tests, CLI build/typecheck/lint, smoke,
+runtime-boundary, artifact, and unit tests were run independently of that
+fail-fast audit. Passing those checks does not make the full profile green.
+Credentialed Azure/SQL and provider tests, Linux validation, and real browser
+downloads are not claimed.

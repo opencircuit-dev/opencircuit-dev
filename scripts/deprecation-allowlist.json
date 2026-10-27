@@ -46,11 +46,6 @@
         "message": "Rimraf versions prior to v4 are no longer supported"
       },
       {
-        "package": "abab",
-        "version": "2.0.6",
-        "message": "Use your platform's native atob() and btoa() methods instead"
-      },
-      {
         "package": "whatwg-encoding",
         "version": "3.1.1",
         "message": "Use @exodus/bytes instead for a more spec-conformant and faster implementation"
@@ -61,9 +56,9 @@
         "message": "Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
       },
       {
-        "package": "whatwg-encoding",
-        "version": "2.0.0",
-        "message": "Use @exodus/bytes instead for a more spec-conformant and faster implementation"
+        "package": "glob",
+        "version": "10.5.0",
+        "message": "Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
       },
       {
         "package": "prebuild-install",
@@ -79,11 +74,6 @@
         "package": "are-we-there-yet",
         "version": "3.0.1",
         "message": "This package is no longer supported."
-      },
-      {
-        "package": "domexception",
-        "version": "4.0.0",
-        "message": "Use your platform's native DOMException instead"
       },
       {
         "package": "gauge",
