@@ -10,11 +10,10 @@ reusable Core runtime. Use it interactively or run it headlessly in scripts.
 ## Start as a user
 
 Read the [QUICKSTART](QUICKSTART.md) for installation, provider configuration,
-and first commands. The source package is now version **1.0.2**. Its release
-archive is not yet published; the
-[public distribution repository](https://github.com/open-circuit-dev/opencircuit)
-currently contains the previously released **1.0.1** archive. Do not expect
-the 1.0.2 download link to work until the release artifact is published.
+and first commands. This source checkout identifies the CLI package as
+**1.0.2**. A source version is not proof that its release archive is available;
+check the [public distribution repository](https://github.com/open-circuit-dev/opencircuit)
+for the latest published tarball and checksum before installing.
 
 The npm package is not published. Install from a verified release tarball when
 one is available; do not install an unpublished version from the registry.

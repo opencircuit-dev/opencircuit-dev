@@ -17,9 +17,8 @@ nvm use 24.19.0
 
 ## 2. Install a release
 
-The source package is version **1.0.2**, but its public release archive is not
-yet available. The distribution repository currently contains version
-**1.0.1**. Use only the version whose tarball and checksum are actually
+This source checkout identifies the CLI package as **1.0.2**. Release archives
+are published separately; use only a version whose tarball and checksum are
 available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
 
 After downloading a matching tarball and `.sha256` file, verify and install
