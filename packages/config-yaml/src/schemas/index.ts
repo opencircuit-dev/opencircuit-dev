@@ -69,19 +69,19 @@ export type RulesJson = z.infer<typeof rulesJsonSchema>;
 
 const defaultUsesSchema = z.string();
 
-export const blockItemWrapperSchema = <T extends z.AnyZodObject>(
+export const blockItemWrapperSchema = <T extends z.ZodObject>(
   schema: T,
-  usesSchema: z.ZodTypeAny = defaultUsesSchema,
+  usesSchema: z.ZodType<string> = defaultUsesSchema,
 ) =>
   z.object({
     uses: usesSchema,
-    with: z.record(z.string()).optional(),
+    with: z.record(z.string(), z.string()).optional(),
     override: schema.partial().optional(),
   });
 
-export const blockOrSchema = <T extends z.AnyZodObject>(
+export const blockOrSchema = <T extends z.ZodObject>(
   schema: T,
-  usesSchema: z.ZodTypeAny = defaultUsesSchema,
+  usesSchema: z.ZodType<string> = defaultUsesSchema,
 ) => z.union([schema, blockItemWrapperSchema(schema, usesSchema)]);
 
 export const commonMetadataSchema = z.object({
@@ -102,7 +102,10 @@ export const baseConfigYamlSchema = z.object({
   name: z.string(),
   version: z.string(),
   schema: z.string().optional(),
-  metadata: z.record(z.string()).and(commonMetadataSchema.partial()).optional(),
+  metadata: z
+    .record(z.string(), z.string())
+    .and(commonMetadataSchema.partial())
+    .optional(),
   env: envRecord.optional(),
   requestOptions: requestOptionsSchema.optional(),
   auth: authOptionsSchema.optional(),
@@ -119,7 +122,7 @@ export const configYamlSchema = baseConfigYamlSchema.extend({
         modelSchema,
         z.object({
           uses: modelsUsesSchema,
-          with: z.record(z.string()).optional(),
+          with: z.record(z.string(), z.string()).optional(),
           override: partialModelSchema.optional(),
         }),
       ]),
@@ -133,7 +136,7 @@ export const configYamlSchema = baseConfigYamlSchema.extend({
         mcpServerSchema,
         z.object({
           uses: defaultUsesSchema,
-          with: z.record(z.string()).optional(),
+          with: z.record(z.string(), z.string()).optional(),
           override: partialMcpServerSchema.optional(),
         }),
       ]),
@@ -145,7 +148,7 @@ export const configYamlSchema = baseConfigYamlSchema.extend({
         ruleSchema,
         z.object({
           uses: defaultUsesSchema,
-          with: z.record(z.string()).optional(),
+          with: z.record(z.string(), z.string()).optional(),
         }),
       ]),
     )

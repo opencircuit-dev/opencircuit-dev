@@ -14,8 +14,8 @@ export const requestOptionsSchema = z.object({
   verifySsl: z.boolean().optional(),
   caBundlePath: z.union([z.string(), z.array(z.string())]).optional(),
   proxy: z.string().optional(),
-  headers: z.record(z.string()).optional(),
-  extraBodyProperties: z.record(z.any()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  extraBodyProperties: z.record(z.string(), z.any()).optional(),
   noProxy: z.array(z.string()).optional(),
   localUrlOrigins: z.never().optional(),
   clientCertificate: clientCertificateOptionsSchema.optional(),
@@ -70,7 +70,7 @@ export const embeddingTasksSchema = z.union([
 ]);
 export type EmbeddingTasks = z.infer<typeof embeddingTasksSchema>;
 
-export const embeddingPrefixesSchema = z.record(
+export const embeddingPrefixesSchema = z.partialRecord(
   embeddingTasksSchema,
   z.string(),
 );

@@ -104,3 +104,53 @@ and pinned Rust/Cargo `1.99.0`.
 
 No audit acceptance was added. Do not enable publishing automation or promote
 an artifact before the required platform gates and maintainer review finish.
+
+## Reviewed upstream dependency integration
+
+This sync imports public upstream `162bbe8ce40cea4159336695b3b118849bf22892`,
+including the accepted dependency
+remediation PR 85 and retired-surface matcher PR 86. It preserves the internal
+CLI 1.0.2, Cisco OAuth/profile packaging, trusted internal workflow caller, and
+zero-finding tooling/Core audit gates.
+
+Zod 4.6.7 and OpenAI 6.0.0 replace their vulnerable dependency chains, with
+explicit schema/declaration compatibility changes and native draft-7 JSON
+schema generation. Internal shared-package Vitest runners remain in place.
+Lockfiles are regenerated from internal baselines, retaining the reviewed
+coverage-loader js-yaml 4.3.2 override.
+
+The deprecated generic `database` provider and `dbinfoz`/MSSQL/tedious/Azure
+Identity/MSAL chain are removed. This supersedes the earlier database-adapter
+upgrade and compatibility test described above: there is no remaining adapter
+to validate. Existing `database` configuration produces an explicit nonfatal
+warning directing users to database MCP. The compatibility check now ensures
+the retired driver chain is absent while retaining the coverage YAML test.
+The separate PostgreSQL provider, SQLite storage and model-provider
+authentication are unchanged. No audit suppression or cross-major override
+is used.
+
+Validation of this integration must use Node 24.19.0, the exact internal
+retained-closure profile, and Cisco auth/OS-token-store/policy/entitlement/
+profile/packaging regressions before PR readiness. Historical Server1 evidence
+above does not validate this new integration revision.
+
+Local integration evidence (macOS, Node 24.19.0, npm 12.0.2):
+
+- Exact internal retained-closure passed, including locked reinstalls, zero
+  root/Core/CLI audit findings, build/typecheck/lint/policy, smoke, runtime
+  boundary and public artifact/profile-exclusion checks.
+- CLI: 1,777 passed, 6 skipped; lint has zero errors and five existing warnings.
+- Core focused config/log/OpenAI: 395 passed; OpenAI converter Jest: 24 passed.
+- Config YAML: 295; fetch: 105; terminal-security: 245; SDK auth/token store: 14;
+  adapters: 158 passed, 5 live-provider tests skipped.
+- Release/profile/packaging/CI/runtime checks: 37; retired-surface tests: 15,
+  plus the repository guard; full formatting and Git whitespace checks passed.
+- CLI e2e: 64 passed, one live invalid-Anthropic-key assertion blocked by local
+  issuer trust (`unable to get local issuer certificate`). A targeted retry
+  with Node system CAs also failed. TLS validation was not disabled and this
+  is not claimed as a passing e2e run.
+
+A shared Vitest-cache startup collision during parallel validation was
+resolved by rerunning shared suites without concurrent workspace runners.
+Linux validation, protected release, live Cisco SSO and maintainer approval
+remain separate from these local deterministic results.
