@@ -7,6 +7,42 @@ separately. Cisco users must use the approved internal package, run `oc init`
 to install its protected profile, and select the packaged Circuit configuration.
 The public-provider examples below do not replace internal SSO onboarding.
 
+## Internal Cisco Circuit onboarding
+
+Use the regenerated internal **1.0.2** tarball, checksum and provenance from
+the approved internal distribution, not the public 1.0.0 examples below.
+The current local build is from main `79e42d9ef`; source staging is
+`release-artifacts/v1.0.2/`. Regeneration does not itself publish a remote release.
+
+From the directory containing the downloaded files, with Node 24.19.0 active:
+
+```bash
+shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
+  oc --version
+oc init
+```
+
+`oc init` installs templates and the protected `~/.ocircuit/cisco-circuit.env`
+profile with owner-only permissions; existing files are preserved. If an older
+config exists, back it up before replacing it:
+
+```bash
+cp ~/.ocircuit/templates/config-cisco-circuit.yaml ~/.ocircuit/config.yaml
+chmod 600 ~/.ocircuit/config.yaml
+oc --config ~/.ocircuit/config.yaml
+```
+
+Complete browser SSO when prompted and select an entitled model. If the template
+placeholder remains, replace `replace-with-entitled-model` with an approved
+model returned by policy. Do not invent a deployment ID, add manual bearer
+tokens, or bypass entitlement rejection. Tokens refresh through OAuth and use
+the OS credential store; macOS persistence uses chunked Keychain items.
+
+The release passed the exact retained-closure and all 65 Server1 e2e tests.
+Live Cisco SSO/model access still depends on your account and network.
+The generic `database` provider is retired; use database MCP instead.
+
 ## Security boundaries
 
 Local commands use a fixed non-login shell and minimal environment, without
@@ -174,9 +210,8 @@ oc --resume              # Resume the previous session
 
 To bootstrap repository-specific guidance, start `oc` in the repository and
 run `/init`. This interactive command asks the assistant to inspect the project
-and create `AGENTS.md` plus a review rule. A standalone `oc init` command is
-not provided because the existing flow needs the active session, repository
-context, and write tools.
+and create `AGENTS.md` plus a review rule. This is distinct from standalone
+`oc init`, which installs local provider templates and the internal profile.
 
 ## 4. Try a first task
 

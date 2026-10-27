@@ -7,6 +7,35 @@ archive availability are separate. Cisco users should install the approved
 internal artifact and run `oc init` to install its protected profile; public
 package examples below do not include that profile.
 
+## Internal 1.0.2 release
+
+The current internal tarball was regenerated from merged main `79e42d9ef`.
+Use `opencircuit-cli-internal-1.0.2.tgz` with its checksum and provenance from
+the approved internal distribution. Local generation is not remote publication.
+The source staging path is `../../release-artifacts/v1.0.2/`.
+
+```bash
+shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
+  oc --version
+oc init
+```
+
+Back up any existing active configuration, then copy
+`~/.ocircuit/templates/config-cisco-circuit.yaml` to `~/.ocircuit/config.yaml`
+and set mode `0600`. Run `oc --config ~/.ocircuit/config.yaml`, complete
+browser SSO and choose an entitled model. Replace the template model placeholder
+with an approved policy model if needed. `oc init` installs the protected
+owner-only profile; do not substitute the generic OAuth template or manual
+token/appkey configuration for Circuit onboarding.
+
+Circuit uses PKCE/state/OIDC checks, refresh and OS credential storage,
+coalesced model-policy loading, entitlement rejection and approved bearer routes.
+The internal closure audits are clean; Server1's 1,776 CLI tests and all 65 e2e
+tests passed, with existing unit skips. This is not a live SSO qualification.
+The retired generic `database` context provider warns and skips existing entries;
+use database MCP instead.
+
 ## Security boundaries
 
 Local commands use a fixed non-login shell and minimal environment, without
@@ -88,7 +117,8 @@ with approved provider values. The SDK authentication flow uses an ephemeral
 loopback callback, S256 PKCE, state and nonce validation, issuer/JWKS checks,
 form-encoded token exchange, expiry-aware refresh, and revocation on logout.
 Tokens are memory-only by default; persistent integrations must supply an
-OS-keychain-backed `SecureTokenStore`. Package installation has no provisioning
+OS-keychain-backed `SecureTokenStore`. This describes the generic SDK flow;
+the internal Circuit CLI already supplies OS-backed persistence. Package installation has no provisioning
 side effect—run `oc init` explicitly when you want to install templates.
 
 ### Headless Mode
@@ -148,6 +178,7 @@ oc ls --json
 
 - `oc`: Start an interactive chat session
 - `oc ls`: List recent sessions with TUI selector to choose one to resume
+- `oc init`: Install packaged provider templates and the internal protected profile
 - `/init`: In an interactive session, inspect the current repository and
   generate `AGENTS.md` plus a review rule
 - `oc login`: Authenticate with Open Circuit

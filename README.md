@@ -17,6 +17,36 @@ that a matching release archive has been published. Internal Cisco users should
 use the approved internal distribution and its protected profile; the public
 installation examples below describe the separate public distribution.
 
+### Current internal artifact
+
+CLI **1.0.2** was regenerated from merged main
+`79e42d9ef40f7fba7c90980b0650cdb4ce334119`. The tarball, `.sha256` and
+`.provenance.json` are available in `release-artifacts/v1.0.2/` and the sibling
+`opencircuit-internal/` distribution checkout. Local regeneration does not
+publish those files remotely.
+
+SHA-256: `2d95689ad8d40715897c4ca15a1bbaaff1c1ec5542309cb2f2c91de5dbbf2e05`.
+Verify the sidecar before installing:
+
+```bash
+cd ../opencircuit-internal
+shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
+  oc --version
+oc init
+```
+
+Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding)
+for browser SSO and entitled-model selection. Manual token/appkey configuration
+is a separate legacy path, not required for Circuit SSO.
+
+The exact retained-closure passed with zero root/Core/CLI audit findings.
+Server1 passed 916 Core tests, 1,776 CLI tests and all 65 e2e tests; existing
+skips remain. These results do not claim live Cisco SSO or model qualification.
+The deprecated generic `database` context provider is removed: existing entries
+produce a warning; migrate to database MCP. PostgreSQL, SQLite and Azure OpenAI
+remain supported.
+
 Choose the path that matches your goal before you install anything:
 
 - Use Open Circuit as a user: follow the packaged CLI install path below.
@@ -267,7 +297,22 @@ directory is ignored by Git and is not an installation path for end users.
 
 ### Build the internal CLI archive
 
-From the repository root, run:
+For the registered release workstation, use the canonical orchestration entry:
+
+```bash
+/Users/brettcon/git/opencircuit/opencircuit-orchestration/scripts/opencircuit-orchestration.sh \
+  --target self --action opencircuit-cli-release-publish \
+  --artifact opencircuit-cli-internal
+```
+
+It validates clean main on Server1 and refreshes the source versioned staging
+directory and registered internal distribution without committing, pushing or
+installing. The build host must have the approved owner-only protected profile;
+the workstation profile is not automatically forwarded. Do not use
+`--no-profile` for an SSO-ready release. Retain the generated provenance beside
+the tarball and checksum in both locations. SHA-256 is not an artifact signature.
+
+For direct packaging on an authorized release host, from the repository root:
 
 ```bash
 npm --prefix extensions/cli run check:release-artifact
