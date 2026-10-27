@@ -43,7 +43,13 @@ records the newly reported warning for the already-present
 `babel-plugin-istanbul` -> `test-exclude@7` -> `glob@10.5.0` chain. The expiry
 is unchanged; this warning record is not a vulnerability exception.
 
-See `CI_RELEASE_AUDIT.md` for the unresolved Azure/MSAL audit blocker.
+The deprecated generic `database` context provider and its `dbinfoz` ->
+`mssql` -> `tedious` -> Azure Identity/MSAL dependency chain are removed.
+Existing `database` entries are explicitly skipped with a configuration
+warning; use a database MCP server instead. The separate `postgres` provider,
+local SQLite storage, and Azure OpenAI remain available. Dependency policy
+rejects reintroducing the retired chain; no audit finding is suppressed.
+See `CI_RELEASE_AUDIT.md` for the audit policy.
 Rollback must revert the migration commit with all affected manifests,
 lockfiles, schema changes, and release scripts together, then reinstall and
 rebuild; it restores the prior advisories and is not an audit remediation.

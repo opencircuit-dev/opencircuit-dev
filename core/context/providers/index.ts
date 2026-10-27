@@ -6,7 +6,6 @@ import CodebaseContextProvider from "./CodebaseContextProvider";
 import CodeContextProvider from "./CodeContextProvider";
 
 import CurrentFileContextProvider from "./CurrentFileContextProvider";
-import DatabaseContextProvider from "./DatabaseContextProvider";
 import DebugLocalsProvider from "./DebugLocalsProvider";
 import DiffContextProvider from "./DiffContextProvider";
 import DiscordContextProvider from "./DiscordContextProvider";
@@ -58,7 +57,6 @@ export const Providers: (typeof BaseContextProvider)[] = [
   GitLabMergeRequestContextProvider,
   JiraIssuesContextProvider,
   PostgresContextProvider,
-  DatabaseContextProvider,
   CodebaseContextProvider,
   CodeContextProvider,
   CurrentFileContextProvider,

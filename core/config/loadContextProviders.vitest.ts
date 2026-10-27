@@ -68,6 +68,29 @@ beforeEach(() => {
 });
 
 describe("loadConfigContextProviders", () => {
+  it("reports the retired database provider without loading its adapters", () => {
+    const result = loadConfigContextProviders(
+      [{ provider: "database", params: { connections: [] } }],
+      false,
+      "vscode",
+    );
+
+    expect(result.errors).toEqual([
+      {
+        fatal: false,
+        message:
+          "The deprecated database context provider has been removed. Remove it from your configuration and use a database MCP server instead.",
+      },
+    ]);
+    expect(result.providers).toHaveLength(6);
+    expect(
+      result.providers.some(
+        (provider) => provider.description.title === "database",
+      ),
+    ).toBe(false);
+    expect(mockedContextProviderClassFromName).not.toHaveBeenCalled();
+  });
+
   describe("with empty or undefined config", () => {
     it("should return only default providers when config is undefined", () => {
       const result = loadConfigContextProviders(undefined, false, "vscode");

@@ -78,6 +78,29 @@ for (const [packageName, allowed] of Object.entries(
 }
 
 if (packageJson.name === "@opencircuit/core") {
+  const retiredDatabasePackages = [
+    "dbinfoz",
+    "mssql",
+    "tedious",
+    "@azure/identity",
+    "@azure/msal-node",
+  ];
+  for (const packageName of retiredDatabasePackages) {
+    if (
+      dependencySections.some(
+        (section) => packageJson[section]?.[packageName],
+      ) ||
+      Object.keys(lockJson.packages ?? {}).some(
+        (entry) =>
+          entry === `node_modules/${packageName}` ||
+          entry.endsWith(`/node_modules/${packageName}`),
+      )
+    ) {
+      errors.push(
+        `Retired database dependency ${packageName} must not be present; use database MCP servers instead`,
+      );
+    }
+  }
   const override = packageJson.overrides?.["@tootallnate/once"];
   const lockEntry =
     lockJson.packages?.["node_modules/@tootallnate/once"]?.version;

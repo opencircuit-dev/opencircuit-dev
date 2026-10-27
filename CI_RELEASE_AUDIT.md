@@ -49,22 +49,17 @@ path.
 
 ## Validation evidence
 
-The dependency remediation was validated on macOS with Node `24.19.0` and
-npm `12.0.2`. Root and CLI full audits report zero vulnerabilities. The exact
-retained-closure profile passes root installs/audits, release-planning tests,
-shared builds, and Core installs/policies, then stops at the Core audit.
+The deprecated generic `database` context provider was the only consumer of
+`dbinfoz`, which eagerly imported `mssql` -> `tedious` -> `@azure/identity` ->
+`@azure/msal-node`. That provider and dependency chain have been removed rather
+than bypassing GHSA-xcx6-jx8p-x3h5 or forcing an incompatible MSAL major version.
+An existing `database` configuration now produces an explicit nonfatal
+validation warning directing users to database MCP servers.
 
-The remaining blocker is `tedious@18.6.2` -> `@azure/identity@4.14.0` ->
-`@azure/msal-node@6.0.1`: GHSA-xcx6-jx8p-x3h5 affects MSAL 5 through 7.0.2.
-MSAL 7.1.1 is fixed, but Identity's latest stable release requires `^6.0.0`,
-and its current beta retains that requirement. Do not force MSAL 7 through an
-unsupported major-version override. The older Identity 4.12/MSAL 3 lineage
-also retains a vulnerable uuid dependency, so it is not an audit-clean fallback.
-A supported parent release or separately reviewed Azure authentication
-migration is required before this gate can pass.
+The Core dependency policy rejects reintroduction of these retired packages,
+including nested lockfile entries. The separate `postgres` context provider,
+local SQLite storage, and Azure OpenAI provider are unchanged.
 
-Core build/typecheck/lint, OpenAI/YAML tests, CLI build/typecheck/lint, smoke,
-runtime-boundary, artifact, and unit tests were run independently of that
-fail-fast audit. Passing those checks does not make the full profile green.
-Credentialed Azure/SQL and provider tests, Linux validation, and real browser
-downloads are not claimed.
+Validation uses macOS, Node `24.19.0`, and npm `12.0.2`; full root, Core, and CLI
+audits must report zero findings. Credentialed provider calls and real browser
+crawling are not part of this deterministic profile.
