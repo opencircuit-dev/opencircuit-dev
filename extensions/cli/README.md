@@ -2,6 +2,18 @@
 
 The Open Circuit CLI (`oc`) is a customizable command line coding agent.
 
+This internal source package is version **1.0.2**. Source version and published
+archive availability are separate. Cisco users should install the approved
+internal artifact and run `oc init` to install its protected profile; public
+package examples below do not include that profile.
+
+## Security boundaries
+
+Local commands use a fixed non-login shell and minimal environment, without
+inheriting shell profiles or the parent `PATH`. Public URL tools accept only
+public HTTPS destinations on port 443. These controls are not an operating-system
+sandbox; see [the security policy](../../SECURITY.md).
+
 ## Installation
 
 ### macOS and Linux

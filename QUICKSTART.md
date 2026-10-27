@@ -2,6 +2,18 @@
 
 This guide gets a beginner from zero to a working `oc` command.
 
+This internal source checkout is CLI **1.0.2**; release archives are published
+separately. Cisco users must use the approved internal package, run `oc init`
+to install its protected profile, and select the packaged Circuit configuration.
+The public-provider examples below do not replace internal SSO onboarding.
+
+## Security boundaries
+
+Local commands use a fixed non-login shell and minimal environment, without
+inheriting shell profiles or the parent `PATH`. Public URL tools accept only
+public HTTPS destinations on port 443. These are security controls, not an
+operating-system sandbox; see [SECURITY.md](SECURITY.md).
+
 ## 0. Choose the right install path
 
 Pick the path that matches your goal:

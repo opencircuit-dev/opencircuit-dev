@@ -35,9 +35,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.cli_core == 'true'
     runs-on: ubuntu-latest
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -84,9 +81,6 @@ jobs:
         node-version: [24.19.0]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -219,11 +213,8 @@ jobs:
   smoke-api:
     # Only runs when secrets are available (not on fork PRs)
     needs: changes
-    if: needs.changes.outputs.cli_core == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.changes.outputs.cli_core == 'true' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
-    # Temporarily non-blocking: failing at Setup steps in CI only, unreproducible
-    # locally or via the Ubuntu1 gate. See PR #67 investigation notes.
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -261,16 +252,13 @@ jobs:
           npm run build
 
       - name: Run smoke API tests
-        if: github.actor != 'dependabot[bot]'
         env:
           OCIRCUIT_API_KEY: ${{ secrets.OCIRCUIT_API_KEY }}
         run: |
           cd extensions/cli
           npm run test:smoke-api
 
-  # GitHub does not have a way of requiring that all checks pass (you must manually select each job)
-  # This action at least lets us manage the list of required tests via source control
-  # so that creators of new jobs can add them to this list
+  # Keep conditional skips tied to the same profile and fork conditions as the jobs.
   require-all-checks-to-pass-cli:
     if: always()
     runs-on: ubuntu-latest
@@ -282,9 +270,29 @@ jobs:
       - runtime-guard
 
     steps:
-      - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          # smoke-api is allowed to skip for fork PRs that lack secrets
-          allowed-skips: changes,smoke-api,lint,test,runtime-guard
-          jobs: ${{ toJSON(needs) }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: ".nvmrc"
+      - name: Independently verify skip conditions
+        id: profiles
+        uses: ./.github/actions/detect-change-profiles
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+      - name: Verify required CLI PR checks
+        env:
+          CHECK_WORKFLOW: cli
+          CLI_CORE: ${{ needs.changes.outputs.cli_core }}
+          VERIFIED_CLI_CORE: ${{ steps.profiles.outputs.cli_core }}
+          SAME_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          IS_DEPENDABOT: ${{ github.actor == 'dependabot[bot]' }}
+          RESULT_CHANGES: ${{ needs.changes.result }}
+          RESULT_LINT: ${{ needs.lint.result }}
+          RESULT_TEST: ${{ needs.test.result }}
+          RESULT_RUNTIME_GUARD: ${{ needs.runtime-guard.result }}
+          RESULT_SMOKE_API: ${{ needs.smoke-api.result }}
+        run: node scripts/verify-pr-required-checks.mjs
