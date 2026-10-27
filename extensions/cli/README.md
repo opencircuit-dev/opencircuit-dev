@@ -1,164 +1,88 @@
 # Open Circuit CLI
 
-The Open Circuit CLI (`oc`) is a customizable command line coding agent.
+The Open Circuit CLI provides the `oc` command for interactive and headless
+coding-agent sessions. This package source is version **1.0.2**. Its release
+archive is being prepared; it is not yet available from npm or the public
+distribution checkout. See the [QUICKSTART](../../QUICKSTART.md) for the
+currently available install path.
 
-The supported Node.js range is `>=24.19.0 <27`.
+## Requirements and installation
 
-## Installation
-
-### macOS and Linux
-
-After the package is published:
-
-```bash
-npm install --global @opencircuit/cli@1.0.2
-```
-
-Before npm publication, install the locally validated package artifact:
+Use Node.js `>=24.19.0 <27` (`24.19.0` is the project baseline). Once the
+versioned tarball and checksum are published, verify the checksum and install
+the tarball:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.2.tgz
+shasum -a 256 -c opencircuit-cli-X.Y.Z.tgz.sha256
+npm install --global ./opencircuit-cli-X.Y.Z.tgz
+oc --version
 ```
 
-The Unix installer script is available from the release repository once its canonical public URL is confirmed.
+The npm package has not been published. Do not install an unpublished version
+from the npm registry.
 
-### Windows PowerShell
-
-After the package is published:
-
-```powershell
-npm install --global @opencircuit/cli@1.0.2
-```
-
-For local validation, copy `opencircuit-cli-1.0.2.tgz` to the Windows machine and run:
-
-```powershell
-npm install --global .\opencircuit-cli-1.0.2.tgz
-```
-
-Installation places starter templates under `~/.ocircuit/templates/` without
-overwriting existing templates. Copy one to `~/.ocircuit/config.yaml` to use
-it; there is no standalone `oc init` command.
-
-For hosted Open Circuit access, put the key in the application-scoped file
-`~/.ocircuit/.env`:
-
-```bash
-mkdir -p ~/.ocircuit
-chmod 700 ~/.ocircuit
-printf '%s\n' 'OCIRCUIT_API_KEY=replace-with-your-hosted-api-key' > ~/.ocircuit/.env
-chmod 600 ~/.ocircuit/.env
-```
-
-The CLI also accepts `OCIRCUIT_API_KEY` and `OCIRCUIT_API_BASE` from the
-process environment. Explicitly exported values take precedence over values in
-the file. Never commit `.env` or API keys.
-
-Local command execution uses a fixed non-login shell and a minimal environment;
-shell profiles and parent `PATH` values are not inherited. Public URL retrieval
-tools accept only public HTTPS destinations on port 443. See the project
-[security policy](../../SECURITY.md) for compatibility limits and other
-security boundaries.
+Installation places starter provider templates in `~/.ocircuit/templates/`
+without overwriting existing files. Copy one to `~/.ocircuit/config.yaml` or
+pass a configuration directly with `--config`.
 
 ## Usage
 
 ```bash
 oc
+oc --help
+oc --config ./config.yaml
+oc -p "Summarize the current git diff" --format json
 ```
 
-Installation also creates starter provider templates in
-`~/.ocircuit/templates/`. Existing templates are never overwritten. Copy one
-to `~/.ocircuit/config.yaml` or use it directly with `oc --config`.
+Use `oc ls` to list sessions and `oc --resume` to resume the previous session.
+In an interactive session, `/init` can generate repository guidance.
 
-### Headless Mode
+## Configuration and credentials
 
-Headless mode (`-p` flag) runs without an interactive terminal UI, making it perfect for:
+The CLI reads user configuration from `~/.ocircuit/` by default. Hosted API
+credentials and provider keys belong in the private `~/.ocircuit/.env` file
+or an appropriately scoped process environment variable. Never commit keys,
+`.env` files, or secrets in YAML.
 
-- Scripts and automation
-- CI/CD pipelines
-- Docker containers
-- VSCode/IntelliJ extension integration
-- Environments without a TTY
+For provider setup, OpenAI-compatible BYOM endpoints, and OLMo through Ollama,
+follow the [beginner QUICKSTART](../../QUICKSTART.md). Choose one provider for
+the active config. Existing templates and active configs are not overwritten
+by upgrades.
+
+## Modes and common commands
+
+- `oc`: start an interactive session.
+- `oc -p "prompt"`: run a headless request.
+- `oc ls`: list saved sessions.
+- `oc --resume`: resume the previous session.
+- `/init`: create repository guidance from an interactive session.
+
+Headless mode is suitable for scripts and CI. Provide a prompt to avoid
+interactive input:
 
 ```bash
-# Basic usage
-oc -p "Generate a conventional commit name for the current git changes."
-
-# With piped input
-echo "Review this code" | oc -p
-
-# JSON output for scripting
-oc -p "Analyze the code" --format json
-
-# Silent mode (strips thinking tags)
-oc -p "Write a README" --silent
+oc -p "Review the current changes" --format json
 ```
 
-**TTY-less Environments**: Headless mode is designed to work in environments without a terminal (TTY), such as when called from VSCode/IntelliJ extensions using terminal commands. The CLI will not attempt to read stdin or initialize the interactive UI when running in headless mode with a supplied prompt.
+## Compatibility and security
 
-### Session Management
+Local command execution uses a fixed non-login shell and a minimal
+environment; shell profiles and the parent `PATH` are not inherited. Public
+URL retrieval tools accept only public HTTPS destinations on port 443. These
+controls can affect existing workflows and are not an operating-system
+sandbox. Review the [security policy](../../SECURITY.md).
 
-The CLI automatically saves your chat history for each terminal session. You can resume where you left off:
+## Development
+
+From this directory, the standard CLI checks are:
 
 ```bash
-# Resume the last session in this terminal
-oc --resume
-
-# List recent sessions and choose one to resume
-oc ls
-
-# List sessions in JSON format (for scripting)
-oc ls --json
+npm ci
+npm run typecheck
+npm run build
+npm run test:smoke
 ```
 
-## Command Line Options
-
-- `-p`: Run in headless mode (no TUI)
-- `--config <path>`: Specify agent configuration path
-- `--resume`: Resume the last session for this terminal
-- `<prompt>`: Optional prompt to start with
-
-## Environment Variables
-
-- `OCIRCUIT_CLI_DISABLE_COMMIT_SIGNATURE`: Disable adding the Open Circuit commit signature to generated commit messages
-- `FORCE_NO_TTY`: Force TTY-less mode, prevents stdin reading (useful for testing and automation)
-
-## Commands
-
-- `oc`: Start an interactive chat session
-- `oc ls`: List recent sessions with TUI selector to choose one to resume
-- `/init`: In an interactive session, inspect the current repository and
-  generate `AGENTS.md` plus a review rule
-- `oc login`: Authenticate with Open Circuit
-- `oc logout`: Sign out of current session
-- `oc remote`: Launch a remote instance
-- `oc serve`: Start HTTP server mode
-
-### Session Listing (`oc ls`)
-
-Shows recent sessions, limited by screen height to ensure it fits on your terminal.
-
-- `--json`: Output in JSON format for scripting (always shows 10 sessions)
-
-## TTY-less Support
-
-The CLI fully supports running in environments without a TTY (terminal):
-
-```bash
-# From Docker without TTY allocation
-docker run --rm my-image oc -p "Generate docs"
-
-# From CI/CD pipeline
-oc -p "Review changes" --format json
-
-# From VSCode/IntelliJ extension terminal tool
-oc -p "Analyze code" --silent
-```
-
-The CLI automatically detects TTY-less environments and adjusts its behavior:
-
-- Skips stdin reading when a prompt is supplied
-- Disables interactive UI components
-- Ensures clean stdout/stderr output
-
-For more details, see [`spec/tty-less-support.md`](./spec/tty-less-support.md).
+Use `npm test -- path/to/test` for focused Vitest tests. Changes to package
+boundaries, declarations, workspace configuration, or runtime resolution also
+require the repository's retained-closure validation profile.

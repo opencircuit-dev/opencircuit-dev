@@ -1,103 +1,55 @@
 # Open Circuit
 
-> A terminal-native coding agent for working through real software tasks.
+Open Circuit is a terminal coding agent built around the `oc` command and a
+reusable Core runtime. Use it interactively or run it headlessly in scripts.
 
 [![CLI](https://img.shields.io/badge/CLI-1.0.2-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
-Open Circuit is a focused coding-agent project built around the `oc` command
-and a reusable Core runtime. It can work interactively in a terminal or run
-headlessly in scripts and CI.
+## Start as a user
 
-## Start here
+Read the [QUICKSTART](QUICKSTART.md) for installation, provider configuration,
+and first commands. The source package is now version **1.0.2**. Its release
+archive is not yet published; the
+[public distribution repository](https://github.com/open-circuit-dev/opencircuit)
+currently contains the previously released **1.0.1** archive. Do not expect
+the 1.0.2 download link to work until the release artifact is published.
 
-Choose the path that matches your goal before you install anything:
+The npm package is not published. Install from a verified release tarball when
+one is available; do not install an unpublished version from the registry.
 
-- Use Open Circuit as a user: follow the packaged CLI install path below.
-- Contribute to Open Circuit itself: follow the source-build path later in this file.
+## Project scope
 
-New to Open Circuit? Follow the beginner guide:
+The maintained product is the CLI and Core runtime:
 
-**[Read QUICKSTART.md](QUICKSTART.md)**
+| Area            | Location             | Responsibility                                        |
+| --------------- | -------------------- | ----------------------------------------------------- |
+| CLI             | `extensions/cli/`    | `oc` commands, sessions, terminal UI and packaging    |
+| Core            | `core/`              | Providers, agent runtime, indexing, editing and tools |
+| Shared packages | `packages/`          | Configuration, model metadata, fetch and security     |
+| Validation      | `tests/`, `scripts/` | Build, release, runtime-boundary and test checks      |
 
-> Open Circuit CLI 1.0.2 is prepared for distribution as a
-> [GitHub Release asset](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.2).
-> npm publication is planned but not yet available.
->
-> The release tarball is the default install path for end users. The source-build
-> flow is intended for local development and contributor workflows.
-
-## What is included
-
-| Area       | Location                | Purpose                                                     |
-| ---------- | ----------------------- | ----------------------------------------------------------- |
-| CLI        | `extensions/cli/`       | The installable `oc` command                                |
-| Core       | `core/`                 | Shared agent, configuration, and provider runtime           |
-| Packages   | `packages/`             | Fetching, model information, adapters, and security         |
-| Validation | `tests/` and `scripts/` | Builds, smoke tests, release checks, and runtime boundaries |
-
-The retained product path is the CLI and Core runtime. Standalone VS Code
-extension and public VSIX Marketplace distribution have been retired. Native
-OVSCode integration is maintained separately.
-
-## Architecture
-
-Open Circuit follows this runtime path:
-
-`oc` CLI -> CLI services and streaming -> Core runtime -> model providers and tools
-
-The CLI owns command-line behavior, interactive and headless execution, session
-management, and terminal presentation. Core provides reusable agent capabilities
-for the CLI and IDE integrations, including model providers, configuration,
-codebase indexing, editing, autocomplete, MCP tools, and protocol communication.
-
-A typical CLI request works as follows:
-
-1. `extensions/cli/src/index.ts` parses commands and options.
-2. `extensions/cli/src/commands/chat.ts` selects interactive or headless execution.
-3. CLI services load configuration, the selected model, permissions, and agent files.
-4. `extensions/cli/src/session.ts` creates, resumes, or persists the conversation.
-5. `extensions/cli/src/stream/` streams the model response and handles tool calls, retries, compaction, and continuation.
-6. Core and CLI tools read files, edit code, search the repository, run commands, and connect to MCP servers.
+The standalone VS Code extension and public VSIX Marketplace distribution
+have been retired. Native OVSCode integration is maintained separately.
 
 ## Requirements
 
-- Node.js `24.19.0` from [`.nvmrc`](.nvmrc) or [`.node-version`](.node-version)
-- npm
-- Git
+- Node.js `24.19.0` is the project baseline; supported range is
+  `>=24.19.0 <27`.
+- npm and Git.
 
-The supported runtime range is Node.js `>=24.19.0 <27`. The setup below uses
-the project baseline, Node.js `24.19.0`.
-
-If you use `nvm`, set the Node version as your default so a fresh shell still resolves the correct global binaries:
+Use the version checked into `.nvmrc` and `.node-version`:
 
 ```bash
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-
 nvm install 24.19.0
-nvm alias default 24.19.0
 nvm use 24.19.0
-
 node --version
 npm --version
 ```
 
-If `oc` is not found in a new shell, reload NVM and select the default version:
-
-```bash
-source "$NVM_DIR/nvm.sh"
-nvm use 24.19.0
-node --version
-command -v node
-command -v npm
-command -v oc
-```
-
-Global npm packages are installed separately for each Node.js version. If
-`command -v oc` still finds nothing after switching, reinstall the CLI from
-the release archive you downloaded, substituting its actual version:
+Global npm packages are installed per Node version. If `oc` is missing after
+switching Node versions, reinstall it from the release tarball you downloaded:
 
 ```bash
 npm install --global ./opencircuit-cli-X.Y.Z.tgz
@@ -105,175 +57,85 @@ command -v oc
 oc --version
 ```
 
-## Install the CLI (default for end users)
+## Use a provider
 
-This is the default path for trying Open Circuit or using it as a CLI user.
-If you are contributing to the project itself, skip to the source-build section
-below.
+For hosted Open Circuit access, put `OCIRCUIT_API_KEY` in the private
+`~/.ocircuit/.env` file. The default endpoint is `https://api.ocircuit.dev/`;
+set `OCIRCUIT_API_BASE` only for another compatible endpoint.
 
-Download these files from the GitHub `v1.0.2` release:
+For direct providers, select one provider in `config.yaml` and place its key
+in `~/.ocircuit/.env`, not in the YAML file:
 
-- `opencircuit-cli-1.0.2.tgz`
-- `opencircuit-cli-1.0.2.tgz.sha256`
-
-Verify the download from the directory containing both files:
-
-```bash
-shasum -a 256 -c opencircuit-cli-1.0.2.tgz.sha256
+```dotenv
+OPENAI_API_KEY=replace-with-your-key
 ```
 
-Install the CLI:
+The CLI also supports Anthropic, Gemini, OpenAI-compatible endpoints and
+Ollama-hosted OLMo. Provider templates are installed under
+`~/.ocircuit/templates/`; existing templates are not overwritten. See
+[QUICKSTART](QUICKSTART.md) for configuration examples, including BYOM and
+OLMo.
+
+Never commit API keys, `.env` files, or secret-bearing configuration.
+
+## Build and validate from source
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before making a change. The standard
+local CLI checks use Node.js `24.19.0`:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.2.tgz
-oc --version
-```
-
-Expected output:
-
-```text
-1.0.2
-```
-
-The npm registry package is not available yet. After publication, the install
-command will be:
-
-```bash
-npm install --global @opencircuit/cli@1.0.2
-```
-
-## Build from source (contributor workflow)
-
-Use this path only when developing Open Circuit itself:
-
-Review the [contributor workflow](CONTRIBUTING.md) and
-[Contributor License Agreement](CLA.md) before opening a pull request. The
-agreement remains project policy, but GitHub Actions does not currently enforce
-CLA acceptance.
-
-```bash
-cd core
-npm install
-npm run build
-npm run tsc:check
-
-cd ../extensions/cli
-npm install
-npm run build
+cd extensions/cli
+npm ci
 npm run typecheck
+npm run build
 npm run test:smoke
 ```
 
-Run the locally built command:
+Core changes should also be built and typechecked:
 
 ```bash
-./dist/oc.js --version
-./dist/oc.js --help
+cd core
+npm ci
+npm run build
+npm run tsc:check
 ```
 
-## Validation
-
-The complete retained-closure profile runs on Linux with Node.js `24.19.0`:
+For package-boundary, declaration, workspace, or runtime-resolution changes,
+run the fixed retained-closure profile from the repository root:
 
 ```bash
 npm run validate:retained-closure
 ```
 
-Use `--skip-install` only after the committed lockfiles have been installed.
-The profile covers dependency policy, Core and CLI builds, the CLI-to-Core
-runtime boundary, and release-artifact shape.
-
-## Provider keys
-
-When using the hosted Open Circuit API, set `OCIRCUIT_API_KEY`. The default
-endpoint is `https://api.ocircuit.dev/`; set `OCIRCUIT_API_BASE` only for a
-different compatible endpoint. The CLI loads these values from
-`~/.ocircuit/.env` or the process environment:
-
-```bash
-mkdir -p ~/.ocircuit
-chmod 700 ~/.ocircuit
-printf '%s\n' 'OCIRCUIT_API_KEY=your-hosted-api-key' > ~/.ocircuit/.env
-chmod 600 ~/.ocircuit/.env
-```
-
-For direct providers, use a local `config.yaml` with
-`apiKey: ${{ secrets.PROVIDER_API_KEY }}` and the matching provider
-environment variable in `~/.ocircuit/.env`. See the
-[beginner quickstart](QUICKSTART.md) for provider-specific examples. Never
-commit API keys.
-
 ## Security boundaries
 
 Local command execution uses a fixed non-login shell and a minimal environment;
-shell profiles and parent `PATH` values are not inherited. Public URL retrieval
-tools accept only public HTTPS destinations on port 443. These controls can
-change which commands or URLs work, and they are not an operating-system
-sandbox. See [SECURITY.md](SECURITY.md) for the full policy, compatibility
-limits, and remaining boundaries.
+shell profiles and the parent `PATH` are not inherited. Public URL tools accept
+only public HTTPS destinations on port 443. These restrictions can affect
+existing workflows and do not provide an operating-system sandbox. Review
+[SECURITY.md](SECURITY.md) for details.
 
-## Stage a release asset
+## Release preparation
 
-This section is for maintainers preparing a GitHub Release asset.
-
-From the repository root:
+Maintainers build and validate release artifacts through the registered
+orchestration workflow. The local packaging command is:
 
 ```bash
 npm --prefix extensions/cli run release:artifact
-shasum -a 256 -c release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz.sha256
 ```
 
-The command creates:
+It stages a versioned tarball and SHA-256 checksum under
+`release-artifacts/vX.Y.Z/`. Staging files are ignored and are not source
+changes. A staged archive is not a published GitHub Release or npm package.
 
-- `release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz`
-- `release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz.sha256`
+## Documentation and contribution
 
-Upload both files manually to the GitHub `v1.0.2` release. The staging
-directory is ignored by Git and is not an installation path for end users.
-
-CI automation and npm publication are intentionally deferred.
-
-## Development map
-
-Start changes in the layer that owns the behavior:
-
-| Change                                | Location                                                         |
-| ------------------------------------- | ---------------------------------------------------------------- |
-| CLI commands and flags                | `extensions/cli/src/index.ts` and `extensions/cli/src/commands/` |
-| Chat streaming and tool calls         | `extensions/cli/src/stream/`                                     |
-| Session creation, resume, and forking | `extensions/cli/src/session.ts`                                  |
-| Shared agent runtime                  | `core/`                                                          |
-| Model providers and LLM behavior      | `core/llm/`                                                      |
-| Codebase indexing and search          | `core/indexing/`                                                 |
-| File editing and diffs                | `core/edit/` and `core/diff/`                                    |
-| Tools and permissions                 | `core/tools/` and `packages/terminal-security/`                  |
-| Configuration                         | `core/config/` and `packages/config-yaml/`                       |
-| Binary packaging                      | `binary/`                                                        |
-
-Read the neighboring tests before changing behavior. Run Core validation for
-Core changes and CLI validation for CLI changes. Use the retained-closure
-profile when changing package boundaries, generated declarations, workspace
-configuration, or runtime resolution.
-
-## Project guides
-
-- [Beginner quickstart](QUICKSTART.md)
-- [Frequently asked questions](FAQ.md)
+- [Beginner QUICKSTART](QUICKSTART.md)
+- [CLI guide](extensions/cli/README.md)
+- [Contribution guide](CONTRIBUTING.md)
 - [Test architecture](TESTING.md)
 - [Documentation map](DOCUMENTATION.md)
-- [CI and release audit](CI_RELEASE_AUDIT.md)
-- [Runtime asset ownership](ASSET_OWNERSHIP.md)
-- [Skipped-test decisions](TEST_SKIP_DECISIONS.md)
-- [Documentation and utility inventory](DOCUMENTATION_INVENTORY.md)
-- [Large-file contribution policy](LARGE_FILES.md)
-- [CLI reference](extensions/cli/README.md)
-- [Contributor workflow](CONTRIBUTING.md)
-- [Contributor License Agreement](CLA.md)
-- [Release changelog](CHANGELOG.md)
-- [Build dependencies](BUILD_DEPENDENCIES.md)
 - [Security policy](SECURITY.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-
-## License
+- [Release changelog](CHANGELOG.md)
 
 Open Circuit is released under the [Apache License 2.0](LICENSE).
