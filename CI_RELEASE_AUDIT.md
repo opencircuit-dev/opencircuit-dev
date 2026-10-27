@@ -19,10 +19,11 @@ Canonical repository: `open-circuit-dev/open-circuit`
   compatibility validation.
 - Root, Core, and CLI production closures retain strict high-severity audit
   gates.
-  Development-only release tooling is checked by a fail-closed, expiring
-  exception at `scripts/dependency-audit-exceptions.json`; it accepts only the
-  three exact npm-bundled findings, versions, paths, and advisory URLs recorded
-  there. Any new or changed finding fails validation.
+  Development-only release tooling is checked by a fail-closed zero-finding
+  gate in `scripts/check-release-tooling-audit-exception.mjs` (the historical
+  entry-point name is preserved). There are no vulnerability exceptions.
+  Conventional changelog/recommendation libraries and the host npm CLI replace
+  semantic-release's vulnerable bundled npm dependency.
 
 ## Deferred references
 
@@ -48,9 +49,17 @@ path.
 
 ## Validation evidence
 
-The retained-closure profile passes root dependency checks, shared package
-builds, Core install-script/dependency/audit/build/typecheck/lint checks, CLI
-install-script/dependency/audit/typecheck/build, and CLI smoke tests. The
-runtime-boundary assertion is structurally valid and the loopback request
-passes, but the local run reports Node `v26.7.0` instead of the repository pin
-`24.19.0`; run that final assertion on the pinned Ubuntu/Node environment.
+The deprecated generic `database` context provider was the only consumer of
+`dbinfoz`, which eagerly imported `mssql` -> `tedious` -> `@azure/identity` ->
+`@azure/msal-node`. That provider and dependency chain have been removed rather
+than bypassing GHSA-xcx6-jx8p-x3h5 or forcing an incompatible MSAL major version.
+An existing `database` configuration now produces an explicit nonfatal
+validation warning directing users to database MCP servers.
+
+The Core dependency policy rejects reintroduction of these retired packages,
+including nested lockfile entries. The separate `postgres` context provider,
+local SQLite storage, and Azure OpenAI provider are unchanged.
+
+Validation uses macOS, Node `24.19.0`, and npm `12.0.2`; full root, Core, and CLI
+audits must report zero findings. Credentialed provider calls and real browser
+crawling are not part of this deterministic profile.

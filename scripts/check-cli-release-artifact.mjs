@@ -93,6 +93,6 @@ if (errors.length > 0) {
   process.exitCode = 1;
 } else if (packageJson.version.endsWith("-dev")) {
   console.warn(
-    "Release artifact shape passed; semantic-release must replace the development version before publishing.",
+    "Release artifact shape passed; assign a stable version before publishing.",
   );
 }
