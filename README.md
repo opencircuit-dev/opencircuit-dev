@@ -2,7 +2,7 @@
 
 > A terminal-native coding agent for working through real software tasks.
 
-[![CLI](https://img.shields.io/badge/CLI-1.0.1-111827)](extensions/cli/README.md)
+[![CLI](https://img.shields.io/badge/CLI-1.0.2-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
@@ -21,8 +21,8 @@ New to Open Circuit? Follow the beginner guide:
 
 **[Read QUICKSTART.md](QUICKSTART.md)**
 
-> Open Circuit CLI 1.0.1 is currently distributed as a
-> [GitHub Release asset](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.1).
+> Open Circuit CLI 1.0.2 is prepared for distribution as a
+> [GitHub Release asset](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.2).
 > npm publication is planned but not yet available.
 >
 > The release tarball is the default install path for end users. The source-build
@@ -111,35 +111,35 @@ This is the default path for trying Open Circuit or using it as a CLI user.
 If you are contributing to the project itself, skip to the source-build section
 below.
 
-Download these files from the GitHub `v1.0.1` release:
+Download these files from the GitHub `v1.0.2` release:
 
-- `opencircuit-cli-1.0.1.tgz`
-- `opencircuit-cli-1.0.1.tgz.sha256`
+- `opencircuit-cli-1.0.2.tgz`
+- `opencircuit-cli-1.0.2.tgz.sha256`
 
 Verify the download from the directory containing both files:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-1.0.1.tgz.sha256
+shasum -a 256 -c opencircuit-cli-1.0.2.tgz.sha256
 ```
 
 Install the CLI:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.1.tgz
+npm install --global ./opencircuit-cli-1.0.2.tgz
 oc --version
 ```
 
 Expected output:
 
 ```text
-1.0.1
+1.0.2
 ```
 
 The npm registry package is not available yet. After publication, the install
 command will be:
 
 ```bash
-npm install --global @opencircuit/cli@1.0.1
+npm install --global @opencircuit/cli@1.0.2
 ```
 
 ## Build from source (contributor workflow)
@@ -220,15 +220,15 @@ From the repository root:
 
 ```bash
 npm --prefix extensions/cli run release:artifact
-shasum -a 256 -c release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz.sha256
+shasum -a 256 -c release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz.sha256
 ```
 
 The command creates:
 
-- `release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz`
-- `release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz.sha256`
+- `release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz`
+- `release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz.sha256`
 
-Upload both files manually to the GitHub `v1.0.1` release. The staging
+Upload both files manually to the GitHub `v1.0.2` release. The staging
 directory is ignored by Git and is not an installation path for end users.
 
 CI automation and npm publication are intentionally deferred.

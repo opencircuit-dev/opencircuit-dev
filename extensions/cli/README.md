@@ -11,13 +11,13 @@ The supported Node.js range is `>=24.19.0 <27`.
 After the package is published:
 
 ```bash
-npm install --global @opencircuit/cli@1.0.1
+npm install --global @opencircuit/cli@1.0.2
 ```
 
 Before npm publication, install the locally validated package artifact:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.1.tgz
+npm install --global ./opencircuit-cli-1.0.2.tgz
 ```
 
 The Unix installer script is available from the release repository once its canonical public URL is confirmed.
@@ -27,13 +27,13 @@ The Unix installer script is available from the release repository once its cano
 After the package is published:
 
 ```powershell
-npm install --global @opencircuit/cli@1.0.1
+npm install --global @opencircuit/cli@1.0.2
 ```
 
-For local validation, copy `opencircuit-cli-1.0.1.tgz` to the Windows machine and run:
+For local validation, copy `opencircuit-cli-1.0.2.tgz` to the Windows machine and run:
 
 ```powershell
-npm install --global .\opencircuit-cli-1.0.1.tgz
+npm install --global .\opencircuit-cli-1.0.2.tgz
 ```
 
 Installation places starter templates under `~/.ocircuit/templates/` without

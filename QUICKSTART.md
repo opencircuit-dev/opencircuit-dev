@@ -81,34 +81,35 @@ oc --version
 
 ## 2. Install the CLI (default user path)
 
-Open Circuit CLI 1.0.1 is currently distributed as a GitHub Release asset. It
-has not been published to npm yet. This is the recommended path for most users.
+Open Circuit CLI 1.0.2 is prepared for distribution as a GitHub Release asset.
+It has not been published to npm yet. This is the recommended path for most
+users.
 
 If you are contributing to the project itself, skip this section and use the
 source-build workflow instead.
 
 Download both assets from the
-[Open Circuit v1.0.1 release](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.1):
+[Open Circuit v1.0.2 release](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.2):
 
-- `opencircuit-cli-1.0.1.tgz`
-- `opencircuit-cli-1.0.1.tgz.sha256`
+- `opencircuit-cli-1.0.2.tgz`
+- `opencircuit-cli-1.0.2.tgz.sha256`
 
 Verify the checksum from the directory containing both files:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-1.0.1.tgz.sha256
+shasum -a 256 -c opencircuit-cli-1.0.2.tgz.sha256
 ```
 
 Expected output:
 
 ```text
-opencircuit-cli-1.0.1.tgz: OK
+opencircuit-cli-1.0.2.tgz: OK
 ```
 
 Install the CLI:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.1.tgz
+npm install --global ./opencircuit-cli-1.0.2.tgz
 ```
 
 Check the installation and confirm the binary is visible on your current shell:
@@ -121,13 +122,13 @@ oc --version
 Expected output:
 
 ```text
-1.0.1
+1.0.2
 ```
 
 When the package is published, the equivalent registry install will be:
 
 ```bash
-npm install --global @opencircuit/cli@1.0.1
+npm install --global @opencircuit/cli@1.0.2
 ```
 
 ## 3. See the available commands
@@ -517,8 +518,8 @@ npm --prefix extensions/cli run release:artifact
 This creates:
 
 ```text
-release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz
-release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz.sha256
+release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz
+release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz.sha256
 ```
 
 The staging directory is ignored by Git and is not required for normal users.
@@ -577,7 +578,7 @@ oc --version
 Reinstall the package if it points to an older installation:
 
 ```bash
-npm install --global release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz
+npm install --global release-artifacts/v1.0.2/opencircuit-cli-1.0.2.tgz
 ```
 
 ### You need to develop Open Circuit

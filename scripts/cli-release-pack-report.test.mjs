@@ -5,7 +5,7 @@ import {
   parseCliPackReport,
 } from "./cli-release-pack-report.mjs";
 
-const expected = { name: "@opencircuit/cli", version: "1.0.1" };
+const expected = { name: "@opencircuit/cli", version: "1.0.2" };
 const report = { ...expected, files: [{ path: "package.json" }] };
 
 test("excludes internal templates and nested credential files", () => {
@@ -44,7 +44,7 @@ test("rejects missing, ambiguous and mismatched packages", () => {
     [report, report],
     { [expected.name]: report, other: report },
     [{ ...report, name: "other" }],
-    [{ ...report, version: "1.0.2" }],
+    [{ ...report, version: "1.0.3" }],
     [{ ...report, files: [] }],
     [{ ...report, files: null }],
   ]) {
