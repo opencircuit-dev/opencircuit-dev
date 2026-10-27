@@ -2,6 +2,8 @@
 
 The Open Circuit CLI (`oc`) is a customizable command line coding agent.
 
+The supported Node.js range is `>=24.19.0 <27`.
+
 ## Installation
 
 ### macOS and Linux
@@ -9,13 +11,13 @@ The Open Circuit CLI (`oc`) is a customizable command line coding agent.
 After the package is published:
 
 ```bash
-npm install --global @opencircuit/cli@1.0.0
+npm install --global @opencircuit/cli@1.0.1
 ```
 
 Before npm publication, install the locally validated package artifact:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.0.tgz
+npm install --global ./opencircuit-cli-1.0.1.tgz
 ```
 
 The Unix installer script is available from the release repository once its canonical public URL is confirmed.
@@ -25,20 +27,18 @@ The Unix installer script is available from the release repository once its cano
 After the package is published:
 
 ```powershell
-npm install --global @opencircuit/cli@1.0.0
+npm install --global @opencircuit/cli@1.0.1
 ```
 
-For local validation, copy `opencircuit-cli-1.0.0.tgz` to the Windows machine and run:
+For local validation, copy `opencircuit-cli-1.0.1.tgz` to the Windows machine and run:
 
 ```powershell
-npm install --global .\opencircuit-cli-1.0.0.tgz
+npm install --global .\opencircuit-cli-1.0.1.tgz
 ```
 
-After installation, initialize the packaged templates locally:
-
-```bash
-oc init
-```
+Installation places starter templates under `~/.ocircuit/templates/` without
+overwriting existing templates. Copy one to `~/.ocircuit/config.yaml` to use
+it; there is no standalone `oc init` command.
 
 For hosted Open Circuit access, put the key in the application-scoped file
 `~/.ocircuit/.env`:
@@ -53,6 +53,12 @@ chmod 600 ~/.ocircuit/.env
 The CLI also accepts `OCIRCUIT_API_KEY` and `OCIRCUIT_API_BASE` from the
 process environment. Explicitly exported values take precedence over values in
 the file. Never commit `.env` or API keys.
+
+Local command execution uses a fixed non-login shell and a minimal environment;
+shell profiles and parent `PATH` values are not inherited. Public URL retrieval
+tools accept only public HTTPS destinations on port 443. See the project
+[security policy](../../SECURITY.md) for compatibility limits and other
+security boundaries.
 
 ## Usage
 

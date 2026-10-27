@@ -81,34 +81,34 @@ oc --version
 
 ## 2. Install the CLI (default user path)
 
-Open Circuit CLI 1.0.0 is currently distributed as a GitHub Release asset. It
+Open Circuit CLI 1.0.1 is currently distributed as a GitHub Release asset. It
 has not been published to npm yet. This is the recommended path for most users.
 
 If you are contributing to the project itself, skip this section and use the
 source-build workflow instead.
 
 Download both assets from the
-[Open Circuit v1.0.0 release](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.0):
+[Open Circuit v1.0.1 release](https://github.com/open-circuit-dev/open-circuit/releases/tag/v1.0.1):
 
-- `opencircuit-cli-1.0.0.tgz`
-- `opencircuit-cli-1.0.0.tgz.sha256`
+- `opencircuit-cli-1.0.1.tgz`
+- `opencircuit-cli-1.0.1.tgz.sha256`
 
 Verify the checksum from the directory containing both files:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-1.0.0.tgz.sha256
+shasum -a 256 -c opencircuit-cli-1.0.1.tgz.sha256
 ```
 
 Expected output:
 
 ```text
-opencircuit-cli-1.0.0.tgz: OK
+opencircuit-cli-1.0.1.tgz: OK
 ```
 
 Install the CLI:
 
 ```bash
-npm install --global ./opencircuit-cli-1.0.0.tgz
+npm install --global ./opencircuit-cli-1.0.1.tgz
 ```
 
 Check the installation and confirm the binary is visible on your current shell:
@@ -121,13 +121,13 @@ oc --version
 Expected output:
 
 ```text
-1.0.0
+1.0.1
 ```
 
 When the package is published, the equivalent registry install will be:
 
 ```bash
-npm install --global @opencircuit/cli@1.0.0
+npm install --global @opencircuit/cli@1.0.1
 ```
 
 ## 3. See the available commands
@@ -222,6 +222,12 @@ You can also pipe input:
 ```bash
 echo "Review the current working tree" | oc -p
 ```
+
+Local command execution uses a fixed non-login shell and a minimal environment,
+so shell profiles and parent `PATH` values are not inherited. Public URL
+retrieval tools accept only public HTTPS destinations on port 443. These
+security boundaries can affect existing workflows and do not provide an
+operating-system sandbox; see [SECURITY.md](SECURITY.md) for details.
 
 ## 7. Use your own model provider
 
@@ -433,7 +439,7 @@ Gemini, and OpenAI-compatible provider selection.
 
 #### OLMo through Ollama
 
-`oc init` installs the packaged OLMo example at
+The CLI installation includes the packaged OLMo example at
 `~/.ocircuit/templates/config-olmo.yaml`. Copy it into the active config and
 adjust the model name to match `ollama list` on the Ollama server:
 
@@ -511,8 +517,8 @@ npm --prefix extensions/cli run release:artifact
 This creates:
 
 ```text
-release-artifacts/v1.0.0/opencircuit-cli-1.0.0.tgz
-release-artifacts/v1.0.0/opencircuit-cli-1.0.0.tgz.sha256
+release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz
+release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz.sha256
 ```
 
 The staging directory is ignored by Git and is not required for normal users.
@@ -571,7 +577,7 @@ oc --version
 Reinstall the package if it points to an older installation:
 
 ```bash
-npm install --global release-artifacts/v1.0.0/opencircuit-cli-1.0.0.tgz
+npm install --global release-artifacts/v1.0.1/opencircuit-cli-1.0.1.tgz
 ```
 
 ### You need to develop Open Circuit
