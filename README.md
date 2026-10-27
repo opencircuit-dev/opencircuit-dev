@@ -2,7 +2,7 @@
 
 > A terminal-native coding agent for working through real software tasks.
 
-[![CLI](https://img.shields.io/badge/CLI-1.0.0-111827)](extensions/cli/README.md)
+[![CLI](https://img.shields.io/badge/CLI-1.0.2-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
@@ -11,6 +11,11 @@ and a reusable Core runtime. It can work interactively in a terminal or run
 headlessly in scripts and CI.
 
 ## Start here
+
+This internal source checkout is CLI **1.0.2**. A source version does not prove
+that a matching release archive has been published. Internal Cisco users should
+use the approved internal distribution and its protected profile; the public
+installation examples below describe the separate public distribution.
 
 Choose the path that matches your goal before you install anything:
 
@@ -156,6 +161,14 @@ When a new version is released:
    ```bash
    oc --version
    ```
+
+## Security boundaries
+
+Local command execution uses a fixed non-login shell and a minimal environment;
+shell profiles and the parent `PATH` are not inherited. Public URL tools accept
+only public HTTPS destinations on port 443. These restrictions can affect
+existing workflows and do not provide an operating-system sandbox. Review
+[SECURITY.md](SECURITY.md) for details.
 
 ## Build from source (contributor workflow)
 

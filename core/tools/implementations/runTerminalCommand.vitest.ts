@@ -142,6 +142,82 @@ describe("runTerminalCommandImpl", () => {
     expect(result[0].status).toBe("Command completed");
   });
 
+  it("does not inherit arbitrary parent environment variables", async () => {
+    const secretName = "OC_SECURITY_SYNTHETIC_SECRET";
+    const ordinaryName = "OC_SECURITY_SYNTHETIC_ORDINARY";
+    const originalSecret = process.env[secretName];
+    const originalOrdinary = process.env[ordinaryName];
+    process.env[secretName] = "synthetic-secret-value";
+    process.env[ordinaryName] = "synthetic-ordinary-value";
+
+    try {
+      const result = await runTerminalCommandImpl(
+        {
+          command: `node -p "JSON.stringify([process.env.${secretName} ?? null, process.env.${ordinaryName} ?? null])"`,
+          waitForCompletion: true,
+        },
+        createMockExtras(),
+      );
+
+      expect(result[0].content.trim()).toBe("[null,null]");
+    } finally {
+      if (originalSecret === undefined) {
+        delete process.env[secretName];
+      } else {
+        process.env[secretName] = originalSecret;
+      }
+      if (originalOrdinary === undefined) {
+        delete process.env[ordinaryName];
+      } else {
+        process.env[ordinaryName] = originalOrdinary;
+      }
+    }
+  });
+
+  it.skipIf(process.platform === "win32" || !fs.existsSync("/bin/bash"))(
+    "does not load profiles or select the parent SHELL",
+    async () => {
+      const originalHome = process.env.HOME;
+      const originalShell = process.env.SHELL;
+      const profileHome = fs.mkdtempSync(
+        path.join(os.tmpdir(), "terminal-profile-test-"),
+      );
+      const profilePath = path.join(profileHome, ".bash_profile");
+      fs.writeFileSync(
+        profilePath,
+        "export OC_SECURITY_SYNTHETIC_PROFILE=synthetic-profile-value\n",
+      );
+      process.env.HOME = profileHome;
+      process.env.SHELL = "/nonexistent/untrusted-shell";
+
+      try {
+        const result = await runTerminalCommandImpl(
+          {
+            command:
+              'node -p "process.env.OC_SECURITY_SYNTHETIC_PROFILE ?? null"',
+            waitForCompletion: true,
+          },
+          createMockExtras(),
+        );
+
+        expect(result[0].content).toContain("null");
+        expect(result[0].content).not.toContain("synthetic-profile-value");
+      } finally {
+        if (originalHome === undefined) {
+          delete process.env.HOME;
+        } else {
+          process.env.HOME = originalHome;
+        }
+        if (originalShell === undefined) {
+          delete process.env.SHELL;
+        } else {
+          process.env.SHELL = originalShell;
+        }
+        fs.rmSync(profileHome, { recursive: true, force: true });
+      }
+    },
+  );
+
   it("should stream output when onPartialOutput is provided", async () => {
     // This test uses Node to create a command that outputs data incrementally
     const command = `node -e "

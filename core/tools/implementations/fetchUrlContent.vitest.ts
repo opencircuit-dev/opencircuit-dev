@@ -8,6 +8,7 @@ vi.mock("../../context/providers/URLContextProvider", () => ({
 import { ToolExtras } from "../..";
 import { getUrlContextItems } from "../../context/providers/URLContextProvider";
 const mockExtras = {
+  config: {},
   fetch: vi.fn() as any,
   ide: {} as any,
 } as unknown as ToolExtras;

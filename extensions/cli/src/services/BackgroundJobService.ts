@@ -1,5 +1,11 @@
 import { ChildProcess, spawn } from "child_process";
 
+import {
+  evaluateTerminalCommandSecurity,
+  getTerminalEnvironment,
+  getTerminalShell,
+} from "@opencircuit/terminal-security";
+
 import { logger } from "../util/logger.js";
 import { appendAndTruncateOutputFromStart } from "../util/truncateOutput.js";
 
@@ -58,16 +64,29 @@ export class BackgroundJobService {
     return job;
   }
 
-  startJob(jobId: string, shell: string, args: string[]): ChildProcess | null {
+  startJob(jobId: string): ChildProcess | null {
     const job = this.jobs.get(jobId);
     if (!job) {
       logger.error(`Cannot start job ${jobId}: job not found`);
       return null;
     }
 
+    if (
+      evaluateTerminalCommandSecurity("allowedWithoutPermission", job.command, {
+        cwd: process.cwd(),
+        workspaceRoots: [process.cwd()],
+      }) === "disabled"
+    ) {
+      this.failJob(jobId, "Terminal command denied by security policy.");
+      throw new Error("Terminal command denied by security policy.");
+    }
+    const { shell, args } = getTerminalShell(job.command);
     job.status = "running";
 
-    const child = spawn(shell, args, { stdio: "pipe" });
+    const child = spawn(shell, args, {
+      stdio: "pipe",
+      env: getTerminalEnvironment(),
+    });
     this.processes.set(jobId, child);
 
     child.stdout?.setEncoding("utf8");

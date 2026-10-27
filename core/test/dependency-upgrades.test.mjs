@@ -36,61 +36,27 @@ test("coverage config loader supports YAML and extended configuration with js-ya
   }
 });
 
-test("dbinfoz schema queries remain compatible with mssql 12 without opening a connection", async (context) => {
-  const dbRequire = createRequire(require.resolve("dbinfoz"));
-  const mssql = dbRequire("mssql");
-  const inputs = [];
-  const queries = [];
-  const connect = context.mock.method(
-    mssql.ConnectionPool.prototype,
-    "connect",
-    async function () {
-      return this;
-    },
-  );
-  context.mock.method(mssql.ConnectionPool.prototype, "request", function () {
-    return {
-      input(name, value) {
-        inputs.push({ name, value });
-        return this;
-      },
-      async query(sql) {
-        queries.push(sql);
-        return {
-          recordset: sql.includes("INFORMATION_SCHEMA.TABLES")
-            ? [{ TABLE_NAME: "accounts" }]
-            : [{ COLUMN_NAME: "id", DATA_TYPE: "int" }],
-        };
-      },
-    };
-  });
-  const { getDatabaseAdapter } = await import("dbinfoz");
-  const adapter = getDatabaseAdapter("mssql", {
-    server: "127.0.0.1",
-    database: "dependency_compatibility_fixture",
-  });
-  await Promise.resolve();
-  assert.deepEqual(await adapter.getAllTablesAndSchemas(), {
-    accounts: { id: "int" },
-  });
-  assert.equal(connect.mock.callCount(), 1);
-  assert.equal(queries.length, 2);
-  assert.deepEqual(inputs, [
-    { name: "database", value: "dependency_compatibility_fixture" },
-    { name: "tableName", value: "accounts" },
-  ]);
-});
-
-test("Core lockfile contains no sprintf-js dependency", () => {
+test("Core lockfile excludes retired database drivers and sprintf-js", () => {
   const lock = JSON.parse(
     fs.readFileSync(new URL("../package-lock.json", import.meta.url)),
   );
-  assert.equal(
-    Object.keys(lock.packages).some((entry) =>
-      /(?:^|\/)node_modules\/sprintf-js$/.test(entry),
-    ),
-    false,
-  );
+  for (const name of [
+    "dbinfoz",
+    "mssql",
+    "tedious",
+    "@azure/identity",
+    "@azure/msal-node",
+    "sprintf-js",
+  ]) {
+    assert.equal(
+      Object.keys(lock.packages).some(
+        (entry) =>
+          entry === `node_modules/${name}` ||
+          entry.endsWith(`/node_modules/${name}`),
+      ),
+      false,
+      `${name} must not be reintroduced`,
+    );
+  }
   assert.equal(lock.packages["node_modules/js-yaml"].version, "4.3.2");
-  assert.equal(lock.packages["node_modules/mssql"].version, "12.7.9");
 });

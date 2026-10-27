@@ -92,7 +92,7 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.70.0",
-    "@vitest/ui": "^5.0.3",
+    "@vitest/ui": "^5.0.5",
     "@workos-inc/node": "^10.13.0",
     "chalk": "^5.4.1",
     "clipboardy": "^4.0.0",
@@ -115,7 +115,7 @@
     "express": "^5.1.0",
     "gpt-tokenizer": "^3.0.1",
     "gradient-string": "^3.0.0",
-    "happy-dom": "^20.0.0",
+    "happy-dom": "^21.0.4",
     "ignore": "^7.0.5",
     "ignore-walk": "^7.0.0",
     "ink": "^6.1.0",
@@ -128,7 +128,7 @@
     "node-fetch": "^3.3.2",
     "node-machine-id": "^1.1.12",
     "open": "^10.1.0",
-    "openai": "5.23.2",
+    "openai": "6.0.0",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "react": "^19.1.0",
@@ -140,9 +140,10 @@
     "turndown": "^7.2.0",
     "typescript": "^5.8.3",
     "uuid": "^14.0.2",
-    "vitest": "^5.0.3",
+    "vitest": "^5.0.5",
     "winston": "^3.17.0",
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.0",
+    "zod": "^4.6.7"
   },
   "engines": {
     "node": ">=24.19.0 <27"

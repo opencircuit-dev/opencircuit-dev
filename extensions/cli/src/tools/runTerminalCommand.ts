@@ -3,6 +3,8 @@ import fs from "fs";
 
 import {
   evaluateTerminalCommandSecurity,
+  getTerminalEnvironment,
+  getTerminalShell,
   type ToolPolicy,
 } from "@opencircuit/terminal-security";
 
@@ -63,28 +65,19 @@ function getBashMaxLines(): number {
   );
 }
 
-// Helper function to use login shell on Unix/macOS and PowerShell on Windows and available shell in WSL
-function getShellCommand(command: string): { shell: string; args: string[] } {
-  if (process.platform === "win32") {
-    // Windows: Use PowerShell
-    return {
-      shell: "powershell.exe",
-      args: ["-NoLogo", "-ExecutionPolicy", "Bypass", "-Command", command],
-    };
-  }
+const getShellCommand = getTerminalShell;
 
-  if (isRunningInWsl()) {
-    // in WSL, bash is always available
-    const wslShell = process.env.SHELL || "/bin/bash";
-    return {
-      shell: wslShell,
-      args: ["-l", "-c", command],
-    };
-  }
+function commandPolicy(command: string, basePolicy: ToolPolicy): ToolPolicy {
+  return evaluateTerminalCommandSecurity(basePolicy, command, {
+    cwd: process.cwd(),
+    workspaceRoots: [process.cwd()],
+  });
+}
 
-  // Unix/macOS: Use login shell to source .bashrc/.zshrc etc.
-  const userShell = process.env.SHELL || "/bin/bash";
-  return { shell: userShell, args: ["-l", "-c", command] };
+function assertCommandAllowed(command: string): void {
+  if (commandPolicy(command, "allowedWithoutPermission") === "disabled") {
+    throw new Error("Terminal command denied by security policy.");
+  }
 }
 
 export function runCommandInBackground(command: string): {
@@ -92,6 +85,7 @@ export function runCommandInBackground(command: string): {
   jobId?: string;
   error?: string;
 } {
+  assertCommandAllowed(command);
   const job = backgroundJobService.createJob(command);
   if (!job) {
     return {
@@ -100,8 +94,7 @@ export function runCommandInBackground(command: string): {
     };
   }
 
-  const { shell, args } = getShellCommand(command);
-  const child = backgroundJobService.startJob(job.id, shell, args);
+  const child = backgroundJobService.startJob(job.id);
 
   if (!child) {
     return {
@@ -146,10 +139,7 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
     basePolicy: ToolPolicy,
     parsedArgs: Record<string, unknown>,
   ): ToolPolicy => {
-    return evaluateTerminalCommandSecurity(
-      basePolicy,
-      parsedArgs.command as string,
-    );
+    return commandPolicy(parsedArgs.command as string, basePolicy);
   },
   preprocess: async (args) => {
     const command = args.command;
@@ -178,6 +168,7 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
     },
     context?: ToolRunContext,
   ): Promise<string> => {
+    assertCommandAllowed(command);
     // Divide limits by parallel tool call count to avoid context overflow
     const parallelCount = context?.parallelToolCallCount ?? 1;
     const baseMaxChars = getBashMaxChars();
@@ -190,7 +181,7 @@ IMPORTANT: To edit files, use Edit/MultiEdit tools instead of bash commands (sed
     const terminalOutput: string = await new Promise((resolve, reject) => {
       // Use same shell logic as core implementation
       const { shell, args } = getShellCommand(command);
-      const child = spawn(shell, args);
+      const child = spawn(shell, args, { env: getTerminalEnvironment() });
       let stdout = "";
       let stderr = "";
       let stdoutWasTruncated = false;

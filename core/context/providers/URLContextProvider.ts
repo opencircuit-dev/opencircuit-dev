@@ -1,4 +1,5 @@
 import { Readability } from "@mozilla/readability";
+import { fetchUntrustedUrl } from "@opencircuit/fetch";
 import { JSDOM } from "jsdom";
 import { NodeHtmlMarkdown } from "node-html-markdown";
 
@@ -7,7 +8,7 @@ import {
   ContextItem,
   ContextProviderDescription,
   ContextProviderExtras,
-  FetchFunction,
+  RequestOptions,
 } from "../../index.js";
 import { fetchFavicon } from "../../util/fetchFavicon";
 
@@ -23,7 +24,7 @@ class URLContextProvider extends BaseContextProvider {
     query: string,
     extras: ContextProviderExtras,
   ): Promise<ContextItem[]> {
-    return await getUrlContextItems(query, extras.fetch);
+    return await getUrlContextItems(query, extras.config.requestOptions);
   }
 }
 
@@ -31,18 +32,17 @@ export default URLContextProvider;
 
 export async function getUrlContextItems(
   query: string,
-  fetchFn: FetchFunction,
+  requestOptions?: RequestOptions,
 ): Promise<ContextItem[]> {
   const url = new URL(query);
-  const icon = await fetchFavicon(url);
-  const resp = await fetchFn(url);
+  const resp = await fetchUntrustedUrl(url, {}, requestOptions);
 
   // Check if the response is not OK
   if (!resp.ok) {
     throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
   }
-
   const html = await resp.text();
+  const icon = await fetchFavicon(url, requestOptions);
 
   const dom = new JSDOM(html);
   let reader = new Readability(dom.window.document);

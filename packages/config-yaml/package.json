@@ -25,12 +25,11 @@
   "dependencies": {
     "@opencircuit/config-types": "^1.0.14",
     "yaml": "^2.8.2",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "vitest": "^5.0.3",
-    "zod-to-json-schema": "^3.24.5"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "picomatch": "^4.0.4"

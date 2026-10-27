@@ -42,6 +42,14 @@ export function loadConfigContextProviders(
   // Add from config
   if (configContext) {
     for (const config of configContext) {
+      if (config.provider === "database") {
+        errors.push({
+          fatal: false,
+          message:
+            "The deprecated database context provider has been removed. Remove it from your configuration and use a database MCP server instead.",
+        });
+        continue;
+      }
       const cls = contextProviderClassFromName(config.provider) as any;
       if (
         !cls &&
