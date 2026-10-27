@@ -213,11 +213,13 @@ export interface BaseUnrollAssistantOptions {
   injectRequestOptions?: RequestOptions;
 }
 
-export interface DoNotRenderSecretsUnrollAssistantOptions extends BaseUnrollAssistantOptions {
+export interface DoNotRenderSecretsUnrollAssistantOptions
+  extends BaseUnrollAssistantOptions {
   renderSecrets: false;
 }
 
-export interface RenderSecretsUnrollAssistantOptions extends BaseUnrollAssistantOptions {
+export interface RenderSecretsUnrollAssistantOptions
+  extends BaseUnrollAssistantOptions {
   renderSecrets: true;
   currentUserSlug: string;
   platformClient: PlatformClient;
