@@ -36,6 +36,7 @@ export const requestOptionsSchema = z.object({
   headers: z.record(z.string()).optional(),
   extraBodyProperties: z.record(z.any()).optional(),
   noProxy: z.array(z.string()).optional(),
+  localUrlOrigins: z.never().optional(),
   clientCertificate: clientCertificateOptionsSchema.optional(),
 });
 export type RequestOptions = z.infer<typeof requestOptionsSchema>;

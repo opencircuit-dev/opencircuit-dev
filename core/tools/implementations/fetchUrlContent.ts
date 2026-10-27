@@ -1,13 +1,16 @@
-import { ToolImpl } from ".";
 import { getUrlContextItems } from "../../context/providers/URLContextProvider";
 import { getStringArg } from "../parseArgs";
+import { ToolImpl } from ".";
 
 const DEFAULT_FETCH_URL_CHAR_LIMIT = 20000;
 
 export const fetchUrlContentImpl: ToolImpl = async (args, extras) => {
   const url = getStringArg(args, "url");
 
-  const contextItems = await getUrlContextItems(url, extras.fetch);
+  const contextItems = await getUrlContextItems(
+    url,
+    extras.config.requestOptions,
+  );
 
   // Track truncated content
   const truncatedUrls: string[] = [];

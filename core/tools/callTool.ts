@@ -1,4 +1,6 @@
 import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { fetchUntrustedUrl } from "@opencircuit/fetch";
+
 import { ContextItem, McpUiState, Tool, ToolCall, ToolExtras } from "..";
 import { MCPManagerSingleton } from "../context/mcp/MCPManagerSingleton";
 import { OCircuitError, OCircuitErrorReason } from "../util/errors";
@@ -30,17 +32,21 @@ async function callHttpTool(
   args: any,
   extras: ToolExtras,
 ): Promise<ContextItem[]> {
-  const response = await extras.fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetchUntrustedUrl(
+    url,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        arguments: args,
+      }),
     },
-    body: JSON.stringify({
-      arguments: args,
-    }),
-  });
+    extras.config.requestOptions,
+  );
 
-  const data = await response.json();
+  const data = (await response.json()) as { output: ContextItem[] };
 
   if (!response.ok) {
     throw new Error(`Failed to call tool at ${url}:\n${JSON.stringify(data)}`);

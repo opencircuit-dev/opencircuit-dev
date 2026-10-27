@@ -1,6 +1,11 @@
 import iconv from "iconv-lite";
 import childProcess from "node:child_process";
 import os from "node:os";
+import {
+  evaluateTerminalCommandSecurity,
+  getTerminalEnvironment,
+  getTerminalShell,
+} from "@opencircuit/terminal-security";
 import { OCircuitError, OCircuitErrorReason } from "../../util/errors";
 
 // Default timeout for terminal commands (2 minutes)
@@ -21,20 +26,10 @@ function getDecodedOutput(data: Buffer): string {
   } else {
     return data.toString();
   }
-} // Simple helper function to use login shell on Unix/macOS and PowerShell on Windows
-function getShellCommand(command: string): { shell: string; args: string[] } {
-  if (process.platform === "win32") {
-    // Windows: Use PowerShell
-    return {
-      shell: "powershell.exe",
-      args: ["-NoLogo", "-ExecutionPolicy", "Bypass", "-Command", command],
-    };
-  } else {
-    // Unix/macOS: Use login shell to source .bashrc/.zshrc etc.
-    const userShell = process.env.SHELL || "/bin/bash";
-    return { shell: userShell, args: ["-l", "-c", command] };
-  }
 }
+
+const getShellCommand = getTerminalShell;
+const getTerminalEnv = getTerminalEnvironment;
 
 import { fileURLToPath } from "node:url";
 import { ToolImpl } from ".";
@@ -87,16 +82,6 @@ function resolveWorkingDirectory(workspaceDirs: string[]): string {
   }
 }
 
-// Add color-supporting environment variables
-const getColorEnv = () => ({
-  ...process.env,
-  FORCE_COLOR: "1",
-  COLORTERM: "truecolor",
-  TERM: "xterm-256color",
-  CLICOLOR: "1",
-  CLICOLOR_FORCE: "1",
-});
-
 // Only spawn processes locally when there is no remote workspace.
 // With extensionKind: ["ui", "workspace"], the extension host almost always
 // runs on the local machine. childProcess.spawn() executes on the extension
@@ -114,14 +99,26 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
 
   const ideInfo = await extras.ide.getIdeInfo();
   const toolCallId = extras.toolCallId || "";
+  const local = LOCAL_ONLY.includes(ideInfo.remoteName);
+  const workspaceDirs = local ? await extras.ide.getWorkspaceDirs() : [];
+  const cwd = local ? resolveWorkingDirectory(workspaceDirs) : undefined;
+  const roots = workspaceDirs
+    .filter((dir) => dir.startsWith("file:"))
+    .map((dir) => fileURLToPath(dir));
+  if (
+    evaluateTerminalCommandSecurity(
+      "allowedWithoutPermission",
+      command,
+      cwd ? { cwd, workspaceRoots: roots } : undefined,
+    ) === "disabled"
+  ) {
+    throw new Error("Terminal command denied by security policy.");
+  }
 
   if (LOCAL_ONLY.includes(ideInfo.remoteName)) {
     // For streaming output
     if (extras.onPartialOutput) {
       try {
-        const workspaceDirs = await extras.ide.getWorkspaceDirs();
-        const cwd = resolveWorkingDirectory(workspaceDirs);
-
         return new Promise((resolve, reject) => {
           let terminalOutput = "";
           let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -148,7 +145,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
           const { shell, args } = getShellCommand(command);
           const childProc = childProcess.spawn(shell, args, {
             cwd,
-            env: getColorEnv(), // Add enhanced environment for colors
+            env: getTerminalEnv(),
           });
 
           // Track this process for foreground cancellation
@@ -368,9 +365,6 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
       }
     } else {
       // Fallback to non-streaming for older clients
-      const workspaceDirs = await extras.ide.getWorkspaceDirs();
-      const cwd = resolveWorkingDirectory(workspaceDirs);
-
       if (waitForCompletion) {
         // Standard execution, waiting for completion
         try {
@@ -387,7 +381,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
                 nonStreamingArgs,
                 {
                   cwd,
-                  env: getColorEnv(),
+                  env: getTerminalEnv(),
                 },
               );
 
@@ -507,7 +501,7 @@ export const runTerminalCommandImpl: ToolImpl = async (args, extras) => {
             getShellCommand(command);
           const childProc = childProcess.spawn(detachedShell, detachedArgs, {
             cwd,
-            env: getColorEnv(), // Add color environment
+            env: getTerminalEnv(),
             // Detach the process so it's not tied to the parent
             detached: true,
             // Redirect to /dev/null equivalent (works cross-platform)
