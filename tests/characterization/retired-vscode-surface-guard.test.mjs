@@ -38,6 +38,32 @@ test("rejects retired extension directories and VSIX artifacts", () => {
   ]);
 });
 
+for (const content of [
+  '{"cwd":"extensions/vscode"}',
+  "cd extensions/vscode && npm run package",
+  '"${workspaceFolder}/extensions/vscode"',
+  '"./extensions/vscode/package.json"',
+  "cd extensions\\vscode; npm run build",
+]) {
+  test(`rejects retired path reference: ${content}`, () => {
+    const violations = scanFixtures({ "scripts/build.sh": content });
+
+    assert.equal(violations.length, 1);
+    assert.match(violations[0], /retired VS Code compatibility reference/);
+  });
+}
+
+test("allows similarly named paths that are not the retired directory", () => {
+  for (const content of [
+    "cd otherextensions/vscode",
+    "cd extensions/vscode-tools",
+    "cd extensions/vscode_helpers",
+    "cd extensions/vscode.json",
+  ]) {
+    assert.deepEqual(scanFixtures({ "scripts/build.sh": content }), []);
+  }
+});
+
 for (const [description, content] of [
   ["extension-host launch configuration", '"type": "extensionHost"'],
   ["VS Code messenger compatibility", "new VsCodeMessenger()"],
