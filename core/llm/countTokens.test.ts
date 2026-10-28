@@ -445,5 +445,6 @@ describe("special-token literals in content", () => {
     expect(() => countTokens(text, "gpt-4")).not.toThrow();
     expect(countTokens(text, "gpt-4")).toBeGreaterThan(0);
     await expect(countTokensAsync(text, "gpt-4")).resolves.toBeGreaterThan(0);
+    await cleanupAsyncEncoders();
   });
 });
