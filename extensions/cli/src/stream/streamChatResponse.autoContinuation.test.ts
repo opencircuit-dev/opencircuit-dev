@@ -26,6 +26,8 @@ vi.mock("../session.js", () => ({
 vi.mock("../util/tokenizer.js", () => ({
   countChatHistoryItemTokens: vi.fn(() => 100),
   validateContextLength: vi.fn(() => ({ isValid: true })),
+  getModelContextLimit: vi.fn(() => 200000),
+  getModelMaxTokens: vi.fn(() => 4096),
 }));
 
 vi.mock("../telemetry/telemetryService.js", () => ({
@@ -34,6 +36,7 @@ vi.mock("../telemetry/telemetryService.js", () => ({
     recordResponseTime: vi.fn(),
     recordTokenUsage: vi.fn(),
     recordCost: vi.fn(),
+    recordTurnGuardEvent: vi.fn(),
   },
 }));
 
@@ -83,7 +86,7 @@ vi.mock("./streamChatResponse.compactionHelpers.js", () => ({
 
 describe("streamChatResponse - auto-continuation after compaction", () => {
   const mockModel: ModelConfig = {
-    provider: "openai",
+    provider: "openai-compatible",
     name: "gpt-4",
     model: "gpt-4",
     defaultCompletionOptions: {

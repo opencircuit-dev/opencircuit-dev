@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { ModelConfig } from "@opencircuit/config-yaml";
 import { BaseLlmApi, isResponsesModel } from "@opencircuit/openai-adapters";
 import type { ChatHistoryItem } from "core/index.js";
@@ -39,6 +40,7 @@ import {
   getDefaultCompletionOptions,
   StreamCallbacks,
 } from "./streamChatResponse.types.js";
+import { createLoopGuard, withTurnScope } from "./turnGuardLoop.js";
 
 dotenv.config();
 
@@ -439,9 +441,32 @@ export async function processStreamingResponse(
   };
 }
 
-// Main function that handles the conversation loop
+// Entry point. A user turn opens a guard scope; compaction sub-turns started
+// within it share that turn's guard (cost, calls and wall-clock budget).
 // eslint-disable-next-line max-params
-export async function streamChatResponse(
+export function streamChatResponse(
+  chatHistory: ChatHistoryItem[],
+  model: ModelConfig,
+  llmApi: BaseLlmApi,
+  abortController: AbortController,
+  callbacks?: StreamCallbacks,
+  isCompacting = false,
+) {
+  const run = () =>
+    streamChatResponseLoop(
+      chatHistory,
+      model,
+      llmApi,
+      abortController,
+      callbacks,
+      isCompacting,
+    );
+  return isCompacting ? run() : withTurnScope(run);
+}
+
+// Main function that handles the conversation loop
+// eslint-disable-next-line max-params, max-statements
+async function streamChatResponseLoop(
   chatHistory: ChatHistoryItem[],
   model: ModelConfig,
   llmApi: BaseLlmApi,
@@ -461,7 +486,11 @@ export async function streamChatResponse(
   let finalResponse = "";
   let compactionOccurredThisTurn = false; // Track if compaction happened during this conversation turn
 
+  const loopGuard = createLoopGuard(isCompacting, isHeadless);
+
   while (true) {
+    const stopNotice = loopGuard.stopIfBreached(isHeadless, callbacks);
+    if (stopNotice) return stopNotice;
     // If ChatHistoryService is available, refresh local chatHistory view
     chatHistory = refreshChatHistoryFromService(chatHistory, isCompacting);
     logger.debug("Starting conversation iteration");
@@ -492,26 +521,29 @@ export async function streamChatResponse(
     });
     chatHistory = preCompactionResult.chatHistory;
     if (preCompactionResult.wasCompacted) {
+      loopGuard.noteCompaction();
       compactionOccurredThisTurn = true;
     }
 
+    const registryGeneration = loopGuard.registerRegistry(
+      tools.map(getChatCompletionToolName),
+    );
     logger.debug("Tools prepared", {
       toolCount: tools.length,
       toolNames: tools.map(getChatCompletionToolName),
     });
 
-    // Get response from LLM
-    const { content, toolCalls, shouldContinue, usage } =
-      await processStreamingResponse({
-        isHeadless,
-        chatHistory,
-        model,
-        llmApi,
-        abortController,
-        callbacks,
-        tools,
-        systemMessage,
-      });
+    const streamed = await processStreamingResponse({
+      isHeadless,
+      chatHistory,
+      model,
+      llmApi,
+      abortController,
+      callbacks,
+      tools,
+      systemMessage,
+    });
+    const { content, toolCalls, shouldContinue, usage } = streamed;
 
     if (abortController?.signal.aborted) {
       return finalResponse || content || fullResponse;
@@ -538,6 +570,8 @@ export async function streamChatResponse(
       callbacks,
       isHeadless,
       usage,
+      guard: loopGuard.enforced,
+      registryGeneration,
     });
 
     if (shouldReturn) {
@@ -560,6 +594,7 @@ export async function streamChatResponse(
     );
     chatHistory = postToolResult.chatHistory;
     if (postToolResult.wasCompacted) {
+      loopGuard.noteCompaction();
       compactionOccurredThisTurn = true;
     }
 
@@ -579,6 +614,7 @@ export async function streamChatResponse(
     );
     chatHistory = compactionResult.chatHistory;
     if (compactionResult.wasCompacted) {
+      loopGuard.noteCompaction();
       compactionOccurredThisTurn = true;
     }
 

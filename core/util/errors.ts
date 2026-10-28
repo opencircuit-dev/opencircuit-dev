@@ -56,6 +56,10 @@ export enum OCircuitErrorReason {
   CommandExecutionFailed = "command_execution_failed",
   CommandNotAvailableInRemote = "command_not_available_in_remote",
 
+  // Schema validation
+  InvalidToolArguments = "invalid_tool_arguments",
+  ToolSchemaRejected = "tool_schema_rejected",
+
   // Search
   SearchExecutionFailed = "search_execution_failed",
 

@@ -20,6 +20,7 @@ import { AsyncEncoder, LlamaAsyncEncoder } from "./asyncEncoder.js";
 import { DEFAULT_PRUNING_LENGTH } from "./constants.js";
 import { getAdjustedTokenCountFromModel } from "./getAdjustedTokenCount.js";
 import llamaTokenizer from "./llamaTokenizer.js";
+import { encodeLengthOrBound } from "./tokenFallback.js";
 interface Encoding {
   encode: Tiktoken["encode"];
   decode: Tiktoken["decode"];
@@ -41,7 +42,8 @@ class NonWorkerAsyncEncoder implements AsyncEncoder {
   async close(): Promise<void> {}
 
   async encode(text: string): Promise<number[]> {
-    return this.encoding.encode(text);
+    // js-tiktoken is positional: allow special-token literals in user content.
+    return this.encoding.encode(text, "all", []);
   }
 
   async decode(tokens: number[]): Promise<string> {
@@ -102,11 +104,24 @@ async function countTokensAsync(
       if (part.type === "imageUrl") {
         return countImageTokens(part);
       }
-      return (await encoding.encode(part.text ?? "")).length;
+      return countAsyncOrBound(encoding, part.text ?? "");
     });
     return (await Promise.all(promises)).reduce((sum, val) => sum + val, 0);
   }
-  return (await encoding.encode(content ?? "")).length;
+  return countAsyncOrBound(encoding, content ?? "");
+}
+
+async function countAsyncOrBound(
+  encoding: AsyncEncoder,
+  text: string,
+): Promise<number> {
+  try {
+    return (await encoding.encode(text)).length;
+  } catch {
+    return encodeLengthOrBound(() => {
+      throw new Error("async encoder failed");
+    }, text);
+  }
 }
 
 function countTokens(
@@ -121,12 +136,18 @@ function countTokens(
       return (
         acc +
         (part.type === "text"
-          ? encoding.encode(part.text ?? "", "all", []).length
+          ? encodeLengthOrBound(
+              (t) => encoding.encode(t, "all", []),
+              part.text ?? "",
+            )
           : countImageTokens(part))
       );
     }, 0);
   } else {
-    baseTokens = encoding.encode(content ?? "", "all", []).length;
+    baseTokens = encodeLengthOrBound(
+      (t) => encoding.encode(t, "all", []),
+      content ?? "",
+    );
   }
   return getAdjustedTokenCountFromModel(baseTokens, modelName);
 }
@@ -134,7 +155,10 @@ function countTokens(
 // https://community.openai.com/t/how-to-calculate-the-tokens-when-using-function-call/266573/10
 function countToolsTokens(tools: Tool[], modelName: string): number {
   const count = (value: string) =>
-    encodingForModel(modelName).encode(value).length;
+    encodeLengthOrBound(
+      (t) => encodingForModel(modelName).encode(t, "all", []),
+      value,
+    );
 
   let numTokens = 12;
 

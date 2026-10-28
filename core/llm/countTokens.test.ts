@@ -438,3 +438,12 @@ describe("extractToolSequence", () => {
     expect(messages).toHaveLength(1); // User message should remain
   });
 });
+
+describe("special-token literals in content", () => {
+  it("counts without throwing, including the tools and async paths", async () => {
+    const text = "see <|endoftext|> and <|fim_prefix|> here";
+    expect(() => countTokens(text, "gpt-4")).not.toThrow();
+    expect(countTokens(text, "gpt-4")).toBeGreaterThan(0);
+    await expect(countTokensAsync(text, "gpt-4")).resolves.toBeGreaterThan(0);
+  });
+});

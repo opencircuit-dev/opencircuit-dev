@@ -25,6 +25,7 @@ import { searchWebImpl } from "./implementations/searchWeb";
 import { viewDiffImpl } from "./implementations/viewDiff";
 import { viewRepoMapImpl } from "./implementations/viewRepoMap";
 import { viewSubdirectoryImpl } from "./implementations/viewSubdirectory";
+import { compileToolSchema, validateArgs } from "./schemaValidator";
 import { coerceArgsToSchema, safeParseToolCallArgs } from "./parseArgs";
 
 async function callHttpTool(
@@ -235,6 +236,37 @@ export async function callBuiltInTool(
   }
 }
 
+const compiledSchemas = new WeakMap<
+  object,
+  ReturnType<typeof compileToolSchema>
+>();
+
+// Validates arguments before any execution. Fails closed: a schema that cannot be
+// compiled under the validator profile, an unsupported pattern or a missing regex
+// engine rejects the call.
+function checkToolArguments(tool: Tool, args: unknown): void {
+  const schema = tool.function.parameters;
+  if (!schema || typeof schema !== "object") return;
+  let compiled = compiledSchemas.get(schema);
+  if (!compiled) {
+    compiled = compileToolSchema(schema);
+    compiledSchemas.set(schema, compiled);
+  }
+  if (!compiled.ok) {
+    throw new OCircuitError(
+      OCircuitErrorReason.ToolSchemaRejected,
+      `Tool schema rejected (${compiled.code})`,
+    );
+  }
+  const result = validateArgs(compiled, args);
+  if (!result.ok) {
+    throw new OCircuitError(
+      OCircuitErrorReason.InvalidToolArguments,
+      `Invalid tool arguments (${result.code}${result.detail ? `: ${result.detail}` : ""})`,
+    );
+  }
+}
+
 // Handles calls for core/non-client tools
 // Returns an error context item if the tool call fails
 // Note: Edit tool is handled on client
@@ -250,6 +282,7 @@ export async function callTool(
 }> {
   try {
     const args = safeParseToolCallArgs(toolCall);
+    checkToolArguments(tool, args);
     const { contextItems, mcpUiState } = tool.uri
       ? await callToolFromUri(tool.uri, args, extras)
       : {

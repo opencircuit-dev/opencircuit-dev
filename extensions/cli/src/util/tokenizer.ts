@@ -1,11 +1,22 @@
 import { ModelConfig } from "@opencircuit/config-yaml";
 import type { ChatHistoryItem } from "core/index.js";
 import { getAdjustedTokenCountFromModel } from "core/llm/getAdjustedTokenCount.js";
-import { encode } from "gpt-tokenizer";
+import { encodeLengthOrBound } from "core/llm/tokenFallback.js";
+import { encode as rawEncode } from "gpt-tokenizer";
 import type { ChatCompletionTool } from "openai/resources/index.js";
 
 import { isFunctionChatCompletionTool } from "./chatCompletionTool.js";
 import { logger } from "./logger.js";
+
+// gpt-tokenizer v3 takes an options object. User content may contain special-token
+// literals (e.g. <|endoftext|>); count them as text and never throw.
+function encodeLength(text: string): number {
+  return encodeLengthOrBound(
+    (t) =>
+      rawEncode(t, { allowedSpecial: "all", disallowedSpecial: new Set() }),
+    text,
+  );
+}
 
 const DEFAULT_MAX_TOKENS_RATIO = 0.35;
 const MAX_MAX_TOKENS = 64_000;
@@ -42,7 +53,7 @@ function countContentTokens(
   model: ModelConfig,
 ): number {
   if (typeof content === "string") {
-    const count = encode(content).length;
+    const count = encodeLength(content);
     return getAdjustedTokenCountFromModel(count, model.model ?? "");
   }
 
@@ -50,7 +61,7 @@ function countContentTokens(
     let tokenCount = 0;
     for (const part of content) {
       if (part.type === "text" && part.text) {
-        tokenCount += encode(part.text).length;
+        tokenCount += encodeLength(part.text);
       }
       if (part.type === "imageUrl") {
         tokenCount += 1024; // Rough estimate for image tokens
@@ -73,8 +84,8 @@ function countToolCallFunctionTokens(
   }
 
   let tokenCount = 0;
-  tokenCount += encode(toolCallFunction.name ?? "").length + 10; // Function name and structure overhead
-  tokenCount += encode(toolCallFunction.arguments ?? "").length; // Arguments
+  tokenCount += encodeLength(toolCallFunction.name ?? "") + 10; // Function name and structure overhead
+  tokenCount += encodeLength(toolCallFunction.arguments ?? ""); // Arguments
   return tokenCount;
 }
 
@@ -91,7 +102,7 @@ function countToolOutputTokens(
   let tokenCount = 0;
   for (const item of output) {
     if (item.content) {
-      tokenCount += encode(item.content).length;
+      tokenCount += encodeLength(item.content);
     }
     // Note: item.name is not sent to the model, only used for internal tracking
     tokenCount += 5; // Output structure overhead
@@ -138,8 +149,8 @@ export function countChatHistoryItemTokens(
 
     // Add tokens for context items
     for (const contextItem of historyItem.contextItems) {
-      tokenCount += encode(contextItem.content).length;
-      tokenCount += encode(contextItem.name).length;
+      tokenCount += encodeLength(contextItem.content);
+      tokenCount += encodeLength(contextItem.name);
       tokenCount += 5; // Context item structure overhead
     }
 
@@ -224,19 +235,19 @@ function countParameterFieldTokens(
 
   if (fieldType && typeof fieldType === "string") {
     tokens += 2; // Structure overhead for type
-    tokens += encode(fieldType).length;
+    tokens += encodeLength(fieldType);
   }
 
   if (fieldDesc && typeof fieldDesc === "string") {
     tokens += 2; // Structure overhead for description
-    tokens += encode(fieldDesc).length;
+    tokens += encodeLength(fieldDesc);
   }
 
   if (fieldEnum && Array.isArray(fieldEnum) && fieldEnum.length > 0) {
     tokens -= 3;
     for (const e of fieldEnum) {
       tokens += 3;
-      tokens += typeof e === "string" ? encode(e).length : 5;
+      tokens += typeof e === "string" ? encodeLength(e) : 5;
     }
   }
 
@@ -253,10 +264,10 @@ function countSingleToolTokens(tool: ChatCompletionTool): number {
     return 0;
   }
 
-  let tokens = encode(tool.function.name).length;
+  let tokens = encodeLength(tool.function.name);
 
   if (tool.function.description) {
-    tokens += encode(tool.function.description).length;
+    tokens += encodeLength(tool.function.description);
   }
 
   const params = tool.function.parameters as
@@ -266,7 +277,7 @@ function countSingleToolTokens(tool: ChatCompletionTool): number {
 
   if (props) {
     for (const key in props) {
-      tokens += encode(key).length;
+      tokens += encodeLength(key);
       tokens += countParameterFieldTokens(
         props[key] as Record<string, unknown> | undefined,
       );
@@ -326,7 +337,7 @@ export function countTotalInputTokens(params: TotalInputTokenParams): number {
       (item) => item.message.role === "system",
     );
     if (!hasSystemInHistory) {
-      totalTokens += encode(systemMessage).length;
+      totalTokens += encodeLength(systemMessage);
       totalTokens += 4; // Message structure overhead (role + formatting)
     }
   }

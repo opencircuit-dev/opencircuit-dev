@@ -22,6 +22,7 @@ import {
   preprocessStreamedToolCalls,
 } from "./streamChatResponse.helpers.js";
 import { StreamCallbacks } from "./streamChatResponse.types.js";
+import { actionClassForTool, type TurnGuard } from "./turnGuard.js";
 
 interface HandleToolCallsOptions {
   toolCalls: ToolCall[];
@@ -30,13 +31,78 @@ interface HandleToolCallsOptions {
   callbacks: StreamCallbacks | undefined;
   isHeadless: boolean;
   usage?: any;
+  guard?: TurnGuard;
+  registryGeneration?: number;
+}
+
+const REFUSAL_NOTICE: Record<string, string> = {
+  calls:
+    "Stopped: this turn reached its tool-call limit. No further tools were run. Ask me to continue if you want more.",
+  unknown_tool:
+    "Stopped: the model requested a tool that is not available. Nothing was run.",
+  invalid_call:
+    "Stopped: the model sent a malformed tool call. Nothing was run.",
+};
+
+// Stable failure identity: tool, arguments and the error text without digits,
+// so timestamps and counters do not make identical failures look distinct.
+function failureSignature(call: ToolCall, content: string): string {
+  const text = content.replace(/\d+/g, "#").slice(0, 120);
+  return `${call.name}|${JSON.stringify(call.arguments)}|${text}`;
+}
+
+function refuseAllCalls(
+  toolCalls: ToolCall[],
+  chatHistory: ChatHistoryItem[],
+  useService: boolean,
+): void {
+  const chatHistorySvc = services.chatHistory;
+  const lastAssistant = useService
+    ? -1
+    : chatHistory.findLastIndex(
+        (item) => item.message.role === "assistant" && item.toolCallStates,
+      );
+  for (const tc of toolCalls) {
+    if (useService) {
+      chatHistorySvc.addToolResult(tc.id, REFUSAL_NOTICE.calls, "errored");
+      continue;
+    }
+    const state = chatHistory[lastAssistant]?.toolCallStates?.find(
+      (ts) => ts.toolCallId === tc.id,
+    );
+    if (state) {
+      state.status = "errored";
+      state.output = [
+        {
+          content: REFUSAL_NOTICE.calls,
+          name: "Tool Result",
+          description: "Tool execution result",
+        },
+      ];
+    }
+  }
+  if (useService) {
+    chatHistorySvc.addAssistantMessage(REFUSAL_NOTICE.calls);
+  } else {
+    chatHistory.push(
+      createHistoryItem({ role: "assistant", content: REFUSAL_NOTICE.calls }),
+    );
+  }
 }
 
 export async function handleToolCalls(
   options: HandleToolCallsOptions,
 ): Promise<boolean> {
-  const { toolCalls, chatHistory, content, callbacks, isHeadless, usage } =
-    options;
+  const {
+    toolCalls,
+    chatHistory,
+    content,
+    callbacks,
+    isHeadless,
+    usage,
+    guard,
+    registryGeneration,
+  } = options;
   const chatHistorySvc = services.chatHistory;
   const useService =
     typeof chatHistorySvc?.isReady === "function" && chatHistorySvc.isReady();
@@ -58,6 +124,31 @@ export async function handleToolCalls(
       }
     }
     return false;
+  }
+
+  // Reserve budget and validate tool names before anything reaches history.
+  let tokens: ReadonlyMap<string, string> | undefined;
+  let capRefused = false;
+  if (guard && registryGeneration !== undefined) {
+    const reserved = guard.reserve(
+      toolCalls.map((tc) => ({ id: tc.id, name: tc.name })),
+      registryGeneration,
+    );
+    if (reserved.ok) {
+      tokens = reserved.reservation.tokens;
+    } else if (reserved.reason === "calls") {
+      capRefused = true;
+    } else {
+      const notice = REFUSAL_NOTICE[reserved.reason];
+      if (useService) {
+        chatHistorySvc.addAssistantMessage(notice, undefined, usage);
+      } else {
+        chatHistory.push(
+          createHistoryItem({ role: "assistant", content: notice }),
+        );
+      }
+      return true;
+    }
   }
 
   // Create tool call states for the ChatHistoryItem
@@ -105,6 +196,12 @@ export async function handleToolCalls(
     chatHistory.push(createHistoryItem(messageWithUsage, [], toolCallStates));
   }
 
+  if (capRefused) {
+    // Keep history protocol-valid: every tool call gets a terminal result.
+    refuseAllCalls(toolCalls, chatHistory, useService);
+    return true;
+  }
+
   // First preprocess the tool calls
   const { preprocessedCalls, errorChatEntries } =
     await preprocessStreamedToolCalls(isHeadless, toolCalls, callbacks);
@@ -148,11 +245,41 @@ export async function handleToolCalls(
   // Execute the valid preprocessed tool calls
   // Note: executeStreamedToolCalls adds tool results to toolCallStates via
   // services.chatHistory.addToolResult() internally
-  const { hasRejection } = await executeStreamedToolCalls(
+  const { hasRejection, chatHistoryEntries } = await executeStreamedToolCalls(
     preprocessedCalls,
     callbacks,
     isHeadless,
   );
+
+  if (guard && tokens) {
+    const byId = new Map(toolCalls.map((tc) => [tc.id, tc]));
+    const note = (
+      entry: { tool_call_id: string; content: unknown },
+      status: "done" | "errored" | "canceled",
+    ) => {
+      const call = byId.get(entry.tool_call_id);
+      const token = tokens.get(entry.tool_call_id);
+      if (!call || !token) return;
+      guard.record(token, {
+        status,
+        actionClass: actionClassForTool(call.name),
+        signature: failureSignature(
+          call,
+          stripImages(entry.content as any) || "",
+        ),
+      });
+    };
+    errorChatEntries.forEach((e) => note(e, "errored"));
+    chatHistoryEntries.forEach((e) => {
+      if (
+        e.status === "done" ||
+        e.status === "errored" ||
+        e.status === "canceled"
+      ) {
+        note(e, e.status);
+      }
+    });
+  }
 
   if (isHeadless && hasRejection) {
     logger.debug(
