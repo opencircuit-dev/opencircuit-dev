@@ -50,10 +50,28 @@ export function installedPackageVersion(
   throw new Error(`Tokenizer package ${packageName} has no readable version`);
 }
 
+// Bundled builds (the packaged CLI) inline the tokenizer, so the package is
+// not on disk; the lockfile pinned its version at bundle time.
+export function optionalInstalledPackageVersion(
+  packageName: string,
+  resolvePackage: (name: string) => string = require.resolve,
+): string | undefined {
+  try {
+    resolvePackage(packageName);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === "MODULE_NOT_FOUND") {
+      return undefined;
+    }
+    throw err;
+  }
+  return installedPackageVersion(packageName, resolvePackage);
+}
+
 export function assertTokenizerAdapter(
   declaration: TokenizerAdapterDeclaration,
   expectedDigest: string,
   verifyInstalledPackage = true,
+  resolvePackage: (name: string) => string = require.resolve,
 ): void {
   if (
     declaration.bosTokens < 0 ||
@@ -72,8 +90,11 @@ export function assertTokenizerAdapter(
     );
   }
   if (verifyInstalledPackage) {
-    const actual = installedPackageVersion(declaration.packageName);
-    if (actual !== declaration.packageVersion) {
+    const actual = optionalInstalledPackageVersion(
+      declaration.packageName,
+      resolvePackage,
+    );
+    if (actual !== undefined && actual !== declaration.packageVersion) {
       throw new Error(
         `Tokenizer package ${declaration.packageName}@${actual} does not match declared ${declaration.packageVersion}`,
       );

@@ -6,7 +6,7 @@ import { getAdjustedTokenCountFromModel } from "core/llm/getAdjustedTokenCount.j
 import { encodeLengthOrBound } from "core/llm/tokenFallback.js";
 import {
   assertTokenizerAdapter,
-  installedPackageVersion,
+  optionalInstalledPackageVersion,
   type TokenizerAdapterDeclaration,
 } from "core/llm/tokenizerAdapters.js";
 import { encode as rawEncode } from "gpt-tokenizer";
@@ -32,11 +32,14 @@ assertTokenizerAdapter(
   "4ceb2bd533b32343ae34017cffe618065b3762172dbf90135be92229ccfee908",
   false,
 );
-const cliTokenizerVersion = installedPackageVersion(
+const cliTokenizerVersion = optionalInstalledPackageVersion(
   "gpt-tokenizer",
   require.resolve,
 );
-if (cliTokenizerVersion !== CLI_TOKENIZER_ADAPTER.packageVersion) {
+if (
+  cliTokenizerVersion !== undefined &&
+  cliTokenizerVersion !== CLI_TOKENIZER_ADAPTER.packageVersion
+) {
   throw new Error(
     `Tokenizer package gpt-tokenizer@${String(cliTokenizerVersion)} does not match declared ${CLI_TOKENIZER_ADAPTER.packageVersion}`,
   );
