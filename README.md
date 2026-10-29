@@ -36,13 +36,26 @@ shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
 oc init
 ```
 
+### Latest validated source build (not released)
+
+The internal source branch `ocircuit/pro-harness-20261027T2030T` at
+`4546eb9262c7bd59737e73f95e6d225ae356e2a3` passed the Server1 validation
+pipeline. Its validation-only CLI 1.0.2 artifact has SHA-256
+`6c8a7afc35202f8aef1be79afb5ac1733663810107d4b07d854ed3dac99a1ece`.
+This candidate has **not** been published to the internal distribution; the
+1.0.2 archive above remains the installable release until the canonical
+internal release-publish action regenerates and stages the release artifacts.
+The validation artifact is not the same archive as the currently published
+1.0.2 tarball.
+
 Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding)
 for browser SSO and entitled-model selection. Manual token/appkey configuration
 is a separate legacy path, not required for Circuit SSO.
 
-The exact retained-closure passed with zero root/Core/CLI audit findings.
-Server1 passed 916 Core tests, 1,776 CLI tests and all 65 e2e tests; existing
-skips remain. These results do not claim live Cisco SSO or model qualification.
+The latest Server1 validation passed Core and CLI typechecks, CLI build and
+smoke tests, all 941 Core tests that ran (68 skipped), and validation-artifact
+generation. This run did not execute the retained-closure audit or e2e suite
+and does not claim live Cisco SSO or model qualification.
 The deprecated generic `database` context provider is removed: existing entries
 produce a warning; migrate to database MCP. PostgreSQL, SQLite and Azure OpenAI
 remain supported.

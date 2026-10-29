@@ -11,8 +11,12 @@ The public-provider examples below do not replace internal SSO onboarding.
 
 Use the regenerated internal **1.0.2** tarball, checksum and provenance from
 the approved internal distribution, not the public 1.0.0 examples below.
-The current local build is from main `79e42d9ef`; source staging is
-`release-artifacts/v1.0.2/`. Regeneration does not itself publish a remote release.
+The currently published internal 1.0.2 build is from source revision
+`79e42d9ef40f7fba7c90980b0650cdb4ce334119`; its matching archive remains in
+`release-artifacts/v1.0.2/`. A newer validation-only build from
+`4546eb9262c7bd59737e73f95e6d225ae356e2a3` passed Server1, but has not been
+published and must not be substituted for the approved distribution archive.
+Regeneration and validation do not themselves publish a remote release.
 
 From the directory containing the downloaded files, with Node 24.19.0 active:
 
@@ -39,8 +43,10 @@ model returned by policy. Do not invent a deployment ID, add manual bearer
 tokens, or bypass entitlement rejection. Tokens refresh through OAuth and use
 the OS credential store; macOS persistence uses chunked Keychain items.
 
-The release passed the exact retained-closure and all 65 Server1 e2e tests.
-Live Cisco SSO/model access still depends on your account and network.
+The latest source validation passed Core and CLI typechecks, CLI build and
+smoke tests, all 941 Core tests that ran (68 skipped), and validation-artifact
+generation. It did not rerun retained-closure or e2e validation. Live Cisco
+SSO/model access still depends on your account and network.
 The generic `database` provider is retired; use database MCP instead.
 
 ## Security boundaries

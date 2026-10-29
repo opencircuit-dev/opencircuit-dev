@@ -14,6 +14,15 @@ Use `opencircuit-cli-internal-1.0.2.tgz` with its checksum and provenance from
 the approved internal distribution. Local generation is not remote publication.
 The source staging path is `../../release-artifacts/v1.0.2/`.
 
+The latest validation-only source build is commit
+`4546eb9262c7bd59737e73f95e6d225ae356e2a3`. It passed Server1 Core and CLI
+typechecks, CLI build and smoke tests, all 941 Core tests that ran (68 skipped),
+and validation-artifact generation. Its CLI 1.0.2 archive SHA-256 is
+`6c8a7afc35202f8aef1be79afb5ac1733663810107d4b07d854ed3dac99a1ece`; this
+candidate has not been published and is not the approved internal tarball
+described above. Do not substitute it until the internal release-publish action
+has regenerated and staged the release.
+
 ```bash
 shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
   npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
@@ -31,8 +40,8 @@ token/appkey configuration for Circuit onboarding.
 
 Circuit uses PKCE/state/OIDC checks, refresh and OS credential storage,
 coalesced model-policy loading, entitlement rejection and approved bearer routes.
-The internal closure audits are clean; Server1's 1,776 CLI tests and all 65 e2e
-tests passed, with existing unit skips. This is not a live SSO qualification.
+The latest Server1 validation did not run retained-closure audits or e2e tests
+and does not qualify live SSO or model access.
 The retired generic `database` context provider warns and skips existing entries;
 use database MCP instead.
 
