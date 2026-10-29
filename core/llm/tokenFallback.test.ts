@@ -44,6 +44,14 @@ describe("warnOnceBounded", () => {
     expect(sink.mock.calls.length).toBeLessThan(600);
   });
 
+  it("does not create separate entries for quoted or numeric details", () => {
+    const sink = jest.fn();
+    warnOnceBounded('failed "first" at 12', sink);
+    warnOnceBounded('failed "second" at 34', sink);
+    expect(sink).toHaveBeenCalledTimes(1);
+    expect(sink.mock.calls[0][0]).not.toContain("first");
+  });
+
   it("re-logs after the TTL expires", () => {
     jest.useFakeTimers();
     const sink = jest.fn();

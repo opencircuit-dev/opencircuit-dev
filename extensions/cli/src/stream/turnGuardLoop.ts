@@ -121,7 +121,11 @@ export function formatBreachNotice(
 // always enforced. OC_TURN_GUARD accepts only "enforce"; the transitional
 // "rewrite-observe" mode was removed because the v1 rewrite pipeline it would
 // observe is not implemented, so any other value is warned about and ignored.
-export function createLoopGuard(isCompacting: boolean, isHeadless: boolean) {
+export function createLoopGuard(
+  isCompacting: boolean,
+  isHeadless: boolean,
+  abortController?: AbortController,
+) {
   const orgPolicy = readOrgPolicy();
   if (orgPolicy.rejected) {
     logger.warn("Turn guard: ignoring organization policy", {
@@ -152,8 +156,31 @@ export function createLoopGuard(isCompacting: boolean, isHeadless: boolean) {
   const guard = inherited ?? createTurnGuard({ limits });
   if (!isCompacting && scope) scope.guard = guard;
 
+  // The loop check alone cannot stop an in-flight provider request. Abort the
+  // active turn at the same deadline so the existing provider cancellation path
+  // can return control to the guard and emit its wall-clock breach notice.
+  const ownsTimer = !inherited && abortController !== undefined;
+  const deadlineTimer = ownsTimer
+    ? setTimeout(() => {
+        const verdict = guard.check();
+        if (
+          !verdict.ok &&
+          verdict.breach.reason === "wall_clock" &&
+          !abortController.signal.aborted
+        ) {
+          logger.warn("Turn guard wall-clock limit reached; aborting turn");
+          abortController.abort();
+        }
+      }, guard.limits.maxWallClockMs)
+    : undefined;
+  deadlineTimer?.unref?.();
+
   return {
     enforced: guard,
+
+    dispose() {
+      if (deadlineTimer) clearTimeout(deadlineTimer);
+    },
 
     noteCompaction() {
       guard.noteCompaction();

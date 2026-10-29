@@ -21,6 +21,9 @@ import { DEFAULT_PRUNING_LENGTH } from "./constants.js";
 import { getAdjustedTokenCountFromModel } from "./getAdjustedTokenCount.js";
 import llamaTokenizer from "./llamaTokenizer.js";
 import { encodeLengthOrBound } from "./tokenFallback.js";
+import { assertCoreTokenizerAdapters } from "./tokenizerAdapters.js";
+
+assertCoreTokenizerAdapters();
 interface Encoding {
   encode: Tiktoken["encode"];
   decode: Tiktoken["decode"];

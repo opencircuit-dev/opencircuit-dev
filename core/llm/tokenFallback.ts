@@ -38,12 +38,22 @@ export function appendCappedLog(
       message.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, MAX_LINE_CHARS) +
       "\n";
     const line = `${new Date().toISOString()} ${body}`;
-    fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+    const directory = path.dirname(file);
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+    const directoryStat = fs.lstatSync(directory);
+    if (!directoryStat.isDirectory())
+      throw new Error("log directory is unsafe");
+    fs.chmodSync(directory, 0o700);
     let size = 0;
     try {
-      size = fs.statSync(file).size;
-    } catch {
-      // first write
+      const fileStat = fs.lstatSync(file);
+      if (fileStat.isSymbolicLink() || !fileStat.isFile()) {
+        throw new Error("log file is unsafe");
+      }
+      fs.chmodSync(file, 0o600);
+      size = fileStat.size;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
     if (size + Buffer.byteLength(line) > maxBytes) {
       fs.renameSync(file, `${file}.1`);
@@ -51,6 +61,7 @@ export function appendCappedLog(
     fs.appendFileSync(file, line, {
       mode: 0o600,
     });
+    fs.chmodSync(file, 0o600);
   } catch {
     // logging must never break token counting
   }
@@ -59,13 +70,21 @@ export function appendCappedLog(
 const defaultLogFile = () =>
   path.join(os.homedir(), ".ocircuit", "logs", "token-fallback.log");
 
+function normalizeLogMessage(message: string): string {
+  return message
+    .replace(/\d+/g, "#")
+    .replace(/(['"`])(?:\\.|(?!\1).)*\1/g, "$1…$1")
+    .slice(0, 160);
+}
+
 // Logs a message at most once per TTL, remembering at most MAX_ENTRIES messages.
 export function warnOnceBounded(
   message: string,
   sink: (message: string) => void = (m) => appendCappedLog(defaultLogFile(), m),
 ): void {
   // Normalize and truncate so variable text cannot create unbounded distinct keys.
-  const key = message.replace(/\d+/g, "#").slice(0, 160);
+  const normalized = normalizeLogMessage(message);
+  const key = normalized;
   const now = Date.now();
   const at = seen.get(key);
   if (at !== undefined && now - at < TTL_MS) return;
@@ -75,7 +94,7 @@ export function warnOnceBounded(
     if (oldest !== undefined) seen.delete(oldest);
   }
   seen.set(key, now);
-  sink(message);
+  sink(normalized);
 }
 
 export function encodeLengthOrBound(

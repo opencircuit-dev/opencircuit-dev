@@ -167,7 +167,12 @@ export type ReserveResult =
     }
   | { ok: false; reason: "calls" | "invalid_call" | "unknown_tool" };
 
-export type RecordResult = "recorded" | "duplicate" | "unknown" | "late";
+export type RecordResult =
+  | "recorded"
+  | "duplicate"
+  | "unknown"
+  | "stale"
+  | "late";
 
 const MAX_ID_LENGTH = 128;
 const MAX_NAME_LENGTH = 128;
@@ -209,7 +214,7 @@ export function createTurnGuard(options: TurnGuardOptions = {}) {
   let consumedCalls = 0;
   let compactions = 0;
   let breach: Breach | undefined;
-  const tokens = new Map<string, { recorded: boolean }>();
+  const tokens = new Map<string, { recorded: boolean; generation: number }>();
   const failures = new Map<string, number>();
   const denials = new Map<ActionClass, number>();
 
@@ -289,7 +294,7 @@ export function createTurnGuard(options: TurnGuardOptions = {}) {
       const minted = new Map<string, string>();
       for (const call of providerCalls) {
         const token = randomBytes(16).toString("hex");
-        tokens.set(token, { recorded: false });
+        tokens.set(token, { recorded: false, generation: registryGeneration });
         minted.set(call.id, token);
       }
       return {
@@ -307,6 +312,10 @@ export function createTurnGuard(options: TurnGuardOptions = {}) {
       if (!entry) {
         counters.stale_reservation += 1;
         return "unknown";
+      }
+      if (entry.generation !== generation) {
+        counters.stale_reservation += 1;
+        return "stale";
       }
       if (entry.recorded) {
         counters.duplicate_record += 1;

@@ -1,12 +1,46 @@
+import { createRequire } from "node:module";
+
 import { ModelConfig } from "@opencircuit/config-yaml";
 import type { ChatHistoryItem } from "core/index.js";
 import { getAdjustedTokenCountFromModel } from "core/llm/getAdjustedTokenCount.js";
 import { encodeLengthOrBound } from "core/llm/tokenFallback.js";
+import {
+  assertTokenizerAdapter,
+  installedPackageVersion,
+  type TokenizerAdapterDeclaration,
+} from "core/llm/tokenizerAdapters.js";
 import { encode as rawEncode } from "gpt-tokenizer";
 import type { ChatCompletionTool } from "openai/resources/index.js";
 
 import { isFunctionChatCompletionTool } from "./chatCompletionTool.js";
 import { logger } from "./logger.js";
+
+const require = createRequire(import.meta.url);
+const CLI_TOKENIZER_ADAPTER: TokenizerAdapterDeclaration = Object.freeze({
+  packageName: "gpt-tokenizer",
+  packageVersion: "3.0.1",
+  mode: "gpt-4/cl100k_base",
+  specialTokenPolicy: "allowed:all;disallowed:empty;options-object",
+  bosTokens: 0,
+  eosTokens: 0,
+  messageFramingTokens: 0,
+  maxOverhead: 0,
+});
+
+assertTokenizerAdapter(
+  CLI_TOKENIZER_ADAPTER,
+  "4ceb2bd533b32343ae34017cffe618065b3762172dbf90135be92229ccfee908",
+  false,
+);
+const cliTokenizerVersion = installedPackageVersion(
+  "gpt-tokenizer",
+  require.resolve,
+);
+if (cliTokenizerVersion !== CLI_TOKENIZER_ADAPTER.packageVersion) {
+  throw new Error(
+    `Tokenizer package gpt-tokenizer@${String(cliTokenizerVersion)} does not match declared ${CLI_TOKENIZER_ADAPTER.packageVersion}`,
+  );
+}
 
 // gpt-tokenizer v3 takes an options object. User content may contain special-token
 // literals (e.g. <|endoftext|>); count them as text and never throw.

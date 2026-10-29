@@ -5,7 +5,10 @@ import { createLoopGuard } from "./turnGuardLoop.js";
 vi.mock("../services/index.js", () => ({ services: {} }));
 
 describe("loop guard limits", () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
 
   it("applies env limits (lower only) and ignores invalid values", () => {
     vi.stubEnv("OC_TURN_MAX_CALLS", "3");
@@ -14,6 +17,21 @@ describe("loop guard limits", () => {
     expect(createLoopGuard(false, true).enforced.limits.maxCalls).toBe(100);
     vi.stubEnv("OC_TURN_MAX_CALLS", "9999");
     expect(createLoopGuard(false, true).enforced.limits.maxCalls).toBe(100);
+  });
+
+  it("aborts an in-flight turn at the wall-clock deadline", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(0);
+    const abortController = new AbortController();
+    const guard = createLoopGuard(false, true, abortController);
+    await vi.advanceTimersByTimeAsync(30 * 60_000);
+    expect(abortController.signal.aborted).toBe(true);
+    expect(guard.enforced.check()).toMatchObject({
+      ok: false,
+      breach: { reason: "wall_clock" },
+    });
+    guard.dispose();
+    vi.useRealTimers();
   });
 });
 

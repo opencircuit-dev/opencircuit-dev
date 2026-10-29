@@ -194,6 +194,22 @@ describe("reserve / record", () => {
     expect(guard.snapshot().identicalFailures).toBe(1);
   });
 
+  it("rejects a token after its registry generation is replaced", () => {
+    const { guard, generation } = setup();
+    const r = guard.reserve(calls(1), generation);
+    if (!r.ok) throw new Error("expected ok");
+    const token = [...r.reservation.tokens.values()][0];
+    guard.registerRegistry(["Read"]);
+    expect(
+      guard.record(token, {
+        status: "done",
+        actionClass: "read",
+        signature: "stale",
+      }),
+    ).toBe("stale");
+    expect(guard.counters.stale_reservation).toBe(1);
+  });
+
   it("discards results that arrive after a breach and counts them", () => {
     const { guard, generation } = setup({ maxCalls: 2 });
     const r = guard.reserve(calls(2), generation);
