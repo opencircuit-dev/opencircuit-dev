@@ -1,32 +1,23 @@
-# @opencircuit/llm-info
+# `@opencircuit/llm-info`
 
-A lightweight package providing information about various Large Language Models (LLMs), including embedding, reranking, and other models.
+This package provides model metadata grouped by provider. It is used to
+identify model capabilities and recommendations; request translation and
+transport belong to the adapter/runtime layers.
 
-Whereas @opencircuit/openai-adapters is responsible for translation between API types, @opencircuit/llm-info is concerned with
+The `LlmInfo` type describes model identifiers, context and completion
+limits, supported media, recommendations, and provider-specific parameters.
+Each provider module exports a `ModelProvider` containing its model entries.
+The current provider registry is assembled in `src/index.ts`.
 
-- Templates
-- Capabilities (e.g. tools, images, streaming, predicted outputs, etc.)
-- Model aliases
+## Public helpers
 
-and openai-adapters might depend on llm-info for some of these things.
+- `allModelProviders` lists registered providers.
+- `allLlms` flattens provider model metadata and retains the provider ID.
+- `findLlmInfo(model, preferProviderId?)` resolves model metadata, optionally
+  preferring one provider.
+- `getAllRecommendedFor(useCase)` selects models recommended for `chat`,
+  `autocomplete`, `rerank`, or `embed`.
 
-### Goal
-
-We know we are done when the steps required to add support for a new model in Continue are exactly
-
-1. editing a single LlmInfo object, and
-2. adding it to the supporting ModelProviders.
-
-### Code structure
-
-The two primary types are LlmInfo and ModelProvider
-
-Models are defined on their own in the `models` directory. They can be grouped however makes sense.
-
-Providers are defined in the `providers` directory, with all models that they support in their `models` attribute. It's important that models are tied to providers, because the model might have slightly different attributes (e.g. context length) per provider. Define as much as possible in the base object, and then spread to update for the specific providers as needed.
-
-### Where to use llm-info
-
-- Replace autodetect.ts
-- See usage in `BaseLLM` constructor, and finish the job of using llm-info everywhere relevant.
-- Replace `gui/pages/AddNewModel/configs/[providers/models].ts`
+When adding or changing a model, update the appropriate provider definition
+and add focused coverage where the consuming runtime relies on the metadata.
+Build with `npm run build` from this package directory.

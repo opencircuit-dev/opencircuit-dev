@@ -1,25 +1,16 @@
-# Open Circuit PR Review Actions
+# Open Circuit PR Review Action
 
-GitHub Actions that provide automated code reviews for pull requests using Open Circuit CLI.
+`general-review` is a composite GitHub Action that runs an Open Circuit agent
+on pull requests and posts its review as a PR comment. The action definition
+is [`general-review/action.yml`](general-review/action.yml).
 
-## Available Actions
+## Example workflow
 
-This repository provides a GitHub Action for automated PR reviews:
-
-### General Review Action
-
-Provides high-level PR assessment with overall feedback and recommendations.
-
-- **Path:** `brettconn/open-circuit-dev/actions/general-review@ac4d68177934ba4c338b7081f7859275d3d95351`
-- **Trigger:** `@ocircuit-review`
-- **Output:** Summary comment with strengths, issues, and recommendations
-
-## Quick Start
-
-### Setting up General Review
+Pin the action to a reviewed commit and store its API key as a repository or
+organization Actions secret:
 
 ```yaml
-name: PR General Review
+name: Open Circuit PR Review
 on:
   pull_request:
     types: [opened, ready_for_review]
@@ -36,111 +27,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: brettconn/open-circuit-dev/actions/general-review@ac4d68177934ba4c338b7081f7859275d3d95351
+      - uses: opencircuit-dev/opencircuit-dev/actions/general-review@ac4d68177934ba4c338b7081f7859275d3d95351
         with:
           ocircuit-api-key: ${{ secrets.OCIRCUIT_API_KEY }}
-          ocircuit-org: "your-org-name"
-          ocircuit-agent: "your-org-name/review-bot"
+          ocircuit-org: your-org-name
+          ocircuit-agent: your-org-name/review-bot
 ```
 
-## Inputs
+The action currently installs `@opencircuit/cli@1.5.47`; this runtime version
+is managed by the action and is independent of the CLI source version in this
+checkout. Confirm compatibility and review the pinned action commit before
+adopting it.
 
-The action accepts the following inputs:
+## Inputs and authorization
 
-| Input              | Description                           | Required |
-| ------------------ | ------------------------------------- | -------- |
-| `ocircuit-api-key` | API key for Open Circuit service      | Yes      |
-| `ocircuit-org`     | Organization for Open Circuit config  | Yes      |
-| `ocircuit-agent`   | Agent path (e.g., "myorg/review-bot") | Yes      |
+| Input              | Required | Purpose                                                        |
+| ------------------ | -------- | -------------------------------------------------------------- |
+| `ocircuit-api-key` | Yes      | Open Circuit API key; pass it through a GitHub Actions secret. |
+| `ocircuit-org`     | Yes      | Organization used by the Open Circuit configuration.           |
+| `ocircuit-agent`   | Yes      | Agent path, for example `your-org/review-bot`.                 |
 
-## Setup Requirements
+For pull-request events, drafts are skipped. The action runs only when the
+author has write-level repository permission; if that permission lookup fails,
+it falls back to GitHub's `OWNER`, `MEMBER`, or `COLLABORATOR` association.
+For `issue_comment`, the comment must be on a pull request, contain
+`@ocircuit-review`, and come from an authorized user. The workflow needs
+`pull-requests: write` and `issues: write` to post and update review comments.
 
-### 1. Open Circuit API Key
+## Behavior and troubleshooting
 
-Add your Open Circuit API key as a secret named `OCIRCUIT_API_KEY` in your repository:
+The action checks authorization, checks out the repository, obtains the PR
+diff, builds a review prompt, runs the configured agent, and posts the result.
+To request a review manually, comment `@ocircuit-review` on a pull request.
 
-1. Go to your repository's Settings
-2. Navigate to Secrets and variables → Actions
-3. Click "New repository secret"
-4. Name: `OCIRCUIT_API_KEY`
-5. Value: Your Open Circuit API key
+If no review appears, inspect the Actions run for skipped authorization,
+missing secrets, invalid organization/agent configuration, or insufficient
+workflow permissions. The action does not run for arbitrary issue comments.
 
-### 2. Open Circuit Configuration
-
-Set up your review bot configuration for Open Circuit:
-
-1. Create a configuration for your organization
-2. Configure the review bot settings
-3. Note your organization name and config path
-
-### 3. Workflow Permissions
-
-The workflow requires these permissions:
-
-- `contents: read` - To checkout and read repository code
-- `pull-requests: write` - To post review comments on PRs
-- `issues: write` - To respond to comment triggers
-
-## Triggering Reviews
-
-The action can be triggered in two ways:
-
-### Automatic Triggers
-
-- When a PR is opened by a team member (OWNER, MEMBER, or COLLABORATOR)
-- When a PR is marked as "ready for review" by a team member
-
-### Manual Triggers
-
-Team members can trigger reviews by commenting on any pull request:
-
-- `@ocircuit-review` - Triggers a review
-
-## Review Output
-
-The general review provides a structured comment that includes:
-
-- **Strengths**: What was done well in the PR
-- **Issues Found**: Categorized by severity (Critical, High, Medium, Low)
-- **Suggestions**: Improvement recommendations
-- **Overall Assessment**: Final recommendation (APPROVE, REQUEST_CHANGES, or COMMENT)
-
-## How It Works
-
-1. Checks out repository code
-2. Fetches PR diff using GitHub CLI
-3. Generates a comprehensive review prompt
-4. Runs Open Circuit CLI with specified configuration
-5. Posts review as a PR comment
-
-## Versioning
-
-Pin the action to a reviewed commit, as shown below, so updates are explicit:
-
-Example:
-
-```yaml
-uses: brettconn/open-circuit-dev/actions/general-review@ac4d68177934ba4c338b7081f7859275d3d95351
-```
-
-## Troubleshooting
-
-### Review not triggering
-
-- Ensure the PR author or commenter has appropriate permissions (OWNER, MEMBER, or COLLABORATOR)
-- Check that the workflow file is in the default branch
-- Verify the Open Circuit API key is correctly set as a repository secret
-
-### No review output generated
-
-- Check the action logs for any errors
-- Verify your Open Circuit configuration is correct
-- Ensure your Open Circuit API key is valid
-
-## Support
-
-For issues or questions:
-
-- [Open Circuit Documentation](/)
-- [GitHub Issues](https://github.com/opencircuit-dev/opencircuit-dev/issues)
-- [GitHub Discussions](https://github.com/opencircuit-dev/opencircuit-dev/discussions)
+See the [repository](https://github.com/opencircuit-dev/opencircuit-dev) for
+source and support.

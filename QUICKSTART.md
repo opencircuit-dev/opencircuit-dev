@@ -31,7 +31,9 @@ oc --version
 ```
 
 The checksum command must report `OK`. Do not mix files from different
-versions. The npm package is not published.
+versions. Stable releases are also published to npm; install from npm only
+when the exact version is available in the registry. The public distribution
+repository remains the source for matching release archives and checksums.
 
 ## 3. Start the CLI
 

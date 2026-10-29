@@ -1,106 +1,48 @@
-# Test Helpers
+# CLI test helpers
 
-This directory contains helper functions for testing the Open Circuit CLI.
+This directory contains fixtures and helpers for running CLI tests without
+calling an external model provider. `mock-llm-server.ts` starts an
+OpenAI-compatible HTTP fixture bound to loopback on an ephemeral port.
 
-## Mock LLM Server
-
-The `mock-llm-server.ts` module provides utilities for creating mock LLM servers in tests. This allows you to test the CLI's behavior without making real API calls.
-
-### Basic Usage
+## Mock server example
 
 ```typescript
+import { expect } from "vitest";
 import {
-  setupMockLLMTest,
-  cleanupMockLLMServer,
-} from "../test-helpers/mock-llm-server.js";
+  cleanupTestContext,
+  createTestContext,
+  runCLI,
+} from "./cli-helpers.js";
+import { cleanupMockLLMServer, setupMockLLMTest } from "./mock-llm-server.js";
 
-describe("My Test", () => {
-  let context: any;
-  let mockServer: MockLLMServer;
+const context = await createTestContext();
+const mockServer = await setupMockLLMTest(context, {
+  response: (prompt) =>
+    prompt.includes("weather") ? "It's sunny!" : "Mock response",
+});
 
-  beforeEach(async () => {
-    context = await createTestContext();
-    mockServer = await setupMockLLMTest(context, {
-      response: "Hello from mock LLM!",
-    });
+try {
+  const result = await runCLI(context, {
+    args: ["-p", "Test prompt", "--config", context.configPath!],
   });
-
-  afterEach(async () => {
-    await cleanupMockLLMServer(mockServer);
-    await cleanupTestContext(context);
-  });
-
-  it("should get response from mock", async () => {
-    const result = await runCLI(context, {
-      args: ["-p", "Test prompt", "--config", context.configPath],
-    });
-    expect(result.stdout).toContain("Hello from mock LLM!");
-  });
-});
+  expect(result.stdout).toContain("Mock response");
+  expect(mockServer.requests).toHaveLength(1);
+} finally {
+  await cleanupMockLLMServer(mockServer);
+  await cleanupTestContext(context);
+}
 ```
 
-### Advanced Usage
+`setupMockLLMTest()` writes a temporary config and onboarding marker into the
+provided CLI test context. `createMockLLMServer()` can be used when a test
+needs to manage its own configuration; `createMockLLMConfig()` generates the
+matching YAML. The fixture emits SSE in both modes: `streaming: false` sends
+the full response as one event rather than splitting it into word-sized
+events. `customHandler` is available for endpoint-specific cases.
 
-#### Dynamic Responses
+Run the relevant test from `extensions/cli` with the package's Vitest runner,
+for example:
 
-```typescript
-mockServer = await setupMockLLMTest(context, {
-  response: (prompt: string) => {
-    if (prompt.includes("weather")) {
-      return "It's sunny!";
-    }
-    return "Default response";
-  },
-});
+```bash
+npm test -- src/e2e/headless-mock-llm.test.ts
 ```
-
-#### Non-Streaming Responses
-
-```typescript
-mockServer = await setupMockLLMTest(context, {
-  response: "Non-streaming response",
-  streaming: false, // Sends entire response at once instead of word-by-word
-});
-```
-
-Note: The CLI always expects SSE format, so responses are always sent as streaming events. The `streaming` option only controls whether the response is chunked word-by-word or sent all at once.
-
-#### Custom Request Handling
-
-```typescript
-const mockServer = await createMockLLMServer({
-  customHandler: (req, res) => {
-    // Custom logic here
-    res.writeHead(200);
-    res.end("Custom response");
-  },
-});
-```
-
-#### Request Tracking
-
-The mock server tracks all requests it receives:
-
-```typescript
-// After making requests...
-expect(mockServer.requests).toHaveLength(1);
-expect(mockServer.requests[0].body.messages[0].content).toBe("User prompt");
-```
-
-### API Reference
-
-#### `setupMockLLMTest(context, options)`
-
-Sets up a complete test environment with mock LLM server, config file, and skips onboarding.
-
-#### `createMockLLMServer(options)`
-
-Creates just the mock server without test environment setup.
-
-#### `createMockLLMConfig(mockServer, modelName)`
-
-Generates a config YAML string for the mock server.
-
-#### `cleanupMockLLMServer(mockServer)`
-
-Properly shuts down the mock server.
