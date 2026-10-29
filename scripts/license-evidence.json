@@ -25,9 +25,10 @@
       "spdx": "MIT",
       "sourceUrl": "https://github.com/AlCalzone/ansi-tokenize/blob/34c65fe1076ede285083b6d2b8a48287f8ea815e/package.json",
       "sourceRef": "34c65fe1076ede285083b6d2b8a48287f8ea815e",
-      "licenseTextSource": "https://spdx.org/licenses/MIT.txt",
-      "licenseTextPath": "scripts/license-evidence/mit-standard.txt",
-      "licenseTextSha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+      "licenseTextSource": "https://github.com/AlCalzone/ansi-tokenize/blob/900f19ac5e16ab31633b10d5b46ab58b7af6273b/LICENSE",
+      "licenseTextPath": "scripts/license-evidence/mit-ansi-tokenize.txt",
+      "licenseTextSha256": "85a926eba7e6b0a078dfbcb9ff208c11b5faddff10a762415d0b0394399d62ad",
+      "copyrightSource": "Upstream LICENSE added by the author in 900f19a (\"chore: add missing LICENSE file\"); v0.2.0 itself shipped no LICENSE."
     },
     {
       "name": "@aws-sdk/credential-provider-http",
@@ -80,10 +81,11 @@
       "version": "1.3.0",
       "spdx": "MIT",
       "sourceUrl": "https://github.com/crosstype/node-html-markdown/blob/dde07a7ce1cc4889c24f24c08e41402e8d2dc1ef/package.json",
-      "sourceRef": "v1.3.0",
+      "sourceRef": "dde07a7ce1cc4889c24f24c08e41402e8d2dc1ef",
       "licenseTextSource": "https://spdx.org/licenses/MIT.txt",
-      "licenseTextPath": "scripts/license-evidence/mit-standard.txt",
-      "licenseTextSha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+      "licenseTextPath": "scripts/license-evidence/mit-node-html-markdown.txt",
+      "licenseTextSha256": "243953e9bdf4d83fb83a8af3b05cf4cee8e8ded55f3c9993a821d0aef91aa718",
+      "copyrightSource": "Holder taken from the package.json author field at v1.3.0 (Ron S.); upstream publishes no LICENSE file or copyright line on any branch."
     },
     {
       "name": "saxes",

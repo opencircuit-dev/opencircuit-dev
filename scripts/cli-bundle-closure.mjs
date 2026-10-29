@@ -70,10 +70,15 @@ export function collectBundledPackages() {
     }
   }
 
+  const allowedLicenses = readLicenseAllowlist();
   for (const entry of thirdParty.values()) {
     if (entry.license === "UNKNOWN") {
       errors.push(
         `${entry.name}@${entry.version}: license is not declared in package.json`,
+      );
+    } else if (!isLicenseAllowed(entry.license, allowedLicenses)) {
+      errors.push(
+        `${entry.name}@${entry.version}: license ${entry.license} is not in scripts/license-allowlist.json`,
       );
     }
   }
@@ -118,6 +123,78 @@ export function formatLicense(license) {
     return license.type;
   }
   return "UNKNOWN";
+}
+
+export function readLicenseAllowlist() {
+  const manifest = JSON.parse(
+    readFileSync(
+      resolve(repositoryRoot, "scripts/license-allowlist.json"),
+      "utf8",
+    ),
+  );
+  if (
+    manifest.schemaVersion !== "open-circuit.license-allowlist.v1" ||
+    !Array.isArray(manifest.allowed)
+  ) {
+    throw new Error("unsupported license allowlist schema");
+  }
+  return new Set(manifest.allowed);
+}
+
+// Evaluates an SPDX expression: OR passes when any branch is allowed, AND and
+// WITH pass only when every part is. Anything unparseable is rejected.
+export function isLicenseAllowed(expression, allowed) {
+  const tokens = expression.match(/\(|\)|[^\s()]+/g) ?? [];
+  let position = 0;
+  const peek = () => tokens[position];
+  const next = () => tokens[position++];
+
+  function parseOr() {
+    let result = parseAnd();
+    while (peek() === "OR") {
+      next();
+      const right = parseAnd();
+      result = result || right;
+    }
+    return result;
+  }
+  function parseAnd() {
+    let result = parseWith();
+    while (peek() === "AND") {
+      next();
+      const right = parseWith();
+      result = result && right;
+    }
+    return result;
+  }
+  function parseWith() {
+    let result = parseTerm();
+    while (peek() === "WITH") {
+      next();
+      const exception = next();
+      result = result && allowed.has(`WITH ${exception}`);
+    }
+    return result;
+  }
+  function parseTerm() {
+    const token = next();
+    if (token === "(") {
+      const result = parseOr();
+      if (next() !== ")") throw new Error("unbalanced SPDX expression");
+      return result;
+    }
+    if (!token || ["AND", "OR", "WITH", ")"].includes(token)) {
+      throw new Error("malformed SPDX expression");
+    }
+    return allowed.has(token);
+  }
+
+  try {
+    const result = parseOr();
+    return position === tokens.length && result;
+  } catch {
+    return false;
+  }
 }
 
 // The package root is the path through the last node_modules/<name> (or

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "open-circuit.license-allowlist.v1",
+  "description": "SPDX license identifiers permitted in the bundled CLI without legal review. Anything else, including copyleft, source-available, proprietary, and unknown licenses, blocks release; there is no exception mechanism.",
+  "allowed": [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "MIT-0"
+  ]
+}
