@@ -9,6 +9,8 @@
     "dist",
     "README.md",
     "LICENSE.txt",
+    "NOTICE.txt",
+    "THIRD_PARTY_NOTICES.txt",
     "templates"
   ],
   "bin": {
@@ -47,10 +49,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-circuit-dev/open-circuit.git"
+    "url": "git+https://github.com/opencircuit-dev/opencircuit-dev.git"
   },
   "bugs": {
-    "url": "https://github.com/open-circuit-dev/open-circuit/issues"
+    "url": "https://github.com/opencircuit-dev/opencircuit-dev/issues"
   },
   "homepage": "/",
   "dependencies": {

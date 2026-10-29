@@ -14,12 +14,19 @@ permissions:
   pull-requests: write
   id-token: write # Required for OIDC
 
+concurrency:
+  group: stable-release-${{ inputs.stable_version }}
+  cancel-in-progress: false
+
 jobs:
   stable-release:
     name: Stable Release
     runs-on: ubuntu-24.04
+    environment: stable-release
     # Only run this workflow on the canonical repository.
-    if: github.repository == 'opencircuit-dev/opencircuit-dev'
+    if: github.repository == 'opencircuit-dev/opencircuit-dev' && github.ref == 'refs/heads/main'
+    env:
+      STABLE_VERSION: ${{ inputs.stable_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -46,13 +53,32 @@ jobs:
           cd core
           npm run build
 
+      - name: Verify release version and tag state
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const packageJson = JSON.parse(fs.readFileSync("extensions/cli/package.json", "utf8"));
+          if (packageJson.version !== process.env.STABLE_VERSION) {
+            throw new Error(`input version ${process.env.STABLE_VERSION} does not match source version ${packageJson.version}`);
+          }
+          if (!/^\d+\.\d+\.\d+$/.test(process.env.STABLE_VERSION)) {
+            throw new Error(`stable version must be release semver: ${process.env.STABLE_VERSION}`);
+          }
+          NODE
+          if git ls-remote --exit-code --tags origin "refs/tags/v${STABLE_VERSION}" >/dev/null 2>&1; then
+            echo "::error::release tag v${STABLE_VERSION} already exists"
+            exit 1
+          fi
+
       - name: Install CLI dependencies
         working-directory: extensions/cli
-        run: npm ci
+        run: npm ci --include=optional
 
-      - name: Update version
+      - name: Check CLI dependency policy
         working-directory: extensions/cli
-        run: npm version ${{ inputs.stable_version }} --no-git-tag-version
+        run: |
+          npm run check:install-scripts
+          npm run check:dependency-policy
 
       - name: Build
         working-directory: extensions/cli
@@ -61,6 +87,28 @@ jobs:
       - name: Run tests
         working-directory: extensions/cli
         run: npm test
+
+      - name: Build and validate exact release artifact
+        working-directory: extensions/cli
+        run: |
+          npm run release:artifact
+          npm run check:release-artifact
+
+      - name: Verify clean reviewed source
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "::error::release checkout is dirty"
+            git status --short
+            exit 1
+          fi
+          git show --no-patch --format='source commit: %H%nsubject: %s' HEAD
+
+      - name: Create and push source tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+        run: |
+          git tag -a "v${STABLE_VERSION}" -m "Open Circuit CLI v${STABLE_VERSION}" HEAD
+          git push origin "v${STABLE_VERSION}"
 
       - name: Setup Node.js for OIDC publish
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -72,26 +120,8 @@ jobs:
         working-directory: extensions/cli
         run: |
           unset NODE_AUTH_TOKEN
-          npm publish --tag latest --provenance
-          echo "Published version: ${{ inputs.stable_version }}"
-
-      - name: Create release on GitHub
-        env:
-          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag "v${{ inputs.stable_version }}"
-          git push origin "v${{ inputs.stable_version }}"
-
-          gh release create "v${{ inputs.stable_version }}" \
-            --title "CLI Release v${{ inputs.stable_version }}" \
-            --notes "Release v${{ inputs.stable_version }} built and published from the main branch." \
-            --latest
-
-      - name: Build CLI release artifact
-        working-directory: extensions/cli
-        run: npm run release:artifact
+          npm publish "$GITHUB_WORKSPACE/release-artifacts/v${STABLE_VERSION}/opencircuit-cli-${STABLE_VERSION}.tgz" --tag latest --provenance
+          echo "Published version: ${STABLE_VERSION}"
 
       - name: Checkout public release-artifacts repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -109,6 +139,15 @@ jobs:
             --source "$GITHUB_WORKSPACE" \
             --dest "$PWD" \
             --push
+
+      - name: Create release on GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+        run: |
+          gh release create "v${STABLE_VERSION}" \
+            --title "CLI Release v${STABLE_VERSION}" \
+            --notes "Release v${STABLE_VERSION} built and published from the reviewed main commit." \
+            --latest
 
       - name: Publish Blueprints to Runloop
         env:

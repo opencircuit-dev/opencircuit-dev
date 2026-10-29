@@ -1,4 +1,4 @@
-name: Publish Main CLI Artifact
+name: Validate Main CLI Artifact
 
 on:
   push:
@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish-cli-artifact:
-    name: Publish CLI bundle
+  validate-cli-artifact:
+    name: Validate CLI bundle
     runs-on: ubuntu-24.04
     if: github.repository == 'opencircuit-dev/opencircuit-dev'
     steps:
@@ -65,29 +65,5 @@ jobs:
         working-directory: extensions/cli
         run: npm run check:release-artifact
 
-      - name: Require public repository credentials
-        env:
-          PUBLIC_RELEASE_REPO_TOKEN: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
-        run: |
-          if [[ -z "$PUBLIC_RELEASE_REPO_TOKEN" ]]; then
-            echo "::error::PUBLIC_RELEASE_REPO_TOKEN is not configured"
-            exit 1
-          fi
-
-      - name: Checkout public release repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: opencircuit-dev/opencircuit
-          path: public-release-repo
-          token: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
-          fetch-depth: 0
-
-      - name: Publish release artifact
-        working-directory: public-release-repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          "$GITHUB_WORKSPACE/scripts/publish-release-artifacts.sh" \
-            --source "$GITHUB_WORKSPACE" \
-            --dest "$PWD" \
-            --push
+      - name: Record non-release result
+        run: echo "Main-branch validation does not publish a release; use stable-release.yml for tagged promotion."

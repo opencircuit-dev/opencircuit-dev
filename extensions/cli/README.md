@@ -19,8 +19,9 @@ npm install --global ./opencircuit-cli-X.Y.Z.tgz
 oc --version
 ```
 
-The npm package has not been published. Do not install an unpublished version
-from the npm registry.
+Stable releases publish the exact verified archive to npm and the public
+distribution repository. Do not install an unpublished version from the npm
+registry.
 
 Installation places starter provider templates in `~/.ocircuit/templates/`
 without overwriting existing files. Copy one to `~/.ocircuit/config.yaml` or
