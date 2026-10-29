@@ -65,5 +65,13 @@ jobs:
         working-directory: extensions/cli
         run: npm run check:release-artifact
 
+      - name: Verify committed notices match the bundle
+        run: |
+          if ! git diff --quiet -- extensions/cli/THIRD_PARTY_NOTICES.txt; then
+            echo "::error::THIRD_PARTY_NOTICES.txt is stale; run npm run generate:notices in extensions/cli and commit the result"
+            git diff --stat -- extensions/cli/THIRD_PARTY_NOTICES.txt
+            exit 1
+          fi
+
       - name: Record non-release result
         run: echo "Main-branch validation does not publish a release; use stable-release.yml for tagged promotion."

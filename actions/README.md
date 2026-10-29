@@ -142,5 +142,5 @@ uses: brettconn/open-circuit-dev/actions/general-review@ac4d68177934ba4c338b7081
 For issues or questions:
 
 - [Open Circuit Documentation](/)
-- [GitHub Issues](https://github.com/open-circuit-dev/open-circuit/issues)
-- [GitHub Discussions](https://github.com/open-circuit-dev/open-circuit/discussions)
+- [GitHub Issues](https://github.com/opencircuit-dev/opencircuit-dev/issues)
+- [GitHub Discussions](https://github.com/opencircuit-dev/opencircuit-dev/discussions)

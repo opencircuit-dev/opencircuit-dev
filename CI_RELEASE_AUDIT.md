@@ -46,13 +46,24 @@ links in workflow comments and dependency metadata are not project references.
 
 Main-branch validation builds and checks the exact archive but does not publish
 it. `stable-release.yml` is the only stable publisher: it validates the source
-version, runs the dependency/install-script/release gates, creates the reviewed
+version, runs the dependency/install-script/release gates, preflights the
+public-repository immutability checks, and only then creates the reviewed
 source tag, publishes that exact tarball to npm with provenance, and pushes the
 same tarball plus checksum, SBOM, notices, and provenance to
 `opencircuit-dev/opencircuit` via `scripts/publish-release-artifacts.sh`.
 Publication is protected by the `stable-release` environment and immutable
 same-version checks. Checksum and metadata verification remain mandatory for
 the packaged user install path.
+
+Notices and the SBOM both come from `scripts/cli-bundle-closure.mjs`, which
+reads the esbuild metafile (`extensions/cli/dist/meta.json`) and ties every
+bundled third-party package to its entry in the CLI, Core, or root lockfile.
+Packaging fails if a bundled package has no lockfile entry, a version mismatch,
+or no declared license, or if the committed
+`extensions/cli/THIRD_PARTY_NOTICES.txt` does not list exactly the bundled
+closure. After a dependency change, run `npm run build` and
+`npm run generate:notices` in `extensions/cli` and commit the result; main
+validation fails on a stale notices file.
 
 ## Validation evidence
 

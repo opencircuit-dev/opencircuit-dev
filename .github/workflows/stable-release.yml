@@ -14,8 +14,9 @@ permissions:
   pull-requests: write
   id-token: write # Required for OIDC
 
+# One global group: every stable release pushes to the same public repository.
 concurrency:
-  group: stable-release-${{ inputs.stable_version }}
+  group: stable-release
   cancel-in-progress: false
 
 jobs:
@@ -90,6 +91,8 @@ jobs:
 
       - name: Build and validate exact release artifact
         working-directory: extensions/cli
+        env:
+          RELEASE_TAG: v${{ inputs.stable_version }}
         run: |
           npm run release:artifact
           npm run check:release-artifact
@@ -102,6 +105,32 @@ jobs:
             exit 1
           fi
           git show --no-patch --format='source commit: %H%nsubject: %s' HEAD
+
+      # Everything below the tag step is irreversible, so prove the public
+      # repository is reachable and accepts this exact bundle first.
+      - name: Require public repository credentials
+        env:
+          PUBLIC_RELEASE_REPO_TOKEN: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
+        run: |
+          if [[ -z "$PUBLIC_RELEASE_REPO_TOKEN" ]]; then
+            echo "::error::PUBLIC_RELEASE_REPO_TOKEN is not configured"
+            exit 1
+          fi
+
+      - name: Checkout public release-artifacts repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: opencircuit-dev/opencircuit
+          path: public-release-repo
+          token: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
+
+      - name: Preflight public repository publication
+        working-directory: public-release-repo
+        run: |
+          "$GITHUB_WORKSPACE/scripts/publish-release-artifacts.sh" \
+            --source "$GITHUB_WORKSPACE" \
+            --dest "$PWD" \
+            --no-commit
 
       - name: Create and push source tag
         env:
@@ -122,13 +151,6 @@ jobs:
           unset NODE_AUTH_TOKEN
           npm publish "$GITHUB_WORKSPACE/release-artifacts/v${STABLE_VERSION}/opencircuit-cli-${STABLE_VERSION}.tgz" --tag latest --provenance
           echo "Published version: ${STABLE_VERSION}"
-
-      - name: Checkout public release-artifacts repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: opencircuit-dev/opencircuit
-          path: public-release-repo
-          token: ${{ secrets.PUBLIC_RELEASE_REPO_TOKEN }}
 
       - name: Publish release artifacts to public repository
         working-directory: public-release-repo
