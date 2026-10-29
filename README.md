@@ -3,7 +3,7 @@
 Open Circuit is a terminal coding agent built around the `oc` command and a
 reusable Core runtime. Use it interactively or run it headlessly in scripts.
 
-[![CLI](https://img.shields.io/badge/CLI-1.0.2-111827)](extensions/cli/README.md)
+[![CLI](https://img.shields.io/badge/CLI-1.0.3-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
@@ -11,7 +11,7 @@ reusable Core runtime. Use it interactively or run it headlessly in scripts.
 
 Read the [QUICKSTART](QUICKSTART.md) for installation, provider configuration,
 and first commands. This source checkout identifies the CLI package as
-**1.0.2**. A source version is not proof that its release archive is available;
+**1.0.3**. A source version is not proof that its release archive is available;
 check the [public distribution repository](https://github.com/open-circuit-dev/opencircuit)
 for the latest published tarball and checksum before installing.
 

@@ -1,7 +1,7 @@
 # Open Circuit CLI
 
 The Open Circuit CLI provides the `oc` command for interactive and headless
-coding-agent sessions. This package source is version **1.0.2**. Release
+coding-agent sessions. This package source is version **1.0.3**. Release
 archives are published separately; check the
 [public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)

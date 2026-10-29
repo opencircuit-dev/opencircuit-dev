@@ -1,6 +1,6 @@
 {
   "name": "@opencircuit/cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Open Circuit command-line coding agent",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,6 +23,7 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:runtime-boundary": "node ../../tests/characterization/runtime-boundary-check.mjs",
     "check:release-artifact": "node ../../scripts/check-cli-release-artifact.mjs",
+    "check:licenses": "node ../../scripts/generate-cli-notices.mjs",
     "release:artifact": "node ../../scripts/package-cli-release.mjs",
     "generate:notices": "node ../../scripts/generate-cli-notices.mjs",
     "test:smoke": "node smoke-test.mjs",

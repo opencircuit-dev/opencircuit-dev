@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "open-circuit.license-evidence.v1",
+  "entries": [
+    {
+      "name": "@ai-sdk/provider-utils",
+      "version": "4.0.51",
+      "spdx": "Apache-2.0",
+      "sourceUrl": "https://github.com/vercel/ai/blob/6fabd709198fa0f98f4d2262bd099b52ca6a0bc6/LICENSE",
+      "sourceRef": "6fabd709198fa0f98f4d2262bd099b52ca6a0bc6",
+      "licenseTextPath": "scripts/license-evidence/apache-2.0-vercel-provider-utils.txt",
+      "licenseTextSha256": "4bd6464daafb3cc689d914b91952313b69be04138e83c3cfc47a486835c06e83"
+    },
+    {
+      "name": "@ai-sdk/provider-utils",
+      "version": "4.0.52",
+      "spdx": "Apache-2.0",
+      "sourceUrl": "https://github.com/vercel/ai/blob/5d69aa444fe9eb0c1dc1fe45c0993a7b4b27f2ba/LICENSE",
+      "sourceRef": "5d69aa444fe9eb0c1dc1fe45c0993a7b4b27f2ba",
+      "licenseTextPath": "scripts/license-evidence/apache-2.0-vercel-provider-utils-4.0.52.txt",
+      "licenseTextSha256": "4bd6464daafb3cc689d914b91952313b69be04138e83c3cfc47a486835c06e83"
+    },
+    {
+      "name": "@alcalzone/ansi-tokenize",
+      "version": "0.2.0",
+      "spdx": "MIT",
+      "sourceUrl": "https://github.com/AlCalzone/ansi-tokenize/blob/34c65fe1076ede285083b6d2b8a48287f8ea815e/package.json",
+      "sourceRef": "34c65fe1076ede285083b6d2b8a48287f8ea815e",
+      "licenseTextSource": "https://spdx.org/licenses/MIT.txt",
+      "licenseTextPath": "scripts/license-evidence/mit-standard.txt",
+      "licenseTextSha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+    },
+    {
+      "name": "@aws-sdk/credential-provider-http",
+      "version": "3.972.73",
+      "spdx": "Apache-2.0",
+      "sourceUrl": "https://github.com/aws/aws-sdk-js-v3/blob/c47a84766e65e9a7f3d7151ff10d58aba29e6df0/LICENSE",
+      "sourceRef": "v3.972.0 (package patch version 3.972.73)",
+      "licenseTextPath": "scripts/license-evidence/apache-2.0-aws-sdk.txt",
+      "licenseTextSha256": "4186c3f89c23f27b4c0caab574737c49ee5137c36a3c103484feaca4aeec2310"
+    },
+    {
+      "name": "@aws-sdk/credential-provider-login",
+      "version": "3.972.78",
+      "spdx": "Apache-2.0",
+      "sourceUrl": "https://github.com/aws/aws-sdk-js-v3/blob/c47a84766e65e9a7f3d7151ff10d58aba29e6df0/LICENSE",
+      "sourceRef": "v3.972.0 (package patch version 3.972.78)",
+      "licenseTextPath": "scripts/license-evidence/apache-2.0-aws-sdk.txt",
+      "licenseTextSha256": "4186c3f89c23f27b4c0caab574737c49ee5137c36a3c103484feaca4aeec2310"
+    },
+    {
+      "name": "@aws-sdk/nested-clients",
+      "version": "3.997.45",
+      "spdx": "Apache-2.0",
+      "sourceUrl": "https://github.com/aws/aws-sdk-js-v3/blob/637dcf0ea7467a0b9e432575da50579bc432b3c5/LICENSE",
+      "sourceRef": "v3.997.0 (package patch version 3.997.45)",
+      "licenseTextPath": "scripts/license-evidence/apache-2.0-aws-sdk.txt",
+      "licenseTextSha256": "4186c3f89c23f27b4c0caab574737c49ee5137c36a3c103484feaca4aeec2310"
+    },
+    {
+      "name": "boolbase",
+      "version": "1.0.0",
+      "spdx": "ISC",
+      "sourceUrl": "https://github.com/fb55/boolbase/blob/9837d5bf4f30390ac6384a6bc605ca2d69ade4bf/package.json",
+      "sourceRef": "9837d5bf4f30390ac6384a6bc605ca2d69ade4bf",
+      "licenseTextSource": "https://github.com/fb55/boolbase/blob/54811f01c797a6bb1c263183ae90b7dd627e0638/LICENSE",
+      "licenseTextPath": "scripts/license-evidence/isc-boolbase.txt",
+      "licenseTextSha256": "f22bae073e98cc581dc6e3ae401f6963d42cf7f1cf2a0b20b91dc486ce8639ed"
+    },
+    {
+      "name": "data-uri-to-buffer",
+      "version": "4.0.1",
+      "spdx": "MIT",
+      "sourceUrl": "https://github.com/TooTallNate/node-data-uri-to-buffer/blob/85cd8c854aefbf1bb636789d80364cfac8ea1583/README.md#license",
+      "sourceRef": "85cd8c854aefbf1bb636789d80364cfac8ea1583",
+      "licenseTextPath": "scripts/license-evidence/mit-data-uri-to-buffer.txt",
+      "licenseTextSha256": "1e741447fe6dcb21cbb4d16fefbb98d274804189611a8a6cd6e8c0af243222c9"
+    },
+    {
+      "name": "node-html-markdown",
+      "version": "1.3.0",
+      "spdx": "MIT",
+      "sourceUrl": "https://github.com/crosstype/node-html-markdown/blob/dde07a7ce1cc4889c24f24c08e41402e8d2dc1ef/package.json",
+      "sourceRef": "v1.3.0",
+      "licenseTextSource": "https://spdx.org/licenses/MIT.txt",
+      "licenseTextPath": "scripts/license-evidence/mit-standard.txt",
+      "licenseTextSha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+    },
+    {
+      "name": "saxes",
+      "version": "6.0.0",
+      "spdx": "ISC",
+      "sourceUrl": "https://github.com/lddubeau/saxes/blob/211fa0ebec9b628affc09219199639887174bfc3/LICENSE",
+      "sourceRef": "211fa0ebec9b628affc09219199639887174bfc3",
+      "licenseTextPath": "scripts/license-evidence/isc-saxes.txt",
+      "licenseTextSha256": "07648979cea27b8674d6ac23367410fa082b381e68574454090a800e9a58fd09"
+    },
+    {
+      "name": "yoga-layout",
+      "version": "3.2.1",
+      "spdx": "MIT",
+      "sourceUrl": "https://github.com/facebook/yoga/blob/042f5013152eb81c1552dec945b88f7b95ca350f/LICENSE",
+      "sourceRef": "v3.2.1",
+      "licenseTextPath": "scripts/license-evidence/mit-yoga.txt",
+      "licenseTextSha256": "33131abf17b4c2f0299d12d3669c7eb82074e43d908400d5cc6cf1ea215c77bb"
+    }
+  ]
+}

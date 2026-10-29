@@ -48,6 +48,7 @@ jobs:
           npm ci --include=optional
           npm run check:install-scripts
           npm run check:dependency-policy
+          npm run check:licenses
 
       - name: Build CLI
         working-directory: extensions/cli

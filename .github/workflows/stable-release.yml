@@ -80,6 +80,7 @@ jobs:
         run: |
           npm run check:install-scripts
           npm run check:dependency-policy
+          npm run check:licenses
 
       - name: Build
         working-directory: extensions/cli

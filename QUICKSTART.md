@@ -17,7 +17,7 @@ nvm use 24.19.0
 
 ## 2. Install a release
 
-This source checkout identifies the CLI package as **1.0.2**. Release archives
+This source checkout identifies the CLI package as **1.0.3**. Release archives
 are published separately; use only a version whose tarball and checksum are
 available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
 
