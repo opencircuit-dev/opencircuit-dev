@@ -8,6 +8,9 @@ vi.mock("../services/index.js", () => ({
       getCurrentModelIndex: vi.fn(),
       switchModel: vi.fn(),
     },
+    config: {
+      setSelectedModel: vi.fn(),
+    },
   },
 }));
 
@@ -28,6 +31,7 @@ const assistant = {
 const getAvailableChatModels = vi.mocked(services.model.getAvailableChatModels);
 const getCurrentModelIndex = vi.mocked(services.model.getCurrentModelIndex);
 const switchModel = vi.mocked(services.model.switchModel);
+const setSelectedModel = vi.mocked(services.config.setSelectedModel);
 const askForChoice = vi.mocked(questionWithChoices);
 
 describe("/model command", () => {
@@ -84,6 +88,7 @@ describe("/model command", () => {
     ]);
     getCurrentModelIndex.mockReturnValue(4);
     askForChoice.mockResolvedValue("2");
+    setSelectedModel.mockResolvedValue({ persisted: true });
 
     const result = await handleModelSlashCommand([], assistant);
 
@@ -96,7 +101,26 @@ describe("/model command", () => {
       "Invalid selection. Enter one of the listed numbers or q to cancel.",
     );
     expect(switchModel).toHaveBeenCalledWith(9);
+    expect(setSelectedModel).toHaveBeenCalledWith("Shared");
     expect(result.output).toContain("Switched to model: Shared");
+  });
+
+  it("reports a session-only switch when the preference cannot be saved", async () => {
+    getAvailableChatModels.mockReturnValue([
+      { provider: "openai", name: "GPT", index: 0 },
+    ]);
+    getCurrentModelIndex.mockReturnValue(0);
+    askForChoice.mockResolvedValue("1");
+    setSelectedModel.mockResolvedValue({
+      persisted: false,
+      error: new Error("permission denied"),
+    });
+
+    const result = await handleModelSlashCommand([], assistant);
+
+    expect(switchModel).toHaveBeenCalledWith(0);
+    expect(setSelectedModel).toHaveBeenCalledWith("GPT");
+    expect(result.output).toContain("session only");
   });
 
   it("cancels without switching when the user enters q", async () => {

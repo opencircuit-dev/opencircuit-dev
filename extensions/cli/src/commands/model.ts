@@ -80,11 +80,18 @@ export async function handleModelSlashCommand(
 
     // Update current session model
     await modelService.switchModel(selectedChoice.modelIndex);
+    const persistence = await services.config.setSelectedModel(
+      selectedChoice.name,
+    );
+
+    const persistenceSuffix = persistence.persisted
+      ? ""
+      : " (session only; preference could not be saved)";
 
     return {
       exit: false,
       output: chalk.green(
-        `Switched to model: ${chalk.bold(selectedChoice.name)}`,
+        `Switched to model: ${chalk.bold(selectedChoice.name)}${persistenceSuffix}`,
       ),
     };
   } catch (error: unknown) {
