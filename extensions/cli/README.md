@@ -20,10 +20,10 @@ the approved internal distribution. Local generation is not remote publication.
 The source staging path is `../../release-artifacts/v1.0.2/`.
 
 The latest validation-only source build is commit
-`8f541eee72b5a7ad92ca6a3c9410db19712cc54e`. It passed Server1 Core and CLI
+`99678dabebc3c62bfc3990ce9be4338e4d357c1a`. It passed Server1 Core and CLI
 typechecks, CLI build and smoke tests, all 941 Core tests that ran (68 skipped),
-and validation-artifact generation. Its CLI 1.0.2 archive SHA-256 is
-`57ccb2f5b49937479415896c353577d06282cf230922869af814f50a18bf4158`; this
+and validation-artifact generation. Its profileless CLI 1.0.3 archive SHA-256 is
+`da6b52c7da439eb21824add2a0269c78341b153f0f22334e25db2f622d641df0`; this
 candidate has not been published and is not the approved internal tarball
 described above. Do not substitute it until the internal release-publish action
 has regenerated and staged the release.
@@ -35,6 +35,9 @@ audit (ESLint/TypeScript-ESLint/minimatch). No new protected internal archive
 was staged. The local source `release-artifacts/v1.0.3/` is a public test
 package only. The approved internal 1.0.2 archive remains the installation
 target; resolve the audit findings before canonical regeneration.
+Compatible Hono 2.1.5 and qs 6.17.1 fixes are included in `99678dabe`, but
+protected regeneration still fails the root audit. The incompatible
+minimatch 11 override was removed rather than bypassing validation.
 
 ```bash
 shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&

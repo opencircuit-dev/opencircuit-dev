@@ -49,13 +49,13 @@ oc init
 
 ### Latest validated source build (not released)
 
-Source `8f541eee72b5a7ad92ca6a3c9410db19712cc54e` passed the complete
-Server1 → Ubuntu1 test pipeline. Its validation-only CLI 1.0.2 artifact has SHA-256
-`57ccb2f5b49937479415896c353577d06282cf230922869af814f50a18bf4158`.
+Source `99678dabebc3c62bfc3990ce9be4338e4d357c1a` passed the complete
+Server1 → Ubuntu1 test pipeline. Its validation-only CLI 1.0.3 artifact has SHA-256
+`da6b52c7da439eb21824add2a0269c78341b153f0f22334e25db2f622d641df0`.
 This candidate has **not** been published to the internal distribution; the
 1.0.2 archive above remains the installable release until the canonical
 internal release-publish action regenerates and stages the release artifacts.
-The validation artifact is not the same archive as the currently published
+The profileless validation artifact is not the approved protected internal
 1.0.2 tarball.
 
 Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding)
@@ -75,6 +75,10 @@ at the mandatory root release-tooling audit (ESLint/TypeScript-ESLint/minimatch
 findings). Neither release destination received a new protected archive.
 The existing `release-artifacts/v1.0.3/` contains a local public test package,
 not an approved internal SSO release. Keep using the internal 1.0.2 archive.
+Compatible Hono 2.1.5 and qs 6.17.1 fixes are committed in `99678dabe`.
+Protected regeneration was retried and still failed the root audit. A tested
+minimatch 11 override broke ESLint's `makeRe` import and was removed; legacy
+glob/minimatch and unpatched deepmerge findings also remain in Core.
 Resolve the audit findings and rerun the canonical release action; do not
 bypass the gate. Local 1.0.3 builds, 78 focused tests, 14 policy tests, smoke
 and public archive checks passed, but full retained-closure validation did not.
