@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "open-circuit.release-tooling-audit-policy.v1",
+  "profiles": {
+    "root": {
+      "schemaVersion": "open-circuit.release-tooling-audit.v1",
+      "expiresOn": "2027-01-31",
+      "maxSeverity": "moderate",
+      "exitPath": "Upgrade the owning Jest, ESLint, and minimatch chains individually, or replace the affected release tooling; do not renew this policy without fresh advisory review.",
+      "advisories": [
+        "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+        "https://github.com/advisories/GHSA-gcqx-w48m-w2h4"
+      ],
+      "packages": {
+        "@eslint-community/eslint-utils": ["4.9.0"],
+        "@eslint/config-array": ["0.23.5"],
+        "@jest/core": ["29.7.0"],
+        "@jest/expect": ["29.7.0"],
+        "@jest/globals": ["29.7.0"],
+        "@jest/reporters": ["29.7.0"],
+        "@jest/transform": ["29.7.0"],
+        "@typescript-eslint/parser": ["8.70.0"],
+        "@typescript-eslint/typescript-estree": ["8.70.0"],
+        "babel-jest": ["29.7.0"],
+        "babel-plugin-istanbul": ["6.1.1"],
+        "create-jest": ["29.7.0"],
+        "deepmerge": ["4.3.1"],
+        "eslint": ["10.10.0"],
+        "eslint-plugin-import-x": ["4.17.1"],
+        "glob": ["7.2.3"],
+        "jest": ["29.7.0"],
+        "jest-circus": ["29.7.0"],
+        "jest-cli": ["29.7.0"],
+        "jest-config": ["29.7.0"],
+        "jest-resolve-dependencies": ["29.7.0"],
+        "jest-runner": ["29.7.0"],
+        "jest-runtime": ["29.7.0"],
+        "jest-snapshot": ["29.7.0"],
+        "minimatch": ["3.1.5", "10.2.6"],
+        "test-exclude": ["6.0.0"],
+        "ts-jest": ["29.4.12"]
+      }
+    },
+    "cli": {
+      "schemaVersion": "open-circuit.release-tooling-audit.v1",
+      "expiresOn": "2027-01-31",
+      "maxSeverity": "moderate",
+      "exitPath": "Upgrade the owning CLI lint/test and minimatch chains individually, or replace the affected release tooling; do not renew this policy without fresh advisory review.",
+      "advisories": [
+        "https://github.com/advisories/GHSA-6pq8-jhm2-2vcw",
+        "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+        "https://github.com/advisories/GHSA-rmxm-3fg6-px4f"
+      ],
+      "packages": {
+        "@eslint-community/eslint-utils": ["4.10.1"],
+        "@eslint/config-array": ["0.23.5"],
+        "@hono/node-server": ["2.1.1"],
+        "@typescript-eslint/eslint-plugin": ["8.70.0"],
+        "@typescript-eslint/parser": ["8.70.0"],
+        "@typescript-eslint/type-utils": ["8.70.0"],
+        "@typescript-eslint/typescript-estree": ["8.70.0"],
+        "@typescript-eslint/utils": ["8.70.0"],
+        "eslint": ["10.10.0"],
+        "eslint-plugin-import-x": ["4.17.1"],
+        "eslint-plugin-unused-imports": ["4.4.1"],
+        "ignore-walk": ["7.0.0"],
+        "minimatch": ["9.0.9", "10.2.6"],
+        "qs": ["6.16.0"]
+      }
+    }
+  }
+}

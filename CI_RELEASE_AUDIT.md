@@ -20,9 +20,14 @@ Public artifact repository: `opencircuit-dev/opencircuit`
   compatibility validation.
 - Root, Core, and CLI production closures retain strict high-severity audit
   gates.
-  Development-only release tooling is checked by a fail-closed zero-finding
-  gate in `scripts/check-release-tooling-audit-exception.mjs` (the historical
-  entry-point name is preserved). There are no vulnerability exceptions.
+  Development-only release tooling is checked by the bounded, fail-closed
+  policy in `scripts/release-tooling-audit-policy.json` through
+  `scripts/check-release-tooling-audit-exception.mjs` (the historical
+  entry-point name is preserved). The policy is profile-specific,
+  exact-version pinned, limited to low/moderate findings, expires on
+  2027-01-31, and rejects any new package, version, advisory, or high/critical
+  finding. It does not apply to production closures. Its exit path is to
+  upgrade or replace the affected Jest/ESLint/minimatch chains before expiry.
   Conventional changelog/recommendation libraries and the host npm CLI replace
   semantic-release's vulnerable bundled npm dependency.
 
