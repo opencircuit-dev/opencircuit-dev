@@ -1,6 +1,6 @@
 {
   "schemaVersion": "open-circuit.license-allowlist.v1",
-  "description": "Approved SPDX license identifiers permitted in the bundled CLI. BlueOak-1.0.0 approval was confirmed by the operator on 2026-10-31. Anything else, including copyleft, source-available, proprietary, and unknown licenses, blocks release; there is no exception mechanism.",
+  "description": "Approved SPDX license identifiers permitted in the bundled CLI and its published install-time dependency closure. BlueOak-1.0.0 approval was confirmed by the operator on 2026-10-31. Upstream's Python-2.0 allowance is not adopted pending internal approval. Anything else, including copyleft, source-available, proprietary, and unknown licenses, blocks release; there is no exception mechanism.",
   "allowed": [
     "Apache-2.0",
     "BSD-2-Clause",

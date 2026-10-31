@@ -34,6 +34,57 @@ test("tooling audit rejects findings, errors, and incomplete reports", () => {
   );
 });
 
+test("internal tooling audit rejects upstream exceptions even with an exact policy", () => {
+  const policy = {
+    schemaVersion: "open-circuit.release-tooling-audit.v1",
+    expiresOn: "2099-01-01",
+    maxSeverity: "moderate",
+    exitPath: "replace the tooling",
+    advisories: ["https://github.com/advisories/example"],
+    packages: { example: ["1.2.3"] },
+  };
+  const lock = {
+    packages: { "node_modules/example": { version: "1.2.3" } },
+  };
+  assert.throws(
+    () =>
+      assertCleanAudit(
+        {
+          vulnerabilities: {
+            example: {
+              severity: "moderate",
+              nodes: ["node_modules/example"],
+              via: [{ url: "https://github.com/advisories/example" }],
+            },
+          },
+          metadata: { vulnerabilities: { total: 1 } },
+        },
+        { policy, lock },
+      ),
+    /not permitted/,
+  );
+  assert.throws(
+    () =>
+      assertCleanAudit(
+        {
+          vulnerabilities: {
+            example: {
+              severity: "moderate",
+              nodes: ["node_modules/example"],
+              via: [],
+            },
+          },
+          metadata: { vulnerabilities: { total: 1 } },
+        },
+        {
+          policy,
+          lock: { packages: { "node_modules/example": { version: "9.9.9" } } },
+        },
+      ),
+    /not permitted/,
+  );
+});
+
 test("preserves CLI patch-only feature rules and ignored commit types", () => {
   assert.deepEqual(recommendRelease([{ type: "feat", notes: [] }], "cli"), {
     level: 2,

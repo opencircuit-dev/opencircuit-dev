@@ -81,7 +81,7 @@ jobs:
           npm run check:install-scripts
           npm run check:dependency-policy
 
-      # check:licenses reads dist/meta.json, so it must follow the build.
+      # check:licenses reads the bundle and the published install-time lockfile closure.
       - name: Build
         working-directory: extensions/cli
         run: |

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { resolve } from "node:path";
 import {
+  collectInstallTimePackages,
   isLicenseAllowed,
   readLicenseAllowlist,
   repositoryRoot,
@@ -37,6 +38,7 @@ test("vendored third-party source is not classified as first-party code", () => 
 test("accepts allowlisted identifiers and rejects everything else", () => {
   assert.equal(isLicenseAllowed("MIT", allowed), true);
   assert.equal(isLicenseAllowed("GPL-3.0-only", allowed), false);
+  assert.equal(isLicenseAllowed("LGPL-3.0-or-later", allowed), false);
   assert.equal(isLicenseAllowed("SSPL-1.0", allowed), false);
   assert.equal(isLicenseAllowed("UNKNOWN", allowed), false);
 });
@@ -103,4 +105,26 @@ test("repository allowlist includes the bundled permissive licenses", () => {
   ]) {
     assert.ok(repositoryAllowlist.has(license), license);
   }
+});
+
+test("upstream Python license allowance requires separate internal approval", () => {
+  assert.equal(isLicenseAllowed("Python-2.0", readLicenseAllowlist()), false);
+});
+
+test("collects the published install-time closure without dev-only packages", () => {
+  const installTime = collectInstallTimePackages();
+  const ids = new Set(
+    installTime.map((entry) => `${entry.name}@${entry.version}`),
+  );
+
+  assert.ok(ids.has("argparse@2.0.1"));
+  assert.equal(
+    [...ids].some((id) => id.startsWith("minimatch@")),
+    false,
+  );
+  assert.equal(
+    [...ids].some((id) => id.startsWith("@img/sharp-")),
+    false,
+  );
+  assert.ok(installTime.every((entry) => entry.installTime === true));
 });
