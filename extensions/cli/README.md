@@ -32,11 +32,13 @@ Ubuntu1 also verified and installed that exact validation artifact and passed
 version/help/isolated-init checks. Root, Core and CLI audits now report zero
 findings. The operator confirmed **BlueOak-1.0.0** approval on October 31.
 Its exact identifier is allowlisted, notices preserve its license, and
-complete local retained-closure validation passes. Canonical protected
-regeneration has not yet been rerun with the approval. The local
+complete retained-closure validation passes on Server1 from `a0fd1d1e9`.
+Canonical protected packaging then stopped because Server1's governed Cisco
+release profile is missing. Provision the approved profile through secret
+management before rerunning. No protected archive was transferred. The local
 source `release-artifacts/v1.0.3/` is a public test package only.
 Keep installing approved internal 1.0.2 until canonical
-regeneration succeed. See [maintained package provenance](../../vendor/README.md).
+regeneration succeeds. See [maintained package provenance](../../vendor/README.md).
 No audit or license exception was added; local qualification does not
 generate or publish a protected release.
 

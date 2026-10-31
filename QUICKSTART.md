@@ -21,8 +21,10 @@ Regeneration and validation do not themselves publish a remote release.
 Audit remediation in `f03803cc7` reports zero findings in root, Core and CLI.
 The operator confirmed **BlueOak-1.0.0** approval on October 31. Its exact
 identifier is allowlisted, notices preserve the license, and complete local
-retained-closure validation passes. Canonical protected regeneration must
-still be rerun with the approved policy.
+retained-closure validation passes on Server1 from `a0fd1d1e9`. Canonical
+protected packaging then stopped because Server1's governed Cisco release
+profile is missing. Provision the approved profile through secret management
+before rerunning; do not substitute a profileless build.
 Neither destination was updated. Source `release-artifacts/v1.0.3/` is a
 local public test package, not an approved internal release. Continue using
 1.0.2 until canonical regeneration succeeds. No audit or
