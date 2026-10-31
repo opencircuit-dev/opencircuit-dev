@@ -109,6 +109,26 @@ def render_document(content, filename, version, templates, quickstart=False):
     return replace_section(content, "PACKAGED_CONFIGURATION", template_text)
 
 
+def check_withdrawn(destination, version, current):
+    # Withdrawn versions are removed from the distribution, so the same-version
+    # immutability check cannot see them; this record keeps them unpublishable.
+    record_path = destination / "withdrawn-releases.json"
+    if record_path.is_symlink() or (record_path.exists() and not record_path.is_file()):
+        raise ValueError("unsafe withdrawn release record")
+    if not record_path.exists():
+        return
+    record = json.loads(record_path.read_text())
+    if record.get("schemaVersion") != "open-circuit.withdrawn-releases.v1":
+        raise ValueError("unsupported withdrawn release record schema")
+    withdrawn = [entry.get("version", "") for entry in record.get("withdrawn", [])]
+    if any(not re.fullmatch(r"\d+\.\d+\.\d+", entry) for entry in withdrawn):
+        raise ValueError("invalid version in withdrawn release record")
+    if version in withdrawn:
+        raise ValueError(f"refusing to republish withdrawn release {version}")
+    if any(tuple(map(int, entry.split("."))) > current for entry in withdrawn):
+        raise ValueError("refusing a release older than a withdrawn version")
+
+
 def refresh_release(source, destination, artifact=None):
     source, destination = pathlib.Path(source).resolve(strict=True), pathlib.Path(destination).resolve(strict=True)
     if source == destination:
@@ -130,7 +150,19 @@ def refresh_release(source, destination, artifact=None):
     if checksum_path.read_bytes() != checksum:
         raise ValueError("release checksum mismatch")
     templates = inspect_archive(archive, version)
+    metadata_names = (
+        f"opencircuit-cli-{version}.provenance.json",
+        f"opencircuit-cli-{version}.sbom.cdx.json",
+        f"opencircuit-cli-{version}.NOTICES.txt",
+    )
+    metadata_sources = {}
+    for name in metadata_names:
+        metadata_path = archive.parent / name
+        if metadata_path.is_symlink() or not metadata_path.is_file() or metadata_path.stat().st_size > 64 * 1024 * 1024:
+            raise ValueError(f"release metadata missing or unsafe: {metadata_path}")
+        metadata_sources[name] = metadata_path
     current = tuple(map(int, version.split(".")))
+    check_withdrawn(destination, version, current)
     release_root = source / "release-artifacts"
     if release_root.is_symlink() or staged.parent.is_symlink():
         raise ValueError("unsafe source release staging directory")
@@ -140,17 +172,48 @@ def refresh_release(source, destination, artifact=None):
             if match and tuple(map(int, match.groups())) > current:
                 raise ValueError("refusing a staged release downgrade")
     stale = []
+    existing_artifact = destination / filename
+    existing_checksum = destination / (filename + ".sha256")
+    if existing_artifact.exists():
+        if existing_artifact.is_symlink() or not existing_artifact.is_file():
+            raise ValueError(f"existing release artifact is unsafe: {existing_artifact}")
+        if sha256(existing_artifact) != digest:
+            raise ValueError(
+                f"refusing to overwrite immutable release {filename}; publish a new version"
+            )
+    if existing_checksum.exists():
+        if existing_checksum.is_symlink() or not existing_checksum.is_file():
+            raise ValueError(f"existing release checksum is unsafe: {existing_checksum}")
+        if existing_checksum.read_bytes() != checksum:
+            raise ValueError(
+                f"refusing to overwrite immutable release checksum {existing_checksum.name}"
+            )
+    for name, source_path in metadata_sources.items():
+        existing_metadata = destination / name
+        if existing_metadata.exists():
+            if existing_metadata.is_symlink() or not existing_metadata.is_file():
+                raise ValueError(f"existing release metadata is unsafe: {existing_metadata}")
+            if existing_metadata.read_bytes() != source_path.read_bytes():
+                raise ValueError(
+                    f"refusing to overwrite immutable release metadata {name}"
+                )
     for child in destination.iterdir():
-        match = re.fullmatch(r"opencircuit-cli-(\d+)\.(\d+)\.(\d+)\.tgz(?:\.sha256)?", child.name)
+        match = re.fullmatch(
+            r"opencircuit-cli-(\d+)\.(\d+)\.(\d+)(?:\.tgz(?:\.sha256)?|\.provenance\.json|\.sbom\.cdx\.json|\.NOTICES\.txt)",
+            child.name,
+        )
         if match:
             if tuple(map(int, match.groups())) > current:
                 raise ValueError("refusing a distribution release downgrade")
-            if child.name not in (filename, filename + ".sha256"):
+            if child.name not in (filename, filename + ".sha256", *metadata_names):
                 stale.append(child)
     desired = {
         staged: archive, staged.with_name(filename + ".sha256"): checksum,
         destination / filename: archive, destination / (filename + ".sha256"): checksum,
     }
+    for name, source_path in metadata_sources.items():
+        desired[staged.parent / name] = source_path
+        desired[destination / name] = source_path
     for name in ("README.md", "QUICKSTART.md"):
         document = destination / name
         if document.is_symlink() or not document.is_file():
@@ -194,6 +257,10 @@ def refresh_release(source, destination, artifact=None):
         for target in (staged.with_name(filename + ".sha256"), destination / (filename + ".sha256")):
             if target.read_bytes() != checksum:
                 raise ValueError("refreshed checksum differs from verified input")
+        for name, source_path in metadata_sources.items():
+            for target in (staged.parent / name, destination / name):
+                if target.read_bytes() != source_path.read_bytes():
+                    raise ValueError(f"refreshed metadata differs from verified input: {name}")
     except BaseException:
         for target, backup in backups.items():
             try:

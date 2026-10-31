@@ -93,6 +93,63 @@ describe("ModelService", () => {
     });
   });
 
+  describe("setSelectedModel()", () => {
+    beforeEach(async () => {
+      vi.mocked(workos.getModelName).mockReturnValue(null);
+      vi.mocked(workos.updateModelName).mockReset();
+      vi.mocked(config.getLlmApi).mockReturnValue([
+        mockLlmApi as any,
+        mockAssistant.models![0] as ModelConfig,
+      ]);
+      vi.mocked(config.createLlmApi).mockReturnValue(mockLlmApi as any);
+      await service.initialize(mockAssistant, mockAuthConfig);
+    });
+
+    test("switches in memory before saving the selected model", async () => {
+      vi.mocked(workos.updateModelName).mockImplementation((name) => {
+        expect(service.getState().model?.name).toBe(name);
+        return null;
+      });
+      const result = await service.setSelectedModel(1);
+      expect(result.persisted).toBe(true);
+      expect(result.state.model?.name).toBe("Claude 3");
+      expect(workos.updateModelName).toHaveBeenCalledWith("Claude 3");
+      expect(result.state.assistant).toBe(mockAssistant);
+    });
+
+    test("keeps the selected model active when persistence fails", async () => {
+      vi.mocked(workos.updateModelName).mockImplementation(() => {
+        throw new Error("Cannot write preferences");
+      });
+      const result = await service.setSelectedModel(1);
+      expect(result.persisted).toBe(false);
+      expect(service.getState().model?.name).toBe("Claude 3");
+    });
+
+    test.each([-1, 2, NaN, 0.5])(
+      "rejects invalid index %s without saving",
+      async (index) => {
+        const previousState = service.getState();
+        await expect(service.setSelectedModel(index)).rejects.toThrow();
+        expect(service.getState()).toEqual(previousState);
+        expect(workos.updateModelName).not.toHaveBeenCalled();
+      },
+    );
+
+    test("does not persist when model initialization fails", async () => {
+      service.on("error", () => {});
+      vi.mocked(config.createLlmApi).mockImplementation(() => {
+        throw new Error("Model unavailable");
+      });
+      const previousState = service.getState();
+      await expect(service.setSelectedModel(1)).rejects.toThrow(
+        "Model unavailable",
+      );
+      expect(service.getState()).toEqual(previousState);
+      expect(workos.updateModelName).not.toHaveBeenCalled();
+    });
+  });
+
   describe("switchModel()", () => {
     test("should switch to a different model by index", async () => {
       vi.mocked(config.getLlmApi).mockReturnValue([

@@ -1,7 +1,7 @@
 # Open Circuit CLI
 
 The Open Circuit CLI provides the `oc` command for interactive and headless
-coding-agent sessions. This package source is version **1.0.2**. Release
+coding-agent sessions. This package source is version **1.0.3**. Release
 archives are published separately; check the
 [public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
@@ -19,8 +19,9 @@ npm install --global ./opencircuit-cli-X.Y.Z.tgz
 oc --version
 ```
 
-The npm package has not been published. Do not install an unpublished version
-from the npm registry.
+Stable releases publish the exact verified archive to npm and the public
+distribution repository. Do not install an unpublished version from the npm
+registry.
 
 Installation places starter provider templates in `~/.ocircuit/templates/`
 without overwriting existing files. Copy one to `~/.ocircuit/config.yaml` or

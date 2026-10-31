@@ -1,6 +1,6 @@
 {
   "name": "@opencircuit/cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Open Circuit command-line coding agent",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +9,8 @@
     "dist",
     "README.md",
     "LICENSE.txt",
+    "NOTICE.txt",
+    "THIRD_PARTY_NOTICES.txt",
     "templates"
   ],
   "bin": {
@@ -21,7 +23,9 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:runtime-boundary": "node ../../tests/characterization/runtime-boundary-check.mjs",
     "check:release-artifact": "node ../../scripts/check-cli-release-artifact.mjs",
+    "check:licenses": "node ../../scripts/generate-cli-notices.mjs",
     "release:artifact": "node ../../scripts/package-cli-release.mjs",
+    "generate:notices": "node ../../scripts/generate-cli-notices.mjs",
     "test:smoke": "node smoke-test.mjs",
     "test:smoke-api": "vitest run --config vitest.smoke-api.config.ts",
     "build:tsc": "tsc -p tsconfig.build.json",
@@ -47,10 +51,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-circuit-dev/open-circuit.git"
+    "url": "git+https://github.com/opencircuit-dev/opencircuit-dev.git"
   },
   "bugs": {
-    "url": "https://github.com/open-circuit-dev/open-circuit/issues"
+    "url": "https://github.com/opencircuit-dev/opencircuit-dev/issues"
   },
   "homepage": "/",
   "dependencies": {
