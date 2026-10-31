@@ -9,32 +9,19 @@ The public-provider examples below do not replace internal SSO onboarding.
 
 ## Internal Cisco Circuit onboarding
 
-Use the regenerated internal **1.0.2** tarball, checksum and provenance from
-the approved internal distribution, not the public 1.0.0 examples below.
-The currently published internal 1.0.2 build is from source revision
-`79e42d9ef40f7fba7c90980b0650cdb4ce334119`; its matching archive remains in
-`release-artifacts/v1.0.2/`. A newer validation-only build from
-`f03803cc7d638a74381452c5292493713bf98c61` (CLI 1.0.3) passed Server1 → Ubuntu1, but has not been
-published and must not be substituted for the approved distribution archive.
-Regeneration and validation do not themselves publish a remote release.
+Use the protected internal **1.0.3** tarball, checksum and provenance from the
+sibling `opencircuit-internal/` distribution checkout, not the public 1.0.0
+examples below. This package was generated from clean source commit
+`095c5763b986fe60bf1cc3da307c7a2f90d652e6` and includes the validated Cisco
+profile. The artifacts currently exist only in the local checkout; they have
+not been pushed to the remote distribution repository.
 
-Audit remediation in `f03803cc7` reports zero findings in root, Core and CLI.
-The operator confirmed **BlueOak-1.0.0** approval on October 31. Its exact
-identifier is allowlisted, notices preserve the license, and complete local
-retained-closure validation passes on Server1 from `a0fd1d1e9`. Canonical
-protected packaging then stopped because Server1's governed Cisco release
-profile is missing. Provision the approved profile through secret management
-before rerunning; do not substitute a profileless build.
-Neither destination was updated. Source `release-artifacts/v1.0.3/` is a
-local public test package, not an approved internal release. Continue using
-1.0.2 until canonical regeneration succeeds. No audit or
-license exception was added; do not publish the validation candidate.
-
-From the directory containing the downloaded files, with Node 24.19.0 active:
+From the directory containing the approved internal files, with Node 24.19.0
+active:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.3.tgz &&
   oc --version
 oc init
 ```

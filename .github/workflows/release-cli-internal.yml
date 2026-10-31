@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       internal_version:
-        description: "Internal CLI version to package (for example, 1.0.2)"
+        description: "Internal CLI version to package (for example, 1.0.3)"
         required: false
         type: string
 

@@ -3,6 +3,18 @@
 All notable changes to the Open Circuit CLI (`@opencircuit/cli`, command `oc`).
 Newest releases first. Earlier upstream Continue CLI history is not carried forward.
 
+## 1.0.3 (2026-10-31)
+
+### Features
+
+- Interactive model selection with persisted model preferences.
+- Improved internal release packaging with protected-profile provenance.
+
+### Security and Packaging
+
+- Validate the combined bundled and install-time dependency license closure.
+- Apply dependency security fixes and corrected ADF packaging.
+
 ## 1.0.2 (2026-10-23)
 
 ### Features

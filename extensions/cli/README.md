@@ -12,42 +12,27 @@ archive availability are separate. Cisco users should install the approved
 internal artifact and run `oc init` to install its protected profile; public
 package examples below do not include that profile.
 
-## Internal 1.0.2 release
+## Internal 1.0.3 release
 
-The current internal tarball was regenerated from merged main `79e42d9ef`.
-Use `opencircuit-cli-internal-1.0.2.tgz` with its checksum and provenance from
-the approved internal distribution. Local generation is not remote publication.
-The source staging path is `../../release-artifacts/v1.0.2/`.
-
-The latest validation-only source build is commit
-`f03803cc7d638a74381452c5292493713bf98c61`. It passed Server1 Core and CLI
-typechecks, CLI build and smoke tests, all 944 Core tests that ran (68 skipped),
-and validation-artifact generation. Its profileless CLI 1.0.3 archive SHA-256 is
-`072517012f2040ae06fd46a06712f22ae8c79e6d72342bad1b5b102ed1ef7209`; this
-candidate has not been published and is not the approved internal tarball
-described above. Do not substitute it until the internal release-publish action
-has regenerated and staged the release.
-
-Ubuntu1 also verified and installed that exact validation artifact and passed
-version/help/isolated-init checks. Root, Core and CLI audits now report zero
-findings. The operator confirmed **BlueOak-1.0.0** approval on October 31.
-Its exact identifier is allowlisted, notices preserve its license, and
-complete retained-closure validation passes on Server1 from `a0fd1d1e9`.
-Canonical protected packaging then stopped because Server1's governed Cisco
-release profile is missing. Provision the approved profile through secret
-management before rerunning. No protected archive was transferred. The local
-source `release-artifacts/v1.0.3/` is a public test package only.
-Keep installing approved internal 1.0.2 until canonical
-regeneration succeeds. See [maintained package provenance](../../vendor/README.md).
-No audit or license exception was added; local qualification does not
-generate or publish a protected release.
+The protected internal tarball was generated from clean source commit
+`095c5763b986fe60bf1cc3da307c7a2f90d652e6`. It includes the validated Cisco
+profile and is accompanied by a SHA-256 checksum and provenance file in the
+sibling `opencircuit-internal/` distribution checkout. SHA-256:
+`19f4aaa9dd09f4a674af6d84f4f79a56d32ed17d05353ac68bda0e0a3c2923c2`.
+These artifacts were generated locally and have not been pushed to the remote
+distribution repository.
 
 ```bash
-shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
+cd ../opencircuit-internal
+shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.3.tgz &&
   oc --version
 oc init
 ```
+
+The 1.0.3 source includes interactive model selection and persistence,
+install-time license-closure validation, and dependency/security fixes. See
+[maintained package provenance](../../vendor/README.md).
 
 Back up any existing active configuration, then copy
 `~/.ocircuit/templates/config-cisco-circuit.yaml` to `~/.ocircuit/config.yaml`

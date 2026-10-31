@@ -30,73 +30,37 @@ from the registry.
 
 ### Current internal artifact
 
-CLI **1.0.2** was regenerated from merged main
-`79e42d9ef40f7fba7c90980b0650cdb4ce334119`. The tarball, `.sha256` and
-`.provenance.json` are available in `release-artifacts/v1.0.2/` and the sibling
-`opencircuit-internal/` distribution checkout. Local regeneration does not
-publish those files remotely.
+The protected CLI **1.0.3** package was generated from clean source commit
+`095c5763b986fe60bf1cc3da307c7a2f90d652e6`. The tarball, `.sha256` and
+`.provenance.json` are in the sibling `opencircuit-internal/` distribution
+checkout. The package includes the validated protected Cisco profile. These
+artifacts were generated locally and have not been pushed to the remote
+distribution repository.
 
-SHA-256: `2d95689ad8d40715897c4ca15a1bbaaff1c1ec5542309cb2f2c91de5dbbf2e05`.
+SHA-256: `19f4aaa9dd09f4a674af6d84f4f79a56d32ed17d05353ac68bda0e0a3c2923c2`.
 Verify the sidecar before installing:
 
 ```bash
 cd ../opencircuit-internal
-shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.2.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.3.tgz &&
   oc --version
 oc init
 ```
 
-### Latest validated source build (not released)
-
-Source `f03803cc7d638a74381452c5292493713bf98c61` passed the complete
-Server1 → Ubuntu1 test pipeline. Its validation-only CLI 1.0.3 artifact has SHA-256
-`072517012f2040ae06fd46a06712f22ae8c79e6d72342bad1b5b102ed1ef7209`.
-This candidate has **not** been published to the internal distribution; the
-1.0.2 archive above remains the installable release until the canonical
-internal release-publish action regenerates and stages the release artifacts.
-The profileless validation artifact is not the approved protected internal
-1.0.2 tarball.
+Packaging locally does not publish the package. Transfer or publish it only
+through the approved internal distribution process; do not upload this
+profile-bearing package to the public distribution.
 
 Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding)
 for browser SSO and entitled-model selection. Manual token/appkey configuration
 is a separate legacy path, not required for Circuit SSO.
 
-That Server1 validation passed Core and CLI typechecks, CLI build and
-smoke tests, all 944 Core tests that ran (68 skipped), and validation-artifact
-generation. This run did not execute the retained-closure audit or e2e suite
-and does not claim live Cisco SSO or model qualification.
-
-### Source 1.0.3: qualified on Server1, protected profile missing
-
-The latest upstream merge adds install-time license coverage. The operator
-approved `argparse@2.0.1`'s `Python-2.0` license on October 31; the exact
-identifier is now allowlisted and notices are regenerated for the combined
-bundle/install-time closure. Protected regeneration still requires the
-approved Server1 release-profile input. No protected release is published.
-
-Internal source is already CLI 1.0.3. Audit remediation in `f03803cc7`
-reports zero findings in root, Core and CLI. It includes an API-compatible
-minimatch security backport, a deepmerge prototype-key fix, SQLite 6, glob 14,
-and corrected ADF packaging; see [maintained dependency provenance](vendor/README.md).
-The operator confirmed **BlueOak-1.0.0** approval on October 31. The exact
-license identifier is now allowlisted, bundled notices include its license,
-and complete retained-closure validation passes on Server1 from `a0fd1d1e9`.
-Canonical protected regeneration was rerun after approval. Qualification
-passed, but protected packaging stopped because Server1's governed Cisco
-release profile is missing. No protected archive was transferred.
-The existing `release-artifacts/v1.0.3/` contains a local public test package,
-not an approved internal SSO release. Keep using the internal 1.0.2 archive.
-Provision the approved release profile through the governed secret-management
-path on Server1, then rerun canonical regeneration before publishing.
-The zero-audit result covers root, Core and CLI only; the separate deferred
-`binary/` lockfile still has unresolved dependency findings.
-Vendored code is included in third-party license
-evidence, not classified as first-party. No audit or license exception was
-added. Local qualification does not generate or publish a protected release.
-The deprecated generic `database` context provider is removed: existing entries
-produce a warning; migrate to database MCP. PostgreSQL, SQLite and Azure OpenAI
-remain supported.
+The 1.0.3 source includes interactive model selection and persistence,
+install-time license-closure validation, and dependency/security fixes. See
+[maintained package provenance](vendor/README.md) for dependency details. The
+deprecated generic `database` context provider is removed; migrate existing
+entries to database MCP. PostgreSQL, SQLite and Azure OpenAI remain supported.
 
 Choose the path that matches your goal before you install anything:
 
