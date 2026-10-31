@@ -9,16 +9,6 @@ Newest releases first. Earlier upstream Continue CLI history is not carried forw
 
 - Interactive model selection with persisted model preferences.
 - Improved internal release packaging with protected-profile provenance.
-
-### Security and Packaging
-
-- Validate the combined bundled and install-time dependency license closure.
-- Apply dependency security fixes and corrected ADF packaging.
-
-## 1.0.2 (2026-10-23)
-
-### Features
-
 - Cisco Circuit zero-config sign-in: Cisco SSO (Entra ID) with a localhost callback; tokens stored in the OS credential store.
 - Cisco Circuit gateway and policy integration; entitled models are discovered automatically.
 - All Cisco-entitled models get the full tool set, with no capability warning.
@@ -28,21 +18,17 @@ Newest releases first. Earlier upstream Continue CLI history is not carried forw
 - Provider request throttling with improved exponential backoff.
 - Native platform trust store support, replacing bundled CA dependencies.
 
-### Bug Fixes
+### Security and Packaging
 
+- Validate the combined bundled and install-time dependency license closure.
+- Apply dependency security fixes and corrected ADF packaging.
 - macOS Keychain: tokens are stored in chunks, so large tokens no longer exceed the `security` 4 KB input-line limit; existing single-item tokens still load.
 - Unsupported Node.js versions now report actionable recovery guidance.
 - Sessions retain their revision on save.
-
-### Security
-
 - The Cisco profile is no longer tracked in Git. It is injected only during the internal release, validated, recorded in provenance and securely deleted afterwards.
 - Public artifacts fail validation if they contain Cisco profile data.
 - Release artifact checks forbid credential and environment files.
 - Vulnerable dependency chains were removed from the test and release tooling.
-
-### Packaging
-
 - Internal packaging supports both npm 10/11 (array) and npm 12 (package-keyed) `npm pack --json` output.
 
 ## 1.0.1 (2026-09-26)

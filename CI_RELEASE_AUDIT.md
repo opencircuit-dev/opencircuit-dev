@@ -140,8 +140,8 @@ an artifact before the required platform gates and maintainer review finish.
 This sync imports public upstream `162bbe8ce40cea4159336695b3b118849bf22892`,
 including the accepted dependency
 remediation PR 85 and retired-surface matcher PR 86. It preserves the internal
-CLI 1.0.2, Cisco OAuth/profile packaging, trusted internal workflow caller, and
-zero-finding tooling/Core audit gates.
+CLI release baseline, Cisco OAuth/profile packaging, trusted internal workflow
+caller, and zero-finding tooling/Core audit gates.
 
 Zod 4.6.7 and OpenAI 6.0.0 replace their vulnerable dependency chains, with
 explicit schema/declaration compatibility changes and native draft-7 JSON
