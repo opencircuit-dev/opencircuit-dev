@@ -1,6 +1,6 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 
-import { AuthConfig, getModelName } from "../auth/workos.js";
+import { AuthConfig, getModelName, updateModelName } from "../auth/workos.js";
 import { createLlmApi, getLlmApi } from "../config.js";
 import { logger } from "../util/logger.js";
 
@@ -178,6 +178,27 @@ export class ModelService
   /**
    * Switch to a different chat model by index
    */
+  async setSelectedModel(
+    modelIndex: number,
+  ): Promise<{ state: ModelServiceState; persisted: boolean }> {
+    if (!Number.isInteger(modelIndex)) {
+      throw new Error(`Invalid model index: ${modelIndex}`);
+    }
+
+    const state = await this.switchModel(modelIndex);
+    const modelName = state.model?.name || state.model?.model;
+    if (!modelName) {
+      return { state, persisted: false };
+    }
+
+    try {
+      updateModelName(modelName);
+      return { state, persisted: true };
+    } catch {
+      return { state, persisted: false };
+    }
+  }
+
   async switchModel(modelIndex: number): Promise<ModelServiceState> {
     // Get assistant and authConfig from state, but fall back to instance properties
     // This is needed during initialization when state isn't set yet
