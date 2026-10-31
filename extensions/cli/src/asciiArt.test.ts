@@ -36,7 +36,7 @@ describe("asciiArt", () => {
 
       const result = getDisplayableAsciiArt();
 
-      expect(result).toContain("██████╗  ██████╗");
+      expect(result).toContain("██████═╗  █████╗");
       expect(result).toContain("╚═════╝  ╚═════╝");
       expect(result).toContain("v1.0.3");
       expect(result).not.toBe(OCIRCUIT_ASCII_ART);
@@ -47,7 +47,7 @@ describe("asciiArt", () => {
 
       const result = getDisplayableAsciiArt();
 
-      expect(result).toContain("██████╗  ██████╗");
+      expect(result).toContain("██████═╗  █████╗");
       expect(result).not.toBe(OCIRCUIT_ASCII_ART);
     });
 
@@ -66,7 +66,7 @@ describe("asciiArt", () => {
       const result = getDisplayableAsciiArt();
 
       expect(result).not.toBe(OCIRCUIT_ASCII_ART);
-      expect(result).toContain("██████╗  ██████╗");
+      expect(result).toContain("██████═╗  █████╗");
     });
   });
 });
