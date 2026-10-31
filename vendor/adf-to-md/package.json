@@ -1,0 +1,10 @@
+{
+  "name": "@opencircuit/adf-to-md",
+  "version": "1.2.1+oc.1",
+  "description": "Unmodified adf-to-md 1.2.1 runtime without its accidental lint dependency",
+  "author": "Julian Lam <julian@nodebb.org>",
+  "license": "MIT",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": ["index.js", "index.d.ts", "LICENSE", "PROVENANCE.md"]
+}

@@ -1,4 +1,3 @@
-// @ts-ignore
 import adf2md from "adf-to-md";
 
 import { RequestOptions } from "../../../";
@@ -116,7 +115,7 @@ export class JiraClient {
     if (typeof issue.fields.description === "string") {
       result.description = issue.fields.description;
     } else if (issue.fields.description) {
-      result.description = adf2md.validate(issue.fields.description).result;
+      result.description = adf2md.convert(issue.fields.description).result;
     } else {
       result.description = "";
     }
@@ -126,7 +125,7 @@ export class JiraClient {
         const body =
           typeof comment.body === "string"
             ? comment.body
-            : adf2md.validate(comment.body).result;
+            : adf2md.convert(comment.body).result;
 
         return {
           body,

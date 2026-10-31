@@ -1,0 +1,10 @@
+{
+  "name": "@opencircuit/deepmerge",
+  "version": "4.3.1+oc.1",
+  "description": "deepmerge 4.3.1 with prototype-key protection on both merge inputs",
+  "author": "James Halliday and Josh Duff",
+  "license": "MIT",
+  "main": "dist/cjs.js",
+  "types": "index.d.ts",
+  "files": ["dist/cjs.js", "index.d.ts", "license.txt", "PROVENANCE.md"]
+}

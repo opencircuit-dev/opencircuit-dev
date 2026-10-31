@@ -182,6 +182,12 @@ const commands = [
     cwd: path.join(repositoryRoot, "extensions/cli"),
   },
   {
+    name: "CLI bundled license and notice evidence",
+    command: npmCommand,
+    args: ["run", "generate:notices"],
+    cwd: path.join(repositoryRoot, "extensions/cli"),
+  },
+  {
     name: "CLI-Core runtime boundary",
     command: npmCommand,
     args: ["run", "test:runtime-boundary"],

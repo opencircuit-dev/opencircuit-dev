@@ -51,6 +51,9 @@ try {
 
     // Handle TypeScript paths and local packages
     alias: {
+      "adf-to-md": resolve(__dirname, "../../vendor/adf-to-md/index.js"),
+      deepmerge: resolve(__dirname, "../../vendor/deepmerge/dist/cjs.js"),
+      minimatch: resolve(__dirname, "../../vendor/minimatch/dist/esm/index.js"),
       "@opencircuit/config-types": resolve(
         __dirname,
         "../../packages/config-types/dist/index.js",

@@ -22,6 +22,7 @@ test("retained-closure validation covers the retained CLI/Core product surface",
     "Core typecheck",
     "CLI typecheck",
     "CLI smoke tests",
+    "CLI bundled license and notice evidence",
     "CLI-Core runtime boundary",
     "CLI release artifact",
   ]) {

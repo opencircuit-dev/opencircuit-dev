@@ -15,6 +15,7 @@ CHANGELOG.md
 **/node_modules
 **/CODEOWNERS
 core/vendor
+vendor
 coverage
 # e2e
 .conductor

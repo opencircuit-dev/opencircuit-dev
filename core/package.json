@@ -51,11 +51,13 @@
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.70.0",
     "cross-env": "^7.0.3",
+    "deepmerge": "file:../vendor/deepmerge",
     "esbuild": "^0.28.2",
-    "eslint": "^10.10.0",
+    "eslint": "10.14.0",
     "eslint-plugin-import-x": "^4.17.1",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
+    "minimatch": "file:../vendor/minimatch",
     "myers-diff": "^2.1.0",
     "onnxruntime-common": "^1.30.0",
     "onnxruntime-web": "^1.30.0",
@@ -80,7 +82,7 @@
     "@opencircuit/llm-info": "file:../packages/llm-info",
     "@opencircuit/openai-adapters": "file:../packages/openai-adapters",
     "@opencircuit/terminal-security": "file:../packages/terminal-security",
-    "adf-to-md": "^1.1.0",
+    "adf-to-md": "file:../vendor/adf-to-md",
     "ajv": "8.20.0",
     "async-mutex": "^0.5.0",
     "axios": "^1.6.7",
@@ -122,7 +124,7 @@
     "shell-quote": "^1.11.0",
     "socket.io-client": "^4.7.3",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "6.0.1",
     "tar": "^7.5.13",
     "tree-sitter-wasms": "^0.1.11",
     "untildify": "^6.0.0",
@@ -139,6 +141,12 @@
     "node": ">=24.19.0"
   },
   "overrides": {
+    "minimatch": "$minimatch",
+    "glob": {
+      ".": "14.0.3",
+      "minimatch": "11.0.3"
+    },
+    "deepmerge": "$deepmerge",
     "@hono/node-server": "2.1.5",
     "tar": "^7.5.13",
     "@tootallnate/once": "2.0.1",
@@ -147,6 +155,7 @@
     }
   },
   "allowScripts": {
+    "minimatch@11.0.3": true,
     "@google/genai@1.52.0": true,
     "@biomejs/biome@1.6.4": true,
     "@parcel/watcher@2.6.0": true,
@@ -164,7 +173,7 @@
     "puppeteer@25.12.0": true,
     "puppeteer@25.16.0": true,
     "puppeteer-chromium-resolver@25.0.0": true,
-    "sqlite3@5.1.7": true,
+    "sqlite3@6.0.1": true,
     "unrs-resolver@1.11.1": true,
     "unrs-resolver@1.12.2": true
   }

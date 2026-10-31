@@ -11,44 +11,9 @@
     ],
     "core": [
       {
-        "package": "inflight",
-        "version": "1.0.6",
-        "message": "This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful."
-      },
-      {
-        "package": "@npmcli/move-file",
-        "version": "1.1.2",
-        "message": "This functionality has been moved to @npmcli/fs"
-      },
-      {
-        "package": "npmlog",
-        "version": "6.0.2",
-        "message": "This package is no longer supported."
-      },
-      {
-        "package": "@humanwhocodes/config-array",
-        "version": "0.13.0",
-        "message": "Use @eslint/config-array instead"
-      },
-      {
-        "package": "rimraf",
-        "version": "3.0.2",
-        "message": "Rimraf versions prior to v4 are no longer supported"
-      },
-      {
         "package": "whatwg-encoding",
         "version": "3.1.1",
         "message": "Use @exodus/bytes instead for a more spec-conformant and faster implementation"
-      },
-      {
-        "package": "glob",
-        "version": "7.2.3",
-        "message": "Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
-      },
-      {
-        "package": "glob",
-        "version": "10.5.0",
-        "message": "Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
       },
       {
         "package": "prebuild-install",
@@ -56,29 +21,9 @@
         "message": "No longer maintained. Please contact the author of the relevant native addon; alternatives are available."
       },
       {
-        "package": "@humanwhocodes/object-schema",
-        "version": "2.0.3",
-        "message": "Use @eslint/object-schema instead"
-      },
-      {
-        "package": "are-we-there-yet",
-        "version": "3.0.1",
-        "message": "This package is no longer supported."
-      },
-      {
-        "package": "gauge",
-        "version": "4.0.4",
-        "message": "This package is no longer supported."
-      },
-      {
         "package": "node-domexception",
         "version": "1.0.0",
         "message": "Use your platform's native DOMException instead"
-      },
-      {
-        "package": "eslint",
-        "version": "8.57.1",
-        "message": "This version is no longer supported. Please see https://eslint.org/version-support for other options."
       }
     ],
     "extensions/cli": [

@@ -12,6 +12,10 @@ release-artifacts/
 build/
 develop-eggs/
 dist/
+!vendor/minimatch/dist/
+!vendor/minimatch/dist/**
+!vendor/deepmerge/dist/
+!vendor/deepmerge/dist/**
 downloads/
 eggs/
 .eggs/

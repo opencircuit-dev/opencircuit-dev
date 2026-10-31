@@ -1,11 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { resolve } from "node:path";
 import {
   isLicenseAllowed,
   readLicenseAllowlist,
+  repositoryRoot,
+  thirdPartyPackageRoot,
 } from "./cli-bundle-closure.mjs";
 
 const allowed = new Set(["MIT", "Apache-2.0", "ISC"]);
+
+test("vendored third-party source is not classified as first-party code", () => {
+  assert.equal(
+    thirdPartyPackageRoot(
+      resolve(repositoryRoot, "vendor/minimatch/dist/esm/index.js"),
+    ),
+    resolve(repositoryRoot, "vendor/minimatch"),
+  );
+  assert.equal(
+    thirdPartyPackageRoot(
+      resolve(repositoryRoot, "packages/config-yaml/src/index.ts"),
+    ),
+    undefined,
+  );
+  assert.equal(
+    thirdPartyPackageRoot(
+      resolve(
+        repositoryRoot,
+        "node_modules/chalk/source/vendor/ansi-styles/index.js",
+      ),
+    ),
+    resolve(repositoryRoot, "node_modules/chalk"),
+  );
+});
 
 test("accepts allowlisted identifiers and rejects everything else", () => {
   assert.equal(isLicenseAllowed("MIT", allowed), true);

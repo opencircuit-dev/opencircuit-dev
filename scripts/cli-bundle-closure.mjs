@@ -200,10 +200,17 @@ export function isLicenseAllowed(expression, allowed) {
 // The package root is the path through the last node_modules/<name> (or
 // node_modules/@scope/<name>) segment. Nested package.json stubs such as
 // dist/esm/package.json are ignored by construction.
-function thirdPartyPackageRoot(inputPath) {
+export function thirdPartyPackageRoot(inputPath) {
   const parts = inputPath.split(sep);
   const index = parts.lastIndexOf("node_modules");
-  if (index === -1 || index + 1 >= parts.length) return undefined;
+  if (index === -1) {
+    const sourceParts = relative(repositoryRoot, inputPath).split(sep);
+    if (sourceParts[0] === "vendor" && sourceParts.length >= 3) {
+      return resolve(repositoryRoot, "vendor", sourceParts[1]);
+    }
+    return undefined;
+  }
+  if (index + 1 >= parts.length) return undefined;
   const length = parts[index + 1].startsWith("@") ? 3 : 2;
   return parts.slice(0, index + length).join(sep);
 }
@@ -242,9 +249,14 @@ function describeThirdParty(packageRoot, lockfiles) {
   ) {
     throw new Error("package.json lacks a name or version");
   }
-  const lockDirectory = lockfileDirectories.find((directory) =>
-    relative(directory, packageRoot).startsWith(`node_modules${sep}`),
-  );
+  const lockDirectory = lockfileDirectories.find((directory) => {
+    const key = relative(directory, packageRoot).split(sep).join("/");
+    return (
+      key.startsWith("node_modules/") ||
+      readLockfile(directory, lockfiles).packages?.[key]?.name ===
+        packageJson.name
+    );
+  });
   if (!lockDirectory) throw new Error("not installed by a known lockfile");
   const lockKey = relative(lockDirectory, packageRoot).split(sep).join("/");
   const lockEntry = readLockfile(lockDirectory, lockfiles).packages?.[lockKey];

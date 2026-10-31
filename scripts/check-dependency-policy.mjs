@@ -102,17 +102,20 @@ if (packageJson.name === "@opencircuit/core") {
     }
   }
   const override = packageJson.overrides?.["@tootallnate/once"];
-  const lockEntry =
-    lockJson.packages?.["node_modules/@tootallnate/once"]?.version;
   if (override !== "2.0.1") {
     errors.push(
       `Core @tootallnate/once override must remain exact 2.0.1; found ${override ?? "missing"}`,
     );
   }
-  if (lockEntry !== "2.0.1") {
-    errors.push(
-      `Core lockfile must resolve @tootallnate/once to 2.0.1; found ${lockEntry ?? "missing"}`,
-    );
+  for (const [entry, dependency] of Object.entries(lockJson.packages ?? {})) {
+    if (
+      entry.endsWith("node_modules/@tootallnate/once") &&
+      dependency.version !== "2.0.1"
+    ) {
+      errors.push(
+        `Core lockfile must resolve ${entry} to 2.0.1; found ${dependency.version ?? "missing"}`,
+      );
+    }
   }
   console.log(
     "Temporary upstream-chain workaround monitored: @tootallnate/once 2.0.1.",
