@@ -58,6 +58,7 @@ export interface AuthServiceState {
 export interface ConfigServiceState {
   config: AssistantUnrolled | null;
   configPath?: string;
+  selectedModelName?: string;
 }
 
 export interface ModelServiceState {

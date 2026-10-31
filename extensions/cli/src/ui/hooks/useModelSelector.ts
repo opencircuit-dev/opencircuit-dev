@@ -1,10 +1,9 @@
-import { updateModelName } from "../../auth/workos.js";
 import {
   SERVICE_NAMES,
   serviceContainer,
   services,
 } from "../../services/index.js";
-import { AuthServiceState, ModelServiceState } from "../../services/types.js";
+import { ModelServiceState } from "../../services/types.js";
 import { useNavigation } from "../context/NavigationContext.js";
 
 interface ModelOption {
@@ -45,23 +44,19 @@ export function useModelSelector({
         currentState,
       );
 
-      // Persist the model choice using the actual model name
-      // and update the auth service state to reflect the change
+      let persistenceSuffix = "";
       if (modelInfo?.name) {
-        const updatedAuthConfig = updateModelName(modelInfo.name);
-
-        // Update the AUTH service state in the container with the new config
-        // This ensures that when MODEL service is reloaded, it gets the updated auth config
-        const currentAuthState = services.auth.getState();
-        serviceContainer.set<AuthServiceState>(SERVICE_NAMES.AUTH, {
-          ...currentAuthState,
-          authConfig: updatedAuthConfig,
-        });
+        const persistence = await services.config.setSelectedModel(
+          modelInfo.name,
+        );
+        if (!persistence.persisted) {
+          persistenceSuffix = " (session only; preference could not be saved)";
+        }
       }
 
       onMessage({
         role: "system",
-        content: `Switched to model: ${modelInfo?.name}`,
+        content: `Switched to model: ${modelInfo?.name}${persistenceSuffix}`,
         messageType: "system",
       });
 
@@ -74,10 +69,11 @@ export function useModelSelector({
       if (onRefreshUI) {
         onRefreshUI();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       onMessage({
         role: "system",
-        content: `Failed to switch model: ${error.message}`,
+        content: `Failed to switch model: ${message}`,
         messageType: "system",
       });
     }

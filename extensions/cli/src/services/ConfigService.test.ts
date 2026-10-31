@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import * as workos from "../auth/workos.js";
 import * as configLoader from "../configLoader.js";
+import * as modelPersistence from "../util/modelPersistence.js";
 
 import { ConfigService } from "./ConfigService.js";
 import { serviceContainer } from "./ServiceContainer.js";
@@ -16,6 +17,10 @@ vi.mock("../auth/workos.js");
 vi.mock("../configLoader.js", () => ({
   loadConfiguration: vi.fn(),
   unrollPackageIdentifiersAsConfigYaml: vi.fn(),
+}));
+vi.mock("../util/modelPersistence.js", () => ({
+  getPersistedModelName: vi.fn(),
+  persistModelName: vi.fn(),
 }));
 vi.mock("../util/logger.js");
 vi.mock("./ServiceContainer.js");
@@ -106,6 +111,72 @@ describe("ConfigService", () => {
           prompts: [],
         }),
       );
+    });
+
+    test("updates the active model and persists the selected name", async () => {
+      vi.mocked(configLoader.loadConfiguration).mockResolvedValue({
+        config: mockConfig as any,
+        source: { type: "cli-flag", path: "/path/to/config.yaml" } as any,
+      });
+
+      await service.doInitialize({
+        authConfig: null,
+        configPath: "/path/to/config.yaml",
+        apiClient: mockApiClient as any,
+        agentFileState: mockAgentFileState,
+      });
+
+      const result = await service.setSelectedModel("gpt-5");
+
+      expect(result).toEqual({ persisted: true });
+      expect(modelPersistence.persistModelName).toHaveBeenCalledWith("gpt-5");
+      expect(service.getState()).toEqual({
+        config: mockConfig,
+        configPath: "/path/to/config.yaml",
+        selectedModelName: "gpt-5",
+      });
+    });
+
+    test("keeps the active model when persistence fails", async () => {
+      vi.mocked(configLoader.loadConfiguration).mockResolvedValue({
+        config: mockConfig as any,
+        source: { type: "cli-flag", path: "/path/to/config.yaml" } as any,
+      });
+      vi.mocked(modelPersistence.persistModelName).mockImplementation(() => {
+        throw new Error("permission denied");
+      });
+
+      await service.doInitialize({
+        authConfig: null,
+        configPath: "/path/to/config.yaml",
+        apiClient: mockApiClient as any,
+        agentFileState: mockAgentFileState,
+      });
+
+      const result = await service.setSelectedModel("gpt-5");
+
+      expect(result).toEqual({
+        persisted: false,
+        error: expect.any(Error),
+      });
+      expect(result.error?.message).toBe("permission denied");
+      expect(service.getState()).toEqual({
+        config: mockConfig,
+        configPath: "/path/to/config.yaml",
+        selectedModelName: "gpt-5",
+      });
+    });
+
+    test("rejects an empty model name without changing state or persisting", async () => {
+      const result = await service.setSelectedModel("   ");
+
+      expect(result.persisted).toBe(false);
+      expect(result.error).toBeInstanceOf(Error);
+      expect(modelPersistence.persistModelName).not.toHaveBeenCalled();
+      expect(service.getState()).toEqual({
+        config: null,
+        configPath: undefined,
+      });
     });
 
     test("should initialize with undefined config path", async () => {

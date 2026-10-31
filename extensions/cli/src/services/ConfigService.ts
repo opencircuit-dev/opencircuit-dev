@@ -16,6 +16,7 @@ import {
   unrollPackageIdentifiersAsConfigYaml,
 } from "../configLoader.js";
 import { logger } from "../util/logger.js";
+import { persistModelName } from "../util/modelPersistence.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
 import { serviceContainer } from "./ServiceContainer.js";
@@ -35,6 +36,11 @@ const DEFAULT_MODEL_IDENTIFIER: PackageIdentifier = {
     versionSlug: "1.0.0",
   },
 };
+
+export interface SelectedModelPersistenceResult {
+  persisted: boolean;
+  error?: Error;
+}
 
 interface ConfigServiceInit {
   authConfig: AuthConfig;
@@ -299,6 +305,9 @@ export class ConfigService
     const state = {
       config: withModel,
       configPath,
+      ...(this.currentState.selectedModelName
+        ? { selectedModelName: this.currentState.selectedModelName }
+        : {}),
     };
     this.setState(state);
 
@@ -409,6 +418,38 @@ export class ConfigService
       logger.error("Failed to update configuration path:", error);
       this.emit("error", error);
       throw error;
+    }
+  }
+
+  /**
+   * Select a model for the current session and persist the preference when
+   * possible. Persistence is deliberately best-effort: a local filesystem
+   * failure must not undo a model switch that is already active in memory.
+   */
+  async setSelectedModel(
+    modelName: string,
+  ): Promise<SelectedModelPersistenceResult> {
+    const normalizedModelName = modelName.trim();
+    if (!normalizedModelName) {
+      return {
+        persisted: false,
+        error: new Error("Selected model name must not be empty"),
+      };
+    }
+
+    this.setState({ selectedModelName: normalizedModelName });
+
+    try {
+      persistModelName(normalizedModelName);
+      return { persisted: true };
+    } catch (error: unknown) {
+      const persistenceError =
+        error instanceof Error ? error : new Error(String(error));
+      logger.warn(
+        "Unable to persist selected model; keeping the selection for this session",
+        persistenceError,
+      );
+      return { persisted: false, error: persistenceError };
     }
   }
 
