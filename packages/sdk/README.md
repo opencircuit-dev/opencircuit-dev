@@ -1,6 +1,7 @@
-# @opencircuit/sdk
+# `@opencircuit/sdk`
 
-First-party Node.js client for the Open Circuit API.
+First-party Node.js client for the Open Circuit API. The client can retrieve
+and list assistants and synchronize secrets:
 
 ```ts
 import { OpenCircuitClient } from "@opencircuit/sdk";
@@ -14,6 +15,8 @@ const assistant = await client.getAssistant({
   ownerSlug: "opencircuit-dev",
   packageSlug: "default-cli-config",
 });
+
+const assistants = await client.listAssistants();
 ```
 
 The initial API surface supports assistant lookup/listing and secret synchronization. Requests use the configured API base and send the API key only as a bearer authorization header.
@@ -31,3 +34,17 @@ provider.
 Tokens are held in memory by default. Applications that need persistence must
 inject a `SecureTokenStore` implemented with the platform OS keychain. The SDK
 does not write OAuth tokens to YAML, `.env`, logs, or an unencrypted file.
+
+Use `syncSecrets()` for secret synchronization. Requests use the configured
+API base (default `https://api.ocircuit.dev/`); when an access token is
+provided, the client sends it as a bearer authorization header. Non-success
+HTTP responses reject with `OpenCircuitApiError`.
+
+## Development
+
+From this package directory:
+
+```bash
+npm run build
+npm test
+```

@@ -115,6 +115,10 @@ node --version
 
 You should see `v24.19.0`. If you use `nvm`, set the version persistently and make it your default:
 
+This source checkout identifies the CLI package as **1.0.3**. Release archives
+are published separately; use only a version whose tarball and checksum are
+available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
+
 ```bash
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -149,6 +153,11 @@ oc --version
 ```
 
 ## 2. Install the CLI (default user path)
+
+The checksum command must report `OK`. Do not mix files from different
+versions. Stable releases are also published to npm; install from npm only
+when the exact version is available in the registry. The public distribution
+repository remains the source for matching release archives and checksums.
 
 Open Circuit CLI 1.0.0 is currently distributed as a GitHub Release asset. It
 has not been published to npm yet. This is the recommended path for most users.

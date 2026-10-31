@@ -5,7 +5,7 @@ import {
   parseCliPackReport,
 } from "./cli-release-pack-report.mjs";
 
-const expected = { name: "@opencircuit/cli", version: "1.0.2" };
+const expected = { name: "@opencircuit/cli", version: "1.0.3" };
 const report = { ...expected, files: [{ path: "package.json" }] };
 
 test("excludes internal templates and nested credential files", () => {

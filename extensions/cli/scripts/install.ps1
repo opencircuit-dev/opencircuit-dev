@@ -5,7 +5,7 @@
 .DESCRIPTION
     Installs Node.js (if needed) and the Open Circuit CLI globally
 .EXAMPLE
-    irm https://raw.githubusercontent.com/open-circuit-dev/open-circuit/main/extensions/cli/scripts/install.ps1 | iex
+    irm https://raw.githubusercontent.com/opencircuit-dev/opencircuit-dev/main/extensions/cli/scripts/install.ps1 | iex
 .NOTES
     Supports Windows 10/11, Windows Server 2016+
     Requires internet connectivity

@@ -1,6 +1,11 @@
 # Open Circuit CLI
 
-The Open Circuit CLI (`oc`) is a customizable command line coding agent.
+The Open Circuit CLI provides the `oc` command for interactive and headless
+coding-agent sessions. This package source is version **1.0.3**. Release
+archives are published separately; check the
+[public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
+for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
+for installation guidance.
 
 This internal source package is version **1.0.2**. Source version and published
 archive availability are separate. Cisco users should install the approved
@@ -37,6 +42,10 @@ browser SSO and choose an entitled model. Replace the template model placeholder
 with an approved policy model if needed. `oc init` installs the protected
 owner-only profile; do not substitute the generic OAuth template or manual
 token/appkey configuration for Circuit onboarding.
+
+Stable releases publish the exact verified archive to npm and the public
+distribution repository. Do not install an unpublished version from the npm
+registry.
 
 Circuit uses PKCE/state/OIDC checks, refresh and OS credential storage,
 coalesced model-policy loading, entitlement rejection and approved bearer routes.

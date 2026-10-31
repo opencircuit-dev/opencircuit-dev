@@ -1,70 +1,24 @@
-# OpenAI Adapters
+# `@opencircuit/openai-adapters`
 
-OpenAI adapters convert an OpenAI-compatible request to a request for another API and back.
+This package contains provider-specific request and response adapters used by
+Open Circuit's model runtime. Adapter code lives under `src/apis/`; shared
+translation helpers live under `src/util/`.
 
-They are purely a translation layer, and are not concerned with:
+Keep provider-independent model metadata in `@opencircuit/llm-info` where
+appropriate. Adapter code should focus on the wire-format differences and
+behavior that cannot be inferred by the caller, such as provider-specific
+request fields and response normalization. Avoid treating this README as a
+complete provider-support matrix: model capabilities and supported endpoints
+vary by API and are represented in code and tests.
 
-- Templates
-- Whether a model supports tools, images, etc.
-- Dynamically changing API base for model
-- Keeping track of system message (it will always be the first message with a systemMesage)
-- Keeping a private variable with anything that is already passed through the OpenAI request body
-- Appending "/" to the apiBase (but this is TODO)
-- Batching embeddings (yes, it requires some knowledge of max batch size, but it's more important to maintain 1 req = 1 req)
-- Using streamChat for streamComplete and vice-versa if one isn't defined
+When changing an adapter, add or update focused tests for request mapping,
+response handling, and streaming where applicable.
 
-The goal is for this to change as infrequently as possible. It should only require updating when the actual API format changes.
+## Development
 
-They are concerned with:
+From this package directory:
 
-- Converting model aliases
-- Cache behavior
-- max stop words
-- use legacy completions endpoint?
-- anything else that couldn't possibly be guess by the client since it won't know the endpoint behind the proxy
-
-## Supported APIs
-
-- [x] Anthropic
-- [ ] AskSage
-- [x] Azure
-- [x] Bedrock
-- [ ] Bedrock Import
-- [x] Cerebras
-- [ ] Cloudflare
-- [x] Cohere
-- [x] DeepInfra
-- [x] Deepseek
-- [ ] Flowise
-- [x] Function Network
-- [x] Gemini
-- [x] Groq
-- [ ] HuggingFace Inference API
-- [ ] HuggingFace TGI
-- [x] Kindo
-- [x] LMStudio
-- [x] LlamaCpp
-- [x] Llamafile
-- [x] Msty
-- [x] Mistral
-- [x] Nvidia
-- [x] Nebius
-- [x] OpenRouter
-- [x] OpenAI
-- [ ] !Ollama
-- [x] OVHCLoud
-- [ ] Replicate
-- [ ] SageMaker
-- [x] SambaNova
-- [x] Scaleway
-- [ ] Silicon Flow
-- [x] TextGen Web UI
-- [x] Together
-- [x] Novita AI
-- [x] Vllm
-- [x] Vertex AI
-- [x] Voyage AI
-- [x] WatsonX
-- [x] xAI
-- [x] Fireworks
-- [x] Moonshot
+```bash
+npm run build
+npm test -- --run
+```

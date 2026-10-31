@@ -29,6 +29,11 @@ if (!/^\d+\.\d+\.\d+$/.test(version)) {
 
 mkdirSync(artifactDirectory, { recursive: true });
 execFileSync(
+  process.execPath,
+  [resolve(repositoryRoot, "scripts/generate-cli-notices.mjs")],
+  { cwd: repositoryRoot, stdio: "inherit" },
+);
+execFileSync(
   process.platform === "win32" ? "npm.cmd" : "npm",
   ["pack", "--pack-destination", artifactDirectory],
   { cwd: cliDirectory, stdio: "inherit" },
@@ -42,6 +47,17 @@ const checksum = createHash("sha256")
 writeFileSync(
   `${artifactPath}.sha256`,
   `${checksum}  ${basename(artifactPath)}\n`,
+);
+execFileSync(
+  process.execPath,
+  [
+    resolve(repositoryRoot, "scripts/generate-cli-release-metadata.mjs"),
+    "--artifact",
+    artifactPath,
+    "--output-dir",
+    artifactDirectory,
+  ],
+  { cwd: repositoryRoot, stdio: "inherit" },
 );
 
 console.log(`Release artifact: ${artifactPath}`);

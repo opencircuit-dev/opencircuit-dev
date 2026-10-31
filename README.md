@@ -2,7 +2,7 @@
 
 > A terminal-native coding agent for working through real software tasks.
 
-[![CLI](https://img.shields.io/badge/CLI-1.0.2-111827)](extensions/cli/README.md)
+[![CLI](https://img.shields.io/badge/CLI-1.0.3-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
@@ -12,10 +12,21 @@ headlessly in scripts and CI.
 
 ## Start here
 
-This internal source checkout is CLI **1.0.2**. A source version does not prove
+This internal source checkout is CLI **1.0.3**. A source version does not prove
 that a matching release archive has been published. Internal Cisco users should
 use the approved internal distribution and its protected profile; the public
 installation examples below describe the separate public distribution.
+
+Read the [QUICKSTART](QUICKSTART.md) for installation, provider configuration,
+and first commands. This source checkout identifies the CLI package as
+**1.0.3**. A source version is not proof that its release archive is available;
+check the [public distribution repository](https://github.com/open-circuit-dev/opencircuit)
+for the latest published tarball and checksum before installing.
+
+Stable releases publish the exact verified tarball to npm and to the public
+distribution repository. For a manually downloaded bundle, verify its checksum
+and release metadata before installing; do not install an unpublished version
+from the registry.
 
 ### Current internal artifact
 
@@ -297,16 +308,14 @@ From the repository root:
 
 ```bash
 npm --prefix extensions/cli run release:artifact
-shasum -a 256 -c release-artifacts/v1.0.0/opencircuit-cli-1.0.0.tgz.sha256
+shasum -a 256 -c release-artifacts/v1.0.3/opencircuit-cli-1.0.3.tgz.sha256
 ```
 
-The command creates:
-
-- `release-artifacts/v1.0.0/opencircuit-cli-1.0.0.tgz`
-- `release-artifacts/v1.0.0/opencircuit-cli-1.0.0.tgz.sha256`
-
-Upload both files manually to the GitHub `v1.0.0` release. The staging
-directory is ignored by Git and is not an installation path for end users.
+It stages a versioned tarball, SHA-256 checksum, CycloneDX SBOM, provenance
+manifest, and notices under `release-artifacts/vX.Y.Z/`. Staging files are
+ignored and are not source changes. Stable publication is performed only by
+the protected `stable-release.yml` workflow, which reuses that exact archive
+for npm and the public distribution repository.
 
 ### Build the internal CLI archive
 
@@ -398,7 +407,6 @@ configuration, or runtime resolution.
 - [CI and release audit](CI_RELEASE_AUDIT.md)
 - [Runtime asset ownership](ASSET_OWNERSHIP.md)
 - [Skipped-test decisions](TEST_SKIP_DECISIONS.md)
-- [Documentation and utility inventory](DOCUMENTATION_INVENTORY.md)
 - [Large-file contribution policy](LARGE_FILES.md)
 - [CLI reference](extensions/cli/README.md)
 - [Contributor workflow](CONTRIBUTING.md)
