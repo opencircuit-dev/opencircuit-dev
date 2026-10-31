@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 // Mock dependencies before imports
 vi.mock("../config.js");
-vi.mock("../auth/workos.js");
+vi.mock("../util/modelPersistence.js");
 
-import * as workos from "../auth/workos.js";
 import { AuthConfig } from "../auth/workos.js";
 import * as config from "../config.js";
+import * as modelPersistence from "../util/modelPersistence.js";
 
 import { ModelService } from "./ModelService.js";
 
@@ -58,7 +58,7 @@ describe("ModelService", () => {
         mockLlmApi as any,
         mockAssistant.models![0] as ModelConfig,
       ]);
-      vi.mocked(workos.getModelName).mockReturnValue(null);
+      vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(null);
 
       const state = await service.initialize(mockAssistant, mockAuthConfig);
 
@@ -71,7 +71,9 @@ describe("ModelService", () => {
     });
 
     test("should initialize with persisted model if valid", async () => {
-      vi.mocked(workos.getModelName).mockReturnValue("Claude 3");
+      vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(
+        "Claude 3",
+      );
       vi.mocked(config.createLlmApi).mockReturnValue(mockLlmApi as any);
 
       const state = await service.initialize(mockAssistant, mockAuthConfig);
@@ -81,7 +83,9 @@ describe("ModelService", () => {
     });
 
     test("should fall back to default if persisted model not found", async () => {
-      vi.mocked(workos.getModelName).mockReturnValue("Non-existent Model");
+      vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(
+        "Non-existent Model",
+      );
       vi.mocked(config.getLlmApi).mockReturnValue([
         mockLlmApi as any,
         mockAssistant.models![0] as ModelConfig,
@@ -95,8 +99,8 @@ describe("ModelService", () => {
 
   describe("setSelectedModel()", () => {
     beforeEach(async () => {
-      vi.mocked(workos.getModelName).mockReturnValue(null);
-      vi.mocked(workos.updateModelName).mockReset();
+      vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(null);
+      vi.mocked(modelPersistence.persistModelName).mockReset();
       vi.mocked(config.getLlmApi).mockReturnValue([
         mockLlmApi as any,
         mockAssistant.models![0] as ModelConfig,
@@ -106,24 +110,69 @@ describe("ModelService", () => {
     });
 
     test("switches in memory before saving the selected model", async () => {
-      vi.mocked(workos.updateModelName).mockImplementation((name) => {
-        expect(service.getState().model?.name).toBe(name);
-        return null;
-      });
+      vi.mocked(modelPersistence.persistModelName).mockImplementation(
+        (name) => {
+          expect(service.getState().model?.name).toBe(name);
+        },
+      );
       const result = await service.setSelectedModel(1);
       expect(result.persisted).toBe(true);
       expect(result.state.model?.name).toBe("Claude 3");
-      expect(workos.updateModelName).toHaveBeenCalledWith("Claude 3");
+      expect(modelPersistence.persistModelName).toHaveBeenCalledWith(
+        "Claude 3",
+      );
       expect(result.state.assistant).toBe(mockAssistant);
     });
 
     test("keeps the selected model active when persistence fails", async () => {
-      vi.mocked(workos.updateModelName).mockImplementation(() => {
+      vi.mocked(modelPersistence.persistModelName).mockImplementation(() => {
         throw new Error("Cannot write preferences");
       });
       const result = await service.setSelectedModel(1);
       expect(result.persisted).toBe(false);
       expect(service.getState().model?.name).toBe("Claude 3");
+    });
+
+    test("retains a session-only selection when the service reloads", async () => {
+      vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(
+        "GPT-4",
+      );
+      vi.mocked(modelPersistence.persistModelName).mockImplementation(() => {
+        throw new Error("Cannot write preferences");
+      });
+
+      await service.setSelectedModel(1);
+      const state = await service.reload(mockAssistant, mockAuthConfig);
+
+      expect(state.model?.name).toBe("Claude 3");
+    });
+
+    test("preserves agent-file precedence over a session selection", async () => {
+      await service.setSelectedModel(1);
+      const state = await service.reload(mockAssistant, mockAuthConfig, {
+        agentFileModel: { name: "GPT-4" },
+      });
+
+      expect(state.model?.name).toBe("GPT-4");
+    });
+
+    test("retains the selected provider when model names are identical", async () => {
+      mockAssistant.models![1]!.name = "GPT-4";
+      await service.setSelectedModel(1);
+      const state = await service.reload(mockAssistant, mockAuthConfig);
+
+      expect(state.model?.provider).toBe("anthropic");
+    });
+
+    test("falls back when the session model is removed from the config", async () => {
+      await service.setSelectedModel(1);
+      const assistant = {
+        ...mockAssistant,
+        models: [mockAssistant.models![0]],
+      };
+      const state = await service.reload(assistant, mockAuthConfig);
+
+      expect(state.model?.name).toBe("GPT-4");
     });
 
     test.each([-1, 2, NaN, 0.5])(
@@ -132,7 +181,7 @@ describe("ModelService", () => {
         const previousState = service.getState();
         await expect(service.setSelectedModel(index)).rejects.toThrow();
         expect(service.getState()).toEqual(previousState);
-        expect(workos.updateModelName).not.toHaveBeenCalled();
+        expect(modelPersistence.persistModelName).not.toHaveBeenCalled();
       },
     );
 
@@ -146,7 +195,7 @@ describe("ModelService", () => {
         "Model unavailable",
       );
       expect(service.getState()).toEqual(previousState);
-      expect(workos.updateModelName).not.toHaveBeenCalled();
+      expect(modelPersistence.persistModelName).not.toHaveBeenCalled();
     });
   });
 

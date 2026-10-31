@@ -39,6 +39,16 @@ oc -p "Summarize the current git diff" --format json
 Use `oc ls` to list sessions and `oc --resume` to resume the previous session.
 In an interactive session, `/init` can generate repository guidance.
 
+Use `/model` to open the terminal model picker. Choices show the configured
+name and provider; use the arrow keys and Enter to select, or Esc to cancel.
+Selection uses the chat-model index, so identical display names from different
+providers remain distinct in the picker. A selected model is saved for the next
+session when possible. If saving fails, the CLI reports a session-only selection
+and keeps it active across service reloads. An agent-file model still takes
+precedence when the model service is initialized.
+Saved preferences still use configured names; use unique names for
+unambiguous restoration across providers after restarting the CLI.
+
 ## Configuration and credentials
 
 The CLI reads user configuration from `~/.ocircuit/` by default. Hosted API
