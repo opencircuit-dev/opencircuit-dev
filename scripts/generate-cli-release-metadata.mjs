@@ -45,7 +45,7 @@ const missingNotices = thirdParty
   .filter((id) => !listedInNotices.delete(id));
 if (missingNotices.length > 0 || listedInNotices.size > 0) {
   throw new Error(
-    "THIRD_PARTY_NOTICES.txt does not match the bundled closure; run npm run generate:notices in extensions/cli" +
+    "THIRD_PARTY_NOTICES.txt does not match the CLI release closure; run npm run generate:notices in extensions/cli" +
       (missingNotices.length
         ? `\n  missing: ${missingNotices.join(", ")}`
         : "") +
@@ -68,7 +68,8 @@ const sbom = {
     properties: [
       {
         name: "opencircuit:closure-source",
-        value: "extensions/cli/dist/meta.json",
+        value:
+          "extensions/cli/dist/meta.json plus extensions/cli/package-lock.json non-dev closure",
       },
     ],
   },
@@ -87,8 +88,13 @@ const sbom = {
         entry,
         [
           { name: "opencircuit:lockfile", value: entry.lockfile },
+          ...(entry.installTime
+            ? [{ name: "opencircuit:install-time", value: "true" }]
+            : []),
           ...entry.paths.map((path) => ({
-            name: "opencircuit:bundle-path",
+            name: entry.installTime
+              ? "opencircuit:install-path"
+              : "opencircuit:bundle-path",
             value: path,
           })),
         ],

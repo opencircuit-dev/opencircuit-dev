@@ -30,28 +30,22 @@ const evidenceByPackage = new Map(
 const sections = [
   "Open Circuit CLI third-party notices",
   "",
-  "This file is generated from extensions/cli/dist/meta.json during release packaging.",
-  "It describes packages whose code is included in the bundled CLI.",
+  "This file is generated from the bundled CLI and its published install-time dependency tree.",
+  "It describes packages included in the bundle or fetched by npm for end users.",
   "",
 ];
 for (const dependency of thirdParty) {
   const files = findNoticeFiles(dependency.root);
   sections.push(`${dependency.name}@${dependency.version}`);
   sections.push(`License: ${dependency.license}`);
+  const packageKey = `${dependency.name}@${dependency.version}`;
+  const evidence = evidenceByPackage.get(packageKey);
+  if (evidence) {
+    validateEvidence(evidence, dependency);
+  }
   if (files.length === 0) {
-    const packageKey = `${dependency.name}@${dependency.version}`;
-    const evidence = evidenceByPackage.get(packageKey);
     if (!evidence) {
       throw new Error(`missing authoritative license evidence: ${packageKey}`);
-    }
-    if (
-      evidence.spdx !== dependency.license ||
-      typeof evidence.sourceUrl !== "string" ||
-      typeof evidence.sourceRef !== "string" ||
-      typeof evidence.licenseTextPath !== "string" ||
-      !/^[a-f0-9]{64}$/.test(evidence.licenseTextSha256)
-    ) {
-      throw new Error(`incomplete license evidence: ${packageKey}`);
     }
     const licenseTextPath = resolve(repositoryRoot, evidence.licenseTextPath);
     const licenseText = readFileSync(licenseTextPath, "utf8");
@@ -83,7 +77,7 @@ for (const dependency of thirdParty) {
 
 writeFileSync(outputPath, `${sections.join("\n").trim()}\n`);
 console.log(
-  `Generated ${outputPath} for ${thirdParty.length} bundled third-party packages`,
+  `Generated ${outputPath} for ${thirdParty.length} CLI release-closure third-party packages`,
 );
 
 function normalizeNoticeText(text) {
@@ -93,4 +87,25 @@ function normalizeNoticeText(text) {
     .map((line) => line.trimEnd())
     .join("\n")
     .trim();
+}
+
+function validateEvidence(evidence, dependency) {
+  const packageKey = `${dependency.name}@${dependency.version}`;
+  if (
+    evidence.spdx !== dependency.license ||
+    typeof evidence.sourceUrl !== "string" ||
+    typeof evidence.sourceRef !== "string" ||
+    typeof evidence.licenseTextPath !== "string" ||
+    !/^[a-f0-9]{64}$/.test(evidence.licenseTextSha256)
+  ) {
+    throw new Error(`incomplete license evidence: ${packageKey}`);
+  }
+  const licenseTextPath = resolve(repositoryRoot, evidence.licenseTextPath);
+  const licenseText = readFileSync(licenseTextPath, "utf8");
+  const licenseTextSha256 = createHash("sha256")
+    .update(licenseText)
+    .digest("hex");
+  if (licenseTextSha256 !== evidence.licenseTextSha256) {
+    throw new Error(`license evidence hash mismatch: ${packageKey}`);
+  }
 }

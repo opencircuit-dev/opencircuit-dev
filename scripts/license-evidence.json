@@ -104,6 +104,15 @@
       "sourceRef": "v3.2.1",
       "licenseTextPath": "scripts/license-evidence/mit-yoga.txt",
       "licenseTextSha256": "33131abf17b4c2f0299d12d3669c7eb82074e43d908400d5cc6cf1ea215c77bb"
+    },
+    {
+      "name": "argparse",
+      "version": "2.0.1",
+      "spdx": "Python-2.0",
+      "sourceUrl": "https://github.com/nodeca/argparse/blob/2.0.1/LICENSE",
+      "sourceRef": "nodeca/argparse@2.0.1",
+      "licenseTextPath": "scripts/license-evidence/python-2.0-argparse-2.0.1.txt",
+      "licenseTextSha256": "de4d1f2d2ad5ad0cfd1657a106476b31cb5db5ef9d1ff842b237c0c81f0c8a23"
     }
   ]
 }

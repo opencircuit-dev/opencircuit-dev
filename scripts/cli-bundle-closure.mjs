@@ -1,7 +1,6 @@
-// Resolves the packages esbuild actually bundled into the CLI (from
-// extensions/cli/dist/meta.json) and ties each third-party package to the
-// lockfile entry that installed it. Shared by notice and SBOM generation so
-// both describe the same closure.
+// Resolves both the packages esbuild bundled into the CLI and the packages
+// npm installs for end users. Shared by notice and SBOM generation so both
+// describe the same release closure.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
@@ -71,6 +70,16 @@ export function collectBundledPackages() {
   }
 
   const allowedLicenses = readLicenseAllowlist();
+  for (const entry of collectInstallTimePackages()) {
+    const id = `${entry.name}@${entry.version}`;
+    const existing = thirdParty.get(id);
+    if (existing) {
+      existing.installTime = true;
+    } else {
+      thirdParty.set(id, entry);
+    }
+  }
+
   for (const entry of thirdParty.values()) {
     if (entry.license === "UNKNOWN") {
       errors.push(
@@ -84,7 +93,7 @@ export function collectBundledPackages() {
   }
   if (errors.length > 0) {
     throw new Error(
-      `bundled package closure is incomplete:\n  ${errors.join("\n  ")}`,
+      `CLI release package closure is incomplete:\n  ${errors.join("\n  ")}`,
     );
   }
 
@@ -98,6 +107,75 @@ export function collectBundledPackages() {
       .sort(byId),
     firstParty: [...firstParty.values()].sort(byId),
   };
+}
+
+/**
+ * Collect the published CLI's non-dev npm dependency tree from its lockfile.
+ * This includes optional dependencies because npm may fetch them on a user's
+ * platform. The lockfile is authoritative; dev-only entries are excluded.
+ */
+export function collectInstallTimePackages() {
+  const lockDirectory = cliRoot;
+  const lockfiles = new Map();
+  const lockfile = readLockfile(lockDirectory, lockfiles);
+  const packages = lockfile.packages ?? {};
+  const root = packages[""];
+  if (!root) throw new Error("CLI package-lock.json has no root package");
+
+  const rootDependencies = {
+    ...(root.dependencies ?? {}),
+    ...(root.optionalDependencies ?? {}),
+  };
+  const pending = Object.keys(rootDependencies).map((name) => ({
+    parentPath: "",
+    name,
+  }));
+  const visited = new Set();
+  const entries = new Map();
+
+  while (pending.length > 0) {
+    const { parentPath, name } = pending.pop();
+    const packagePath = resolveLockPackagePath(
+      parentPath,
+      name,
+      packages,
+    );
+    if (!packagePath || visited.has(packagePath)) continue;
+    visited.add(packagePath);
+
+    const lockEntry = packages[packagePath];
+    if (!lockEntry || lockEntry.dev === true) continue;
+
+    const packageRoot = resolve(cliRoot, packagePath);
+    const entry = describeThirdParty(packageRoot, lockfiles);
+    const id = `${entry.name}@${entry.version}`;
+    const existing = entries.get(id);
+    if (existing) {
+      existing.paths.add(packagePath);
+    } else {
+      entries.set(id, {
+        ...entry,
+        paths: new Set([packagePath]),
+        installTime: true,
+      });
+    }
+
+    for (const dependencyName of Object.keys({
+      ...(lockEntry.dependencies ?? {}),
+      ...(lockEntry.optionalDependencies ?? {}),
+      ...(lockEntry.peerDependencies ?? {}),
+    })) {
+      pending.push({ parentPath: packagePath, name: dependencyName });
+    }
+  }
+
+  const byId = (left, right) =>
+    `${left.name}@${left.version}`.localeCompare(
+      `${right.name}@${right.version}`,
+    );
+  return [...entries.values()]
+    .map((entry) => ({ ...entry, paths: [...entry.paths].sort() }))
+    .sort(byId);
 }
 
 export function findNoticeFiles(packageRoot) {
@@ -280,4 +358,23 @@ function readLockfile(directory, cache) {
     );
   }
   return cache.get(directory);
+}
+
+function resolveLockPackagePath(parentPath, name, packages) {
+  let current = parentPath;
+  while (true) {
+    const candidate = current
+      ? `${current}/node_modules/${name}`
+      : `node_modules/${name}`;
+    if (packages[candidate]) return candidate;
+
+    const parentMarker = current.lastIndexOf("/node_modules/");
+    if (parentMarker !== -1) {
+      current = current.slice(0, parentMarker);
+    } else if (current.startsWith("node_modules/")) {
+      current = "";
+    } else {
+      return undefined;
+    }
+  }
 }

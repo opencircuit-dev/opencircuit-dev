@@ -55,12 +55,16 @@ Publication is protected by the `stable-release` environment and immutable
 same-version checks. Checksum and metadata verification remain mandatory for
 the packaged user install path.
 
-Notices and the SBOM both come from `scripts/cli-bundle-closure.mjs`, which
-reads the esbuild metafile (`extensions/cli/dist/meta.json`) and ties every
-bundled third-party package to its entry in the CLI, Core, or root lockfile.
-Packaging fails if a bundled package has no lockfile entry, a version mismatch,
-or no declared license, or if the committed
-`extensions/cli/THIRD_PARTY_NOTICES.txt` does not list exactly the bundled
+Notices and the SBOM both come from `scripts/cli-bundle-closure.mjs`. The
+closure includes packages from the esbuild metafile
+(`extensions/cli/dist/meta.json`) and every non-dev package npm can install
+from `extensions/cli/package-lock.json`, including optional dependencies. Each
+package is tied to its lockfile entry. Packaging fails if a package has no
+lockfile entry, a version mismatch, no declared license, or a license outside
+the allowlist, or if the committed
+`extensions/cli/THIRD_PARTY_NOTICES.txt` does not list exactly the combined
+bundle/install-time closure. Npm-fetched packages are not embedded in the
+tarball, but they remain part of the published product's license and SBOM
 closure. After a dependency change, run `npm run build` and
 `npm run generate:notices` in `extensions/cli` and commit the result; main
 validation fails on a stale notices file.
