@@ -41,6 +41,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           name: model.name,
           index: model.index,
           provider: model.provider,
+          displaySuffix: ` (${model.provider})`,
         }));
 
         setModels(modelOptions);

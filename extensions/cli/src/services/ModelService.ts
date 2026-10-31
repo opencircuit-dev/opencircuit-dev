@@ -1,8 +1,12 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 
-import { AuthConfig, getModelName, updateModelName } from "../auth/workos.js";
+import { AuthConfig } from "../auth/workos.js";
 import { createLlmApi, getLlmApi } from "../config.js";
 import { logger } from "../util/logger.js";
+import {
+  getPersistedModelName,
+  persistModelName,
+} from "../util/modelPersistence.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
 import { AgentFileServiceState, ModelServiceState } from "./types.js";
@@ -18,6 +22,7 @@ export class ModelService
   private availableModels: ModelConfig[] = [];
   private assistant: AssistantUnrolled | null = null;
   private authConfig: AuthConfig | null = null;
+  private sessionModel: ModelConfig | null = null;
 
   constructor() {
     super("ModelService", {
@@ -57,14 +62,19 @@ export class ModelService
     ) || []) as ModelConfig[];
 
     let preferredModelName: string | null | undefined = null;
+    let preferredProvider: string | undefined;
     let modelSource = "default";
 
-    // Priority = agentFile -> last selected model
+    // Keep session-only selections across reloads without overriding agent files.
     if (agentFileServiceState?.agentFileModel?.name) {
       preferredModelName = agentFileServiceState.agentFileModel?.name;
       modelSource = "agentFile";
+    } else if (this.sessionModel) {
+      preferredModelName = this.sessionModel.name || this.sessionModel.model;
+      preferredProvider = this.sessionModel.provider;
+      modelSource = "session";
     } else {
-      const persistedName = getModelName(authConfig);
+      const persistedName = getPersistedModelName();
       if (persistedName) {
         preferredModelName = persistedName;
         modelSource = "persisted";
@@ -76,7 +86,10 @@ export class ModelService
       // During initialization, we need to check against availableModels directly
       const modelIndex = this.availableModels.findIndex((model) => {
         const name = (model as any).name || (model as any).model;
-        return name === preferredModelName;
+        return (
+          name === preferredModelName &&
+          (!preferredProvider || model.provider === preferredProvider)
+        );
       });
       if (modelIndex === -1) {
         // Preferred model not found, use default model selection
@@ -186,15 +199,23 @@ export class ModelService
     }
 
     const state = await this.switchModel(modelIndex);
+    this.sessionModel = state.model;
     const modelName = state.model?.name || state.model?.model;
     if (!modelName) {
+      logger.warn(
+        "Unable to persist selected model because its name is missing",
+      );
       return { state, persisted: false };
     }
 
     try {
-      updateModelName(modelName);
+      persistModelName(modelName);
       return { state, persisted: true };
-    } catch {
+    } catch (error: unknown) {
+      logger.warn(
+        "Unable to persist selected model; keeping the selection for this session",
+        error,
+      );
       return { state, persisted: false };
     }
   }

@@ -100,6 +100,12 @@ describe("slashCommands", () => {
   });
 
   describe("handleSlashCommands", () => {
+    it("opens the Ink model selector without a competing prompt", async () => {
+      const result = await handleSlashCommands("/model", mockAssistant);
+
+      expect(result).toEqual({ openModelSelector: true });
+    });
+
     it("should handle /help command", async () => {
       const result = await handleSlashCommands("/help", mockAssistant);
 
