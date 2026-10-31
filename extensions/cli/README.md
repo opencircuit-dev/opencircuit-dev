@@ -7,7 +7,7 @@ archives are published separately; check the
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
 for installation guidance.
 
-This internal source package is version **1.0.2**. Source version and published
+This internal source package is version **1.0.3**. Source version and published
 archive availability are separate. Cisco users should install the approved
 internal artifact and run `oc init` to install its protected profile; public
 package examples below do not include that profile.
@@ -20,13 +20,21 @@ the approved internal distribution. Local generation is not remote publication.
 The source staging path is `../../release-artifacts/v1.0.2/`.
 
 The latest validation-only source build is commit
-`4546eb9262c7bd59737e73f95e6d225ae356e2a3`. It passed Server1 Core and CLI
+`8f541eee72b5a7ad92ca6a3c9410db19712cc54e`. It passed Server1 Core and CLI
 typechecks, CLI build and smoke tests, all 941 Core tests that ran (68 skipped),
 and validation-artifact generation. Its CLI 1.0.2 archive SHA-256 is
-`6c8a7afc35202f8aef1be79afb5ac1733663810107d4b07d854ed3dac99a1ece`; this
+`57ccb2f5b49937479415896c353577d06282cf230922869af814f50a18bf4158`; this
 candidate has not been published and is not the approved internal tarball
 described above. Do not substitute it until the internal release-publish action
 has regenerated and staged the release.
+
+Ubuntu1 also verified and installed that exact validation artifact and passed
+version/help/isolated-init checks. Protected 1.0.3 regeneration from internal
+main `ec56b433b` failed on October 31 at Server1's mandatory root tooling
+audit (ESLint/TypeScript-ESLint/minimatch). No new protected internal archive
+was staged. The local source `release-artifacts/v1.0.3/` is a public test
+package only. The approved internal 1.0.2 archive remains the installation
+target; resolve the audit findings before canonical regeneration.
 
 ```bash
 shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&

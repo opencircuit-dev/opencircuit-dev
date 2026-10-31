@@ -2,7 +2,7 @@
 
 This guide gets a beginner from zero to a working `oc` command.
 
-This internal source checkout is CLI **1.0.2**; release archives are published
+This internal source checkout is CLI **1.0.3**; release archives are published
 separately. Cisco users must use the approved internal package, run `oc init`
 to install its protected profile, and select the packaged Circuit configuration.
 The public-provider examples below do not replace internal SSO onboarding.
@@ -14,9 +14,15 @@ the approved internal distribution, not the public 1.0.0 examples below.
 The currently published internal 1.0.2 build is from source revision
 `79e42d9ef40f7fba7c90980b0650cdb4ce334119`; its matching archive remains in
 `release-artifacts/v1.0.2/`. A newer validation-only build from
-`4546eb9262c7bd59737e73f95e6d225ae356e2a3` passed Server1, but has not been
+`8f541eee72b5a7ad92ca6a3c9410db19712cc54e` passed Server1 → Ubuntu1, but has not been
 published and must not be substituted for the approved distribution archive.
 Regeneration and validation do not themselves publish a remote release.
+
+Protected 1.0.3 regeneration from `ec56b433b` failed on October 31 at
+Server1's mandatory root tooling audit (ESLint/TypeScript-ESLint/minimatch).
+Neither destination was updated. Source `release-artifacts/v1.0.3/` is a
+local public test package, not an approved internal release. Continue using
+1.0.2 until audit remediation and canonical regeneration succeed.
 
 From the directory containing the downloaded files, with Node 24.19.0 active:
 
@@ -43,7 +49,7 @@ model returned by policy. Do not invent a deployment ID, add manual bearer
 tokens, or bypass entitlement rejection. Tokens refresh through OAuth and use
 the OS credential store; macOS persistence uses chunked Keychain items.
 
-The latest source validation passed Core and CLI typechecks, CLI build and
+The last complete 1.0.2 test pipeline passed Core and CLI typechecks, CLI build and
 smoke tests, all 941 Core tests that ran (68 skipped), and validation-artifact
 generation. It did not rerun retained-closure or e2e validation. Live Cisco
 SSO/model access still depends on your account and network.

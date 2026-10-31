@@ -49,10 +49,9 @@ oc init
 
 ### Latest validated source build (not released)
 
-The internal source branch `ocircuit/pro-harness-20261027T2030T` at
-`4546eb9262c7bd59737e73f95e6d225ae356e2a3` passed the Server1 validation
-pipeline. Its validation-only CLI 1.0.2 artifact has SHA-256
-`6c8a7afc35202f8aef1be79afb5ac1733663810107d4b07d854ed3dac99a1ece`.
+Source `8f541eee72b5a7ad92ca6a3c9410db19712cc54e` passed the complete
+Server1 → Ubuntu1 test pipeline. Its validation-only CLI 1.0.2 artifact has SHA-256
+`57ccb2f5b49937479415896c353577d06282cf230922869af814f50a18bf4158`.
 This candidate has **not** been published to the internal distribution; the
 1.0.2 archive above remains the installable release until the canonical
 internal release-publish action regenerates and stages the release artifacts.
@@ -63,10 +62,22 @@ Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding
 for browser SSO and entitled-model selection. Manual token/appkey configuration
 is a separate legacy path, not required for Circuit SSO.
 
-The latest Server1 validation passed Core and CLI typechecks, CLI build and
+That Server1 validation passed Core and CLI typechecks, CLI build and
 smoke tests, all 941 Core tests that ran (68 skipped), and validation-artifact
 generation. This run did not execute the retained-closure audit or e2e suite
 and does not claim live Cisco SSO or model qualification.
+
+### Source 1.0.3: internal regeneration blocked
+
+Internal main `ec56b433b958bb80d03978b1bc9f03bd9f36e64c` includes upstream
+CLI 1.0.3. On October 31, canonical protected regeneration failed on Server1
+at the mandatory root release-tooling audit (ESLint/TypeScript-ESLint/minimatch
+findings). Neither release destination received a new protected archive.
+The existing `release-artifacts/v1.0.3/` contains a local public test package,
+not an approved internal SSO release. Keep using the internal 1.0.2 archive.
+Resolve the audit findings and rerun the canonical release action; do not
+bypass the gate. Local 1.0.3 builds, 78 focused tests, 14 policy tests, smoke
+and public archive checks passed, but full retained-closure validation did not.
 The deprecated generic `database` context provider is removed: existing entries
 produce a warning; migrate to database MCP. PostgreSQL, SQLite and Azure OpenAI
 remain supported.
