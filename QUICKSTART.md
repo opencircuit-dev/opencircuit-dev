@@ -14,18 +14,18 @@ the approved internal distribution, not the public 1.0.0 examples below.
 The currently published internal 1.0.2 build is from source revision
 `79e42d9ef40f7fba7c90980b0650cdb4ce334119`; its matching archive remains in
 `release-artifacts/v1.0.2/`. A newer validation-only build from
-`99678dabebc3c62bfc3990ce9be4338e4d357c1a` (CLI 1.0.3) passed Server1 → Ubuntu1, but has not been
+`f03803cc7d638a74381452c5292493713bf98c61` (CLI 1.0.3) passed Server1 → Ubuntu1, but has not been
 published and must not be substituted for the approved distribution archive.
 Regeneration and validation do not themselves publish a remote release.
 
-Protected 1.0.3 regeneration from `ec56b433b` failed on October 31 at
-Server1's mandatory root tooling audit (ESLint/TypeScript-ESLint/minimatch).
+Audit remediation in `f03803cc7` reports zero findings in root, Core and CLI.
+Protected 1.0.3 regeneration failed on October 31 at Server1's mandatory
+license evidence check: minimatch's **BlueOak-1.0.0** license is not on the
+release allowlist and requires review.
 Neither destination was updated. Source `release-artifacts/v1.0.3/` is a
 local public test package, not an approved internal release. Continue using
-1.0.2 until audit remediation and canonical regeneration succeed.
-Hono and qs patch-level fixes in `99678dabe` passed the normal pipeline, but
-the protected regeneration retry still failed the root audit. No audit gate
-was relaxed.
+1.0.2 until license review and canonical regeneration succeed. No audit or
+license exception was added; do not publish the validation candidate.
 
 From the directory containing the downloaded files, with Node 24.19.0 active:
 
@@ -53,7 +53,7 @@ tokens, or bypass entitlement rejection. Tokens refresh through OAuth and use
 the OS credential store; macOS persistence uses chunked Keychain items.
 
 The latest complete profileless 1.0.3 test pipeline passed Core and CLI typechecks, CLI build and
-smoke tests, all 941 Core tests that ran (68 skipped), and validation-artifact
+smoke tests, all 944 Core tests that ran (68 skipped), and validation-artifact
 generation. It did not rerun retained-closure or e2e validation. Live Cisco
 SSO/model access still depends on your account and network.
 The generic `database` provider is retired; use database MCP instead.

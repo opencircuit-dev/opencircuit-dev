@@ -49,9 +49,9 @@ oc init
 
 ### Latest validated source build (not released)
 
-Source `99678dabebc3c62bfc3990ce9be4338e4d357c1a` passed the complete
+Source `f03803cc7d638a74381452c5292493713bf98c61` passed the complete
 Server1 → Ubuntu1 test pipeline. Its validation-only CLI 1.0.3 artifact has SHA-256
-`da6b52c7da439eb21824add2a0269c78341b153f0f22334e25db2f622d641df0`.
+`072517012f2040ae06fd46a06712f22ae8c79e6d72342bad1b5b102ed1ef7209`.
 This candidate has **not** been published to the internal distribution; the
 1.0.2 archive above remains the installable release until the canonical
 internal release-publish action regenerates and stages the release artifacts.
@@ -63,25 +63,27 @@ for browser SSO and entitled-model selection. Manual token/appkey configuration
 is a separate legacy path, not required for Circuit SSO.
 
 That Server1 validation passed Core and CLI typechecks, CLI build and
-smoke tests, all 941 Core tests that ran (68 skipped), and validation-artifact
+smoke tests, all 944 Core tests that ran (68 skipped), and validation-artifact
 generation. This run did not execute the retained-closure audit or e2e suite
 and does not claim live Cisco SSO or model qualification.
 
 ### Source 1.0.3: internal regeneration blocked
 
-Internal main `ec56b433b958bb80d03978b1bc9f03bd9f36e64c` includes upstream
-CLI 1.0.3. On October 31, canonical protected regeneration failed on Server1
-at the mandatory root release-tooling audit (ESLint/TypeScript-ESLint/minimatch
-findings). Neither release destination received a new protected archive.
+Internal source is already CLI 1.0.3. Audit remediation in `f03803cc7`
+reports zero findings in root, Core and CLI. It includes an API-compatible
+minimatch security backport, a deepmerge prototype-key fix, SQLite 6, glob 14,
+and corrected ADF packaging; see [maintained dependency provenance](vendor/README.md).
+Canonical protected regeneration passed the audit checks but failed the
+mandatory bundled-license evidence check: **BlueOak-1.0.0** is not approved
+in `scripts/license-allowlist.json`. Neither release destination received a
+new protected archive.
 The existing `release-artifacts/v1.0.3/` contains a local public test package,
 not an approved internal SSO release. Keep using the internal 1.0.2 archive.
-Compatible Hono 2.1.5 and qs 6.17.1 fixes are committed in `99678dabe`.
-Protected regeneration was retried and still failed the root audit. A tested
-minimatch 11 override broke ESLint's `makeRe` import and was removed; legacy
-glob/minimatch and unpatched deepmerge findings also remain in Core.
-Resolve the audit findings and rerun the canonical release action; do not
-bypass the gate. Local 1.0.3 builds, 78 focused tests, 14 policy tests, smoke
-and public archive checks passed, but full retained-closure validation did not.
+Obtain the required license review before changing the allowlist and rerunning
+canonical regeneration. Vendored code is included in third-party license
+evidence, not classified as first-party. No audit or license exception was
+added. Profileless validation is not license qualification or permission to
+publish the candidate.
 The deprecated generic `database` context provider is removed: existing entries
 produce a warning; migrate to database MCP. PostgreSQL, SQLite and Azure OpenAI
 remain supported.

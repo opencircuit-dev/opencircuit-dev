@@ -20,24 +20,24 @@ the approved internal distribution. Local generation is not remote publication.
 The source staging path is `../../release-artifacts/v1.0.2/`.
 
 The latest validation-only source build is commit
-`99678dabebc3c62bfc3990ce9be4338e4d357c1a`. It passed Server1 Core and CLI
-typechecks, CLI build and smoke tests, all 941 Core tests that ran (68 skipped),
+`f03803cc7d638a74381452c5292493713bf98c61`. It passed Server1 Core and CLI
+typechecks, CLI build and smoke tests, all 944 Core tests that ran (68 skipped),
 and validation-artifact generation. Its profileless CLI 1.0.3 archive SHA-256 is
-`da6b52c7da439eb21824add2a0269c78341b153f0f22334e25db2f622d641df0`; this
+`072517012f2040ae06fd46a06712f22ae8c79e6d72342bad1b5b102ed1ef7209`; this
 candidate has not been published and is not the approved internal tarball
 described above. Do not substitute it until the internal release-publish action
 has regenerated and staged the release.
 
 Ubuntu1 also verified and installed that exact validation artifact and passed
-version/help/isolated-init checks. Protected 1.0.3 regeneration from internal
-main `ec56b433b` failed on October 31 at Server1's mandatory root tooling
-audit (ESLint/TypeScript-ESLint/minimatch). No new protected internal archive
-was staged. The local source `release-artifacts/v1.0.3/` is a public test
-package only. The approved internal 1.0.2 archive remains the installation
-target; resolve the audit findings before canonical regeneration.
-Compatible Hono 2.1.5 and qs 6.17.1 fixes are included in `99678dabe`, but
-protected regeneration still fails the root audit. The incompatible
-minimatch 11 override was removed rather than bypassing validation.
+version/help/isolated-init checks. Root, Core and CLI audits now report zero
+findings. Protected 1.0.3 regeneration failed on October 31 at the mandatory
+bundled-license evidence check: minimatch's **BlueOak-1.0.0** license is not
+on the release allowlist. No new protected archive was staged. The local
+source `release-artifacts/v1.0.3/` is a public test package only.
+Keep installing approved internal 1.0.2 until license review and canonical
+regeneration succeed. See [maintained package provenance](../../vendor/README.md).
+No audit or license exception was added; the profileless candidate is not
+license-qualified and must not be published.
 
 ```bash
 shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&
