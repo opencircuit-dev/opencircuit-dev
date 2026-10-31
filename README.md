@@ -67,23 +67,22 @@ smoke tests, all 944 Core tests that ran (68 skipped), and validation-artifact
 generation. This run did not execute the retained-closure audit or e2e suite
 and does not claim live Cisco SSO or model qualification.
 
-### Source 1.0.3: internal regeneration blocked
+### Source 1.0.3: qualified locally, protected regeneration pending
 
 Internal source is already CLI 1.0.3. Audit remediation in `f03803cc7`
 reports zero findings in root, Core and CLI. It includes an API-compatible
 minimatch security backport, a deepmerge prototype-key fix, SQLite 6, glob 14,
 and corrected ADF packaging; see [maintained dependency provenance](vendor/README.md).
-Canonical protected regeneration passed the audit checks but failed the
-mandatory bundled-license evidence check: **BlueOak-1.0.0** is not approved
-in `scripts/license-allowlist.json`. Neither release destination received a
-new protected archive.
+The operator confirmed **BlueOak-1.0.0** approval on October 31. The exact
+license identifier is now allowlisted, bundled notices include its license,
+and complete local retained-closure validation passes. The earlier protected
+regeneration failure is resolved at the policy level; canonical protected
+regeneration has not yet been rerun with this approval.
 The existing `release-artifacts/v1.0.3/` contains a local public test package,
 not an approved internal SSO release. Keep using the internal 1.0.2 archive.
-Obtain the required license review before changing the allowlist and rerunning
-canonical regeneration. Vendored code is included in third-party license
+Rerun canonical regeneration before publishing. Vendored code is included in third-party license
 evidence, not classified as first-party. No audit or license exception was
-added. Profileless validation is not license qualification or permission to
-publish the candidate.
+added. Local qualification does not generate or publish a protected release.
 The deprecated generic `database` context provider is removed: existing entries
 produce a warning; migrate to database MCP. PostgreSQL, SQLite and Azure OpenAI
 remain supported.

@@ -30,14 +30,15 @@ has regenerated and staged the release.
 
 Ubuntu1 also verified and installed that exact validation artifact and passed
 version/help/isolated-init checks. Root, Core and CLI audits now report zero
-findings. Protected 1.0.3 regeneration failed on October 31 at the mandatory
-bundled-license evidence check: minimatch's **BlueOak-1.0.0** license is not
-on the release allowlist. No new protected archive was staged. The local
+findings. The operator confirmed **BlueOak-1.0.0** approval on October 31.
+Its exact identifier is allowlisted, notices preserve its license, and
+complete local retained-closure validation passes. Canonical protected
+regeneration has not yet been rerun with the approval. The local
 source `release-artifacts/v1.0.3/` is a public test package only.
-Keep installing approved internal 1.0.2 until license review and canonical
+Keep installing approved internal 1.0.2 until canonical
 regeneration succeed. See [maintained package provenance](../../vendor/README.md).
-No audit or license exception was added; the profileless candidate is not
-license-qualified and must not be published.
+No audit or license exception was added; local qualification does not
+generate or publish a protected release.
 
 ```bash
 shasum -a 256 -c opencircuit-cli-internal-1.0.2.tgz.sha256 &&

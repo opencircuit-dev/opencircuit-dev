@@ -82,6 +82,15 @@ test("malformed expressions are rejected", () => {
   }
 });
 
+test("approved BlueOak is allowed without admitting unapproved license combinations", () => {
+  const repositoryAllowlist = readLicenseAllowlist();
+  assert.equal(isLicenseAllowed("BlueOak-1.0.0", repositoryAllowlist), true);
+  assert.equal(
+    isLicenseAllowed("BlueOak-1.0.0 AND GPL-3.0-only", repositoryAllowlist),
+    false,
+  );
+});
+
 test("repository allowlist includes the bundled permissive licenses", () => {
   const repositoryAllowlist = readLicenseAllowlist();
   for (const license of [

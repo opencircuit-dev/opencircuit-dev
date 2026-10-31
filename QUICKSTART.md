@@ -19,12 +19,13 @@ published and must not be substituted for the approved distribution archive.
 Regeneration and validation do not themselves publish a remote release.
 
 Audit remediation in `f03803cc7` reports zero findings in root, Core and CLI.
-Protected 1.0.3 regeneration failed on October 31 at Server1's mandatory
-license evidence check: minimatch's **BlueOak-1.0.0** license is not on the
-release allowlist and requires review.
+The operator confirmed **BlueOak-1.0.0** approval on October 31. Its exact
+identifier is allowlisted, notices preserve the license, and complete local
+retained-closure validation passes. Canonical protected regeneration must
+still be rerun with the approved policy.
 Neither destination was updated. Source `release-artifacts/v1.0.3/` is a
 local public test package, not an approved internal release. Continue using
-1.0.2 until license review and canonical regeneration succeed. No audit or
+1.0.2 until canonical regeneration succeeds. No audit or
 license exception was added; do not publish the validation candidate.
 
 From the directory containing the downloaded files, with Node 24.19.0 active:
