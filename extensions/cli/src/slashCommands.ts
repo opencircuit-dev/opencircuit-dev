@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getAllSlashCommands } from "./commands/commands.js";
 import { handleInit } from "./commands/init.js";
-import { handleModelSlashCommand } from "./commands/model.js";
 import { handleInfoSlashCommand } from "./infoScreen.js";
 import { getCurrentSession, updateSessionTitle } from "./session.js";
 import { telemetryService } from "./telemetry/telemetryService.js";
@@ -267,7 +266,7 @@ const commandHandlers: Record<string, CommandHandler> = {
     return { openConfigSelector: true };
   },
   info: handleInfoSlashCommand,
-  model: handleModelSlashCommand,
+  model: () => ({ openModelSelector: true }),
   compact: () => {
     return { compact: true };
   },
