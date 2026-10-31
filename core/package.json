@@ -139,6 +139,7 @@
     "node": ">=24.19.0"
   },
   "overrides": {
+    "@hono/node-server": "2.1.5",
     "tar": "^7.5.13",
     "@tootallnate/once": "2.0.1",
     "@istanbuljs/load-nyc-config": {
