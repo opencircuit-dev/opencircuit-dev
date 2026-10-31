@@ -14,14 +14,19 @@ versioned tarball and checksum are published, verify the checksum and install
 the tarball:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-X.Y.Z.tgz.sha256
-npm install --global ./opencircuit-cli-X.Y.Z.tgz
+shasum -a 256 -c opencircuit-cli-1.0.3.tgz.sha256
+npm install --global ./opencircuit-cli-1.0.3.tgz
 oc --version
 ```
 
 Stable releases publish the exact verified archive to npm and the public
 distribution repository. Do not install an unpublished version from the npm
 registry.
+
+The existing 1.0.3 archive predates the model-picker changes described below.
+Those changes are on source `main`; the latest regeneration failed the release
+dependency audit. See [release preparation](../../README.md#release-preparation)
+for the canonical build/publication entry and its mandatory gates.
 
 Installation places starter provider templates in `~/.ocircuit/templates/`
 without overwriting existing files. Copy one to `~/.ocircuit/config.yaml` or

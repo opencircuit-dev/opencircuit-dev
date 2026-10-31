@@ -25,8 +25,8 @@ After downloading a matching tarball and `.sha256` file, verify and install
 them from the same directory:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-X.Y.Z.tgz.sha256
-npm install --global ./opencircuit-cli-X.Y.Z.tgz
+shasum -a 256 -c opencircuit-cli-1.0.3.tgz.sha256
+npm install --global ./opencircuit-cli-1.0.3.tgz
 oc --version
 ```
 
@@ -34,6 +34,10 @@ The checksum command must report `OK`. Do not mix files from different
 versions. Stable releases are also published to npm; install from npm only
 when the exact version is available in the registry. The public distribution
 repository remains the source for matching release archives and checksums.
+
+The existing 1.0.3 archive predates the latest model-picker updates on `main`.
+Regeneration is currently blocked by the release dependency audit; the source
+version alone does not mean those updates are in the downloadable package.
 
 ## 3. Start the CLI
 
@@ -54,6 +58,12 @@ oc -p "Summarize this project" --format json
 
 In an interactive session, `/init` can inspect the repository and generate
 project guidance. There is no standalone `oc init` command.
+
+Use `/model` in an interactive session to choose a configured chat model with
+the arrow keys and Enter; Esc cancels. Current source shows each model's
+provider and retains session-only selections across reloads when saving fails.
+Give models unique configured names for reliable restoration after restarting.
+See the [CLI guide](extensions/cli/README.md) for selection precedence.
 
 ## 4. Configure provider credentials
 
