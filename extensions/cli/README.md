@@ -16,11 +16,10 @@ package examples below do not include that profile.
 
 The protected internal tarball was generated from clean source commit
 `095c5763b986fe60bf1cc3da307c7a2f90d652e6`. It includes the validated Cisco
-profile and is accompanied by a SHA-256 checksum and provenance file in the
-sibling `opencircuit-internal/` distribution checkout. SHA-256:
-`19f4aaa9dd09f4a674af6d84f4f79a56d32ed17d05353ac68bda0e0a3c2923c2`.
-These artifacts were generated locally and have not been pushed to the remote
-distribution repository.
+profile and is published with a SHA-256 checksum in the sibling
+`opencircuit-internal/` distribution checkout. SHA-256:
+`fb0aca2bf72505a09157bc08043ba331380e257c161ce9fdcc0e53150b9d5a29`.
+The canonical Server1 retained qualification passed for this source commit.
 
 ```bash
 cd ../opencircuit-internal

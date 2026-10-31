@@ -31,13 +31,12 @@ from the registry.
 ### Current internal artifact
 
 The protected CLI **1.0.3** package was generated from clean source commit
-`095c5763b986fe60bf1cc3da307c7a2f90d652e6`. The tarball, `.sha256` and
-`.provenance.json` are in the sibling `opencircuit-internal/` distribution
-checkout. The package includes the validated protected Cisco profile. These
-artifacts were generated locally and have not been pushed to the remote
-distribution repository.
+`095c5763b986fe60bf1cc3da307c7a2f90d652e6` and published to the internal
+distribution. The tarball and `.sha256` sidecar are available in the sibling
+`opencircuit-internal/` checkout. The package includes the validated protected
+Cisco profile.
 
-SHA-256: `19f4aaa9dd09f4a674af6d84f4f79a56d32ed17d05353ac68bda0e0a3c2923c2`.
+SHA-256: `fb0aca2bf72505a09157bc08043ba331380e257c161ce9fdcc0e53150b9d5a29`.
 Verify the sidecar before installing:
 
 ```bash
@@ -48,9 +47,9 @@ shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
 oc init
 ```
 
-Packaging locally does not publish the package. Transfer or publish it only
-through the approved internal distribution process; do not upload this
-profile-bearing package to the public distribution.
+The canonical Server1 retained qualification passed for this source commit.
+The profile-bearing package is for the internal distribution only; do not
+upload it to the public distribution.
 
 Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding)
 for browser SSO and entitled-model selection. Manual token/appkey configuration

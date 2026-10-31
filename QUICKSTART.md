@@ -9,15 +9,16 @@ The public-provider examples below do not replace internal SSO onboarding.
 
 ## Internal Cisco Circuit onboarding
 
-Use the protected internal **1.0.3** tarball, checksum and provenance from the
-sibling `opencircuit-internal/` distribution checkout, not the public 1.0.0
-examples below. This package was generated from clean source commit
-`095c5763b986fe60bf1cc3da307c7a2f90d652e6` and includes the validated Cisco
-profile. The artifacts currently exist only in the local checkout; they have
-not been pushed to the remote distribution repository.
+Use the protected internal **1.0.3** tarball and checksum from the
+approved internal distribution, not the public 1.0.0 examples below. This
+package was generated from clean source commit
+`095c5763b986fe60bf1cc3da307c7a2f90d652e6`, includes the validated Cisco
+profile, and is published in the sibling `opencircuit-internal/` distribution
+checkout.
 
 From the directory containing the approved internal files, with Node 24.19.0
-active:
+active (archive SHA-256:
+`fb0aca2bf72505a09157bc08043ba331380e257c161ce9fdcc0e53150b9d5a29`):
 
 ```bash
 shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
