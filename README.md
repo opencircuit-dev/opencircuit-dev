@@ -69,10 +69,11 @@ and does not claim live Cisco SSO or model qualification.
 
 ### Source 1.0.3: qualified on Server1, protected profile missing
 
-The latest upstream merge adds install-time license coverage. The earlier
-Server1 qualification below predates that merge: current clean validation
-passes audits/builds but blocks on `argparse@2.0.1`'s `Python-2.0` license
-pending internal approval. No new release is qualified by this merge.
+The latest upstream merge adds install-time license coverage. The operator
+approved `argparse@2.0.1`'s `Python-2.0` license on October 31; the exact
+identifier is now allowlisted and notices are regenerated for the combined
+bundle/install-time closure. Protected regeneration still requires the
+approved Server1 release-profile input. No protected release is published.
 
 Internal source is already CLI 1.0.3. Audit remediation in `f03803cc7`
 reports zero findings in root, Core and CLI. It includes an API-compatible

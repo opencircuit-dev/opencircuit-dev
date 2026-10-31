@@ -107,8 +107,13 @@ test("repository allowlist includes the bundled permissive licenses", () => {
   }
 });
 
-test("upstream Python license allowance requires separate internal approval", () => {
-  assert.equal(isLicenseAllowed("Python-2.0", readLicenseAllowlist()), false);
+test("approved Python license does not admit unapproved license combinations", () => {
+  const repositoryAllowlist = readLicenseAllowlist();
+  assert.equal(isLicenseAllowed("Python-2.0", repositoryAllowlist), true);
+  assert.equal(
+    isLicenseAllowed("Python-2.0 AND GPL-3.0-only", repositoryAllowlist),
+    false,
+  );
 });
 
 test("collects the published install-time closure without dev-only packages", () => {

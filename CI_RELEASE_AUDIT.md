@@ -69,11 +69,10 @@ closure. After a dependency change, run `npm run build` and
 validation fails on a stale notices file.
 
 The upstream install-time closure identifies `argparse@2.0.1` under
-`Python-2.0`. Its authoritative license evidence is imported, but upstream's
-allowlist addition is not internal approval. Internal packaging must fail
-until that approval is obtained and notices are regenerated. Existing
-bundled-only notices are retained as historical evidence, not current
-release qualification.
+`Python-2.0`. The operator confirmed internal approval on October 31.
+The exact identifier is now allowlisted, authoritative license evidence
+is retained, and notices cover the combined bundle/install-time closure.
+Other unapproved licenses and all audit findings still block release.
 
 ## Validation evidence
 
