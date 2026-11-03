@@ -7,6 +7,24 @@ import { logger } from "../util/logger.js";
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
 import { AgentFileServiceState, ModelServiceState } from "./types.js";
 
+function discoverableOpenAIModels(ids: string[]): string[] {
+  // The catalog has no capability metadata; exclude unknown and specialized APIs.
+  const chatModel =
+    /^(gpt-(?:3\.5-turbo(?:-16k)?|4(?:-turbo|-32k)?|4o(?:-mini)?|4\.1(?:-mini|-nano)?|5(?:\.\d+)?(?:-mini|-nano)?(?:-chat-latest)?)|o[134](?:-mini)?)(?:-(?:\d{4}-\d{2}-\d{2}|\d{4}))?$/;
+  const available = new Set(ids.filter((id) => typeof id === "string"));
+  return [...available]
+    .filter((id) => {
+      const match = id.match(chatModel);
+      if (!match) return false;
+      if (id !== match[1] && available.has(match[1])) return false;
+      return (
+        !id.endsWith("-chat-latest") ||
+        !available.has(id.replace(/-chat-latest$/, ""))
+      );
+    })
+    .sort();
+}
+
 /**
  * Service for managing LLM and model state
  * Depends on auth config and assistant config
@@ -18,6 +36,7 @@ export class ModelService
   private availableModels: ModelConfig[] = [];
   private assistant: AssistantUnrolled | null = null;
   private authConfig: AuthConfig | null = null;
+  private discoveredModels = new Set<ModelConfig>();
 
   constructor() {
     super("ModelService", {
@@ -51,6 +70,7 @@ export class ModelService
 
     this.assistant = assistant;
     this.authConfig = authConfig;
+    this.discoveredModels.clear();
     this.availableModels = (assistant.models?.filter(
       (model) =>
         model && (model.roles?.includes("chat") || model.roles === undefined),
@@ -68,6 +88,32 @@ export class ModelService
       if (persistedName) {
         preferredModelName = persistedName;
         modelSource = "persisted";
+      }
+    }
+
+    // Restore a discovered selection without making startup depend on the network.
+    if (
+      preferredModelName &&
+      discoverableOpenAIModels([preferredModelName]).length > 0 &&
+      !this.availableModels.some((model) => model.name === preferredModelName)
+    ) {
+      const configured = this.availableModels.find(
+        (model) =>
+          model.provider === "openai" && model.model === preferredModelName,
+      );
+      const template = this.availableModels.find(
+        (model) => model.provider === "openai",
+      );
+      if (configured) {
+        preferredModelName = configured.name;
+      } else if (template) {
+        const restored = this.discoveredModel(template, preferredModelName);
+        this.availableModels.push(restored);
+        assistant = {
+          ...assistant,
+          models: [...(assistant.models ?? []), restored],
+        };
+        this.assistant = assistant;
       }
     }
 
@@ -155,6 +201,7 @@ export class ModelService
     provider: string;
     name: string;
     index: number;
+    discovered?: boolean;
   }> {
     // Get assistant from state to ensure we have the latest data
     const { assistant } = this.getState();
@@ -167,12 +214,85 @@ export class ModelService
       (model) =>
         model && (model.roles?.includes("chat") || model.roles === undefined),
     ) || []) as ModelConfig[];
-
     return chatModels.map((model, index) => ({
       provider: model.provider,
       name: (model as any).name || (model as any).model || "unnamed",
       index,
+      ...(this.discoveredModels.has(model) ? { discovered: true } : {}),
     }));
+  }
+
+  private discoveredModel(template: ModelConfig, id: string): ModelConfig {
+    const model: ModelConfig = {
+      ...template,
+      name: id,
+      model: id,
+      roles: ["chat"],
+    };
+    this.discoveredModels.add(model);
+    return model;
+  }
+
+  async discoverModels(): Promise<string | null> {
+    const { assistant, model: template, authConfig } = this.getState();
+    if (!assistant || template?.provider !== "openai") return null;
+
+    try {
+      const api = createLlmApi(
+        {
+          ...template,
+          requestOptions: {
+            ...template.requestOptions,
+            timeout: Math.min(
+              template.requestOptions?.timeout ?? 10_000,
+              10_000,
+            ),
+          },
+        },
+        authConfig,
+      );
+      if (!api) throw new Error("OpenAI provider could not be initialized");
+      const catalog = await api.list();
+      if (!Array.isArray(catalog)) throw new Error("Invalid model catalog");
+      const ids = discoverableOpenAIModels(catalog.map((model) => model?.id));
+
+      // A config reload while the request is pending must not restore old models.
+      if (this.getState().assistant !== assistant) return null;
+      const endpoint = (model: ModelConfig) =>
+        (model.apiBase ?? "https://api.openai.com/v1/").replace(/\/+$/, "");
+      const additions = ids
+        .filter(
+          (id) =>
+            !assistant.models?.some(
+              (model) =>
+                model?.model === id &&
+                model.provider === template.provider &&
+                model.apiKey === template.apiKey &&
+                endpoint(model) === endpoint(template) &&
+                (model.roles === undefined || model.roles.includes("chat")),
+            ),
+        )
+        .map((id) => this.discoveredModel(template, id));
+      if (additions.length > 0) {
+        const updated = {
+          ...assistant,
+          models: [...(assistant.models ?? []), ...additions],
+        };
+        this.assistant = updated;
+        this.setState({ assistant: updated });
+      }
+      return null;
+    } catch (error: unknown) {
+      const status =
+        error !== null &&
+        typeof error === "object" &&
+        "status" in error &&
+        typeof error.status === "number"
+          ? error.status
+          : undefined;
+      logger.warn("OpenAI model discovery failed", { status });
+      return `OpenAI model discovery failed${status ? ` (HTTP ${status})` : ""}. Check the provider connection and credentials. Configured models remain available.`;
+    }
   }
 
   /**
@@ -272,6 +392,8 @@ export class ModelService
         model && (model.roles?.includes("chat") || model.roles === undefined),
     ) || []) as ModelConfig[];
 
+    const exactIndex = availableModels.indexOf(state.model);
+    if (exactIndex !== -1) return exactIndex;
     return availableModels.findIndex(
       (model) =>
         model.provider === state.model?.provider &&

@@ -50,6 +50,14 @@ follow the [beginner QUICKSTART](../../QUICKSTART.md). Choose one provider for
 the active config. Existing templates and active configs are not overwritten
 by upgrades.
 
+The model picker shows configured chat models immediately and discovers known
+general-purpose chat models for the active OpenAI provider using its existing
+credentials and endpoint. Discovered entries are labeled and registered in
+memory, not written to YAML. Unknown or specialized models can still be
+configured explicitly. Other providers, including OLMo, remain configured-only.
+If discovery fails, the picker displays a warning and keeps configured models
+selectable. Discovery preserves model options, including disabled tools.
+
 ## Modes and common commands
 
 - `oc`: start an interactive session.
