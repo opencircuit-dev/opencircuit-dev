@@ -4,7 +4,10 @@
 import { OCircuitError, OCircuitErrorReason } from "core/errors.js";
 import type { ToolStatus, Usage } from "core/index.js";
 import { calculateRequestCost } from "core/llm/calculateRequestCost.js";
-import type { ChatCompletionToolMessageParam } from "openai/resources/index.js";
+import type {
+  ChatCompletionTool,
+  ChatCompletionToolMessageParam,
+} from "openai/resources/index.js";
 import { ToolPermissionServiceState } from "src/services/ToolPermissionService.js";
 
 import { checkToolPermission } from "../permissions/permissionChecker.js";
@@ -23,10 +26,12 @@ import {
   Tool,
   validateToolCallArgsPresent,
 } from "../tools/index.js";
+import { MissingToolArgumentsError } from "../tools/toolArgumentValidation.js";
 import { PreprocessedToolCall, ToolCall } from "../tools/types.js";
 import { recordDailyUsage } from "../util/dailyUsage.js";
 import { logger } from "../util/logger.js";
 
+import type { MissingArguments } from "./argumentRecovery.js";
 import { StreamCallbacks } from "./streamChatResponse.types.js";
 
 export interface ToolResultWithStatus extends ChatCompletionToolMessageParam {
@@ -408,10 +413,13 @@ export async function preprocessStreamedToolCalls(
   isHeadless: boolean,
   toolCalls: ToolCall[],
   callbacks?: StreamCallbacks,
+  advertisedTools?: ChatCompletionTool[],
 ): Promise<{
   preprocessedCalls: PreprocessedToolCall[];
   errorChatEntries: ChatCompletionToolMessageParam[];
+  missingArguments: MissingArguments[];
 }> {
+  const missingArguments: MissingArguments[] = [];
   const preprocessedCalls: PreprocessedToolCall[] = [];
   const errorChatEntries: ChatCompletionToolMessageParam[] = [];
 
@@ -420,9 +428,10 @@ export async function preprocessStreamedToolCalls(
   // Process each tool call
   for (const toolCall of toolCalls) {
     const startTime = Date.now();
+    let tool: Tool | undefined;
     try {
       const availableTools: Tool[] = await getAllAvailableTools(isHeadless);
-      const tool = availableTools.find((t) => t.name === toolCall.name);
+      tool = availableTools.find((t) => t.name === toolCall.name);
       if (!tool) {
         throw new Error(`Tool ${toolCall.name} not found`);
       }
@@ -453,8 +462,23 @@ export async function preprocessStreamedToolCalls(
           ? error.reason
           : OCircuitErrorReason.Unknown;
 
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      if (error instanceof MissingToolArgumentsError) {
+        const advertised = advertisedTools?.find(
+          (entry) =>
+            entry.type === "function" && entry.function.name === toolCall.name,
+        );
+        const schema =
+          advertised?.type === "function"
+            ? advertised.function.parameters
+            : tool?.parameters;
+        missingArguments.push({
+          toolCallId: toolCall.id,
+          toolName: toolCall.name,
+          fields: error.fields,
+        });
+        errorMessage += `\nMissing fields: ${error.fields.join(", ")}.\nAdvertised tool schema: ${JSON.stringify(schema)}\nYou may make at most one correction as a single new call to this tool, within existing turn and policy limits. Supply all required fields. For Write, use only a destination explicitly named by the user or established by a successful prior Read; ask for clarification if unknown. Do not guess, replay successful calls, or retry a denial.`;
+      }
 
       logger.error("Invalid tool call", {
         name: toolCall.name,
@@ -482,7 +506,7 @@ export async function preprocessStreamedToolCalls(
     }
   }
 
-  return { preprocessedCalls, errorChatEntries };
+  return { preprocessedCalls, errorChatEntries, missingArguments };
 }
 
 /**

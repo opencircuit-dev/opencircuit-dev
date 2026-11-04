@@ -84,6 +84,7 @@ describe("handleToolCalls - duplicate tool_result prevention", () => {
 
     // Simulate preprocessing error
     mockPreprocess.mockResolvedValue({
+      missingArguments: [],
       preprocessedCalls: [],
       errorChatEntries: [
         {
@@ -333,6 +334,7 @@ describe("handleToolCalls - duplicate tool_result prevention", () => {
 
     // Simulate preprocessing error
     mockPreprocess.mockResolvedValue({
+      missingArguments: [],
       preprocessedCalls: [],
       errorChatEntries: [
         {

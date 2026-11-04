@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { services } from "../services/index.js";
 
-import { getRequestTools } from "./handleToolCalls.js";
+import { getRequestTools, handleToolCalls } from "./handleToolCalls.js";
 import { streamChatResponse } from "./streamChatResponse.js";
 
 // Mock all dependencies
@@ -136,6 +136,27 @@ describe("streamChatResponse - auto-continuation after compaction", () => {
       signal: { aborted: false },
       abort: vi.fn(),
     } as unknown as AbortController;
+  });
+
+  it("returns the explicit recovery stop explanation instead of preceding model content", async () => {
+    const notice =
+      "Stopped: argument recovery exhausted. Please clarify the destination.";
+    vi.mocked(handleToolCalls).mockImplementationOnce(async (options) => {
+      options.onStop?.(notice);
+      options.callbacks?.onContent?.(notice);
+      return true;
+    });
+    const onContent = vi.fn();
+    const result = await streamChatResponse(
+      chatHistory,
+      mockModel,
+      mockLlmApi,
+      mockAbortController,
+      { onContent },
+    );
+    expect(result).toBe(notice);
+    expect(onContent).toHaveBeenCalledWith(notice);
+    expect(responseCount).toBe(1);
   });
 
   it.each([
