@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   MissingToolArgumentsError,
+  formatMissingArgumentsFeedback,
   validateToolCallArgsPresent,
 } from "./toolArgumentValidation.js";
 import { writeFileTool } from "./writeFile.js";
@@ -45,5 +46,31 @@ describe("required argument recovery classification", () => {
         writeFileTool,
       ),
     ).toThrow(MissingToolArgumentsError);
+  });
+  it("identifies the wrong Read keys and exact required JSON shape without Write advice", () => {
+    const input = {
+      ...call({ path: "private-content-not-for-feedback" }),
+      name: "Read",
+    };
+    const message = formatMissingArgumentsFeedback(
+      new MissingToolArgumentsError("Read", ["filepath"]),
+      input,
+      { required: ["filepath"] },
+    );
+    expect(message).toContain("Received argument keys: path");
+    expect(message).toContain('"filepath":"<exact supplied file path>"');
+    expect(message).not.toContain("For Write");
+    expect(message).not.toContain("private-content-not-for-feedback");
+  });
+  it("retains destination grounding guidance for Write", () => {
+    const message = formatMissingArgumentsFeedback(
+      new MissingToolArgumentsError("Write", ["filepath"]),
+      call({ content: "private-content-not-for-feedback" }),
+      writeFileTool.parameters,
+    );
+    expect(message).toContain(
+      "For Write, use only a destination explicitly named by the user",
+    );
+    expect(message).not.toContain("private-content-not-for-feedback");
   });
 });

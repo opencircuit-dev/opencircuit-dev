@@ -3,6 +3,7 @@ import * as path from "node:path";
 import type { ChatHistoryItem } from "core/index.js";
 import { stripImages } from "core/messageContent.js";
 
+import { normalizeReadFileArgs } from "../tools/readFileArguments.js";
 import type { ToolCall } from "../tools/types.js";
 
 import type { TurnGuard } from "./turnGuard.js";
@@ -56,7 +57,7 @@ export class ArgumentRecovery {
           state.status === "done" &&
           state.toolCall.function.name === "Read"
         ) {
-          this.addPath(state.parsedArgs?.filepath);
+          this.addPath(normalizeReadFileArgs(state.parsedArgs)?.filepath);
         }
       }
     }

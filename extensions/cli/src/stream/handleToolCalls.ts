@@ -16,6 +16,7 @@ import {
   Tool,
   ToolCall,
 } from "../tools/index.js";
+import { normalizeReadFileArgs } from "../tools/readFileArguments.js";
 import { logger } from "../util/logger.js";
 
 import {
@@ -57,7 +58,11 @@ const REFUSAL_NOTICE: Record<string, string> = {
 // so timestamps and counters do not make identical failures look distinct.
 function failureSignature(call: ToolCall, content: string): string {
   const text = content.replace(/\d+/g, "#").slice(0, 120);
-  return `${call.name}|${JSON.stringify(call.arguments)}|${text}`;
+  const args =
+    call.name === "Read"
+      ? (normalizeReadFileArgs(call.arguments) ?? call.arguments)
+      : call.arguments;
+  return `${call.name}|${JSON.stringify(args)}|${text}`;
 }
 
 function refuseAllCalls(

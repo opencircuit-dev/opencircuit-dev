@@ -26,7 +26,11 @@ import {
   Tool,
   validateToolCallArgsPresent,
 } from "../tools/index.js";
-import { MissingToolArgumentsError } from "../tools/toolArgumentValidation.js";
+import { normalizeReadFileCall } from "../tools/readFileArguments.js";
+import {
+  MissingToolArgumentsError,
+  formatMissingArgumentsFeedback,
+} from "../tools/toolArgumentValidation.js";
 import { PreprocessedToolCall, ToolCall } from "../tools/types.js";
 import { recordDailyUsage } from "../util/dailyUsage.js";
 import { logger } from "../util/logger.js";
@@ -426,7 +430,8 @@ export async function preprocessStreamedToolCalls(
   // Get all available tools
 
   // Process each tool call
-  for (const toolCall of toolCalls) {
+  for (const requestedCall of toolCalls) {
+    let toolCall = requestedCall;
     const startTime = Date.now();
     let tool: Tool | undefined;
     try {
@@ -436,6 +441,7 @@ export async function preprocessStreamedToolCalls(
         throw new Error(`Tool ${toolCall.name} not found`);
       }
 
+      toolCall = normalizeReadFileCall(toolCall, tool);
       validateToolCallArgsPresent(toolCall, tool);
 
       const preprocessedCall: PreprocessedToolCall = {
@@ -477,7 +483,7 @@ export async function preprocessStreamedToolCalls(
           toolName: toolCall.name,
           fields: error.fields,
         });
-        errorMessage += `\nMissing fields: ${error.fields.join(", ")}.\nAdvertised tool schema: ${JSON.stringify(schema)}\nYou may make at most one correction as a single new call to this tool, within existing turn and policy limits. Supply all required fields. For Write, use only a destination explicitly named by the user or established by a successful prior Read; ask for clarification if unknown. Do not guess, replay successful calls, or retry a denial.`;
+        errorMessage = formatMissingArgumentsFeedback(error, toolCall, schema);
       }
 
       logger.error("Invalid tool call", {
