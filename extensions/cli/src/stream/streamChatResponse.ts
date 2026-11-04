@@ -25,6 +25,7 @@ import { providerRequestThrottle } from "../util/providerRequestThrottle.js";
 import { validateContextLength } from "../util/tokenizer.js";
 
 import { getArgumentRecovery } from "./argumentRecovery.js";
+import { getFileEditTask } from "./fileEditTask.js";
 import { getRequestTools, handleToolCalls } from "./handleToolCalls.js";
 import {
   handleNormalAutoCompaction,
@@ -494,6 +495,11 @@ async function streamChatResponseLoop(
     refreshChatHistoryFromService(chatHistory, isCompacting),
   );
 
+  const fileEditTask = getFileEditTask(
+    loopGuard.enforced,
+    refreshChatHistoryFromService(chatHistory, isCompacting),
+  );
+
   try {
     while (true) {
       const stopNotice = loopGuard.stopIfBreached(isHeadless, callbacks);
@@ -515,6 +521,9 @@ async function streamChatResponseLoop(
       const tools = applyChatCompletionToolOverrides(
         rawTools,
         model.chatOptions?.toolOverrides,
+      ).filter(
+        (tool) =>
+          !fileEditTask.target || getChatCompletionToolName(tool) !== "Bash",
       );
 
       // Pre-API auto-compaction checkpoint (now includes tools)

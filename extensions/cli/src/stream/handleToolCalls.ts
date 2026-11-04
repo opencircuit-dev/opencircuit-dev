@@ -17,12 +17,12 @@ import {
   ToolCall,
 } from "../tools/index.js";
 import { normalizeReadFileArgs } from "../tools/readFileArguments.js";
-import { logger } from "../util/logger.js";
 
 import {
   getArgumentRecovery,
   type ArgumentRecovery,
 } from "./argumentRecovery.js";
+import { getFileEditTask } from "./fileEditTask.js";
 import {
   executeStreamedToolCalls,
   preprocessStreamedToolCalls,
@@ -44,6 +44,8 @@ interface HandleToolCallsOptions {
   argumentRecovery?: ArgumentRecovery;
   onStop?: (notice: string) => void;
 }
+
+const denialStops = new WeakMap<object, string>();
 
 const REFUSAL_NOTICE: Record<string, string> = {
   calls:
@@ -237,7 +239,9 @@ async function preprocessWithRecovery(
   const { chatHistory, toolCalls, isHeadless, callbacks } = options;
   recovery.captureContext(chatHistory);
   const wasCorrection = recovery.pendingTool !== undefined;
-  let stopNotice = recovery.inspect(toolCalls);
+  let stopNotice =
+    getFileEditTask(options.guard, chatHistory).inspect(toolCalls) ??
+    recovery.inspect(toolCalls);
   const {
     preprocessedCalls,
     errorChatEntries,
@@ -315,6 +319,13 @@ export async function handleToolCalls(
     if (isHeadless) process.exitCode = 2;
     return true;
   };
+  // The guard spans compaction; the last user item scopes callers without one.
+  const turnKey =
+    guard ??
+    chatHistory.findLast((item) => item.message.role === "user") ??
+    chatHistory;
+  const previousDenial = denialStops.get(turnKey);
+  if (previousDenial) return stop(previousDenial);
   // Also check after an in-flight provider request: a deadline or stricter
   // policy must not be bypassed by the recovery path.
   if (guard && !guard.check().ok) {
@@ -374,11 +385,8 @@ export async function handleToolCalls(
   // Execute the valid preprocessed tool calls
   // Note: executeStreamedToolCalls adds tool results to toolCallStates via
   // services.chatHistory.addToolResult() internally
-  const { hasRejection, chatHistoryEntries } = await executeStreamedToolCalls(
-    preprocessedCalls,
-    callbacks,
-    isHeadless,
-  );
+  const { hasRejection, rejectionMessage, chatHistoryEntries } =
+    await executeStreamedToolCalls(preprocessedCalls, callbacks, isHeadless);
 
   if (!useService) storeToolResults(chatHistoryEntries, chatHistory, false);
   if (wasCorrection && !stopNotice) {
@@ -395,14 +403,15 @@ export async function handleToolCalls(
     ...chatHistoryEntries,
   ]);
 
-  if (stopNotice) return stop(stopNotice);
-
-  if (isHeadless && hasRejection) {
-    logger.debug(
-      "Tool call rejected in headless mode - returning current content",
+  if (hasRejection) {
+    const reason = chatHistoryEntries.find(
+      (entry) => entry.status === "canceled" || entry.status === "errored",
     );
-    return true; // Signal early return needed
+    const notice = `${rejectionMessage ?? (reason ? stripImages(reason.content) : "A tool request was denied.")} No further tools will run this turn. Review the denial with the user before continuing.`;
+    denialStops.set(turnKey, notice);
+    if (!stopNotice) stopNotice = notice;
   }
+  if (stopNotice) return stop(stopNotice);
 
   // Tool results are already added to toolCallStates in executeStreamedToolCalls
   // via services.chatHistory.addToolResult() - no need to add them again here.

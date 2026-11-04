@@ -138,6 +138,62 @@ describe("streamChatResponse - auto-continuation after compaction", () => {
     } as unknown as AbortController;
   });
 
+  it.each([false, true])(
+    "phase 4: advertises file tools without Bash for a direct edit, headless=%s",
+    async (isHeadless) => {
+      vi.mocked(services.chatHistory.isReady).mockReturnValue(false);
+      vi.mocked(services.toolPermissions.isHeadless).mockReturnValue(
+        isHeadless,
+      );
+      vi.mocked(getRequestTools).mockResolvedValueOnce(
+        ["Read", "Write", "Bash"].map((name) => ({
+          type: "function",
+          function: { name, parameters: { type: "object", properties: {} } },
+        })),
+      );
+      await streamChatResponse(
+        convertToUnifiedHistory([
+          { role: "user", content: "now update /tmp/severity.txt" },
+        ]),
+        mockModel,
+        mockLlmApi,
+        mockAbortController,
+      );
+      const request = vi.mocked(mockLlmApi.chatCompletionStream).mock
+        .calls[0][0];
+      expect(request.tools?.map((t: any) => t.function.name)).toEqual([
+        "Read",
+        "Write",
+      ]);
+      vi.mocked(services.chatHistory.isReady).mockReturnValue(true);
+      vi.mocked(services.toolPermissions.isHeadless).mockReturnValue(false);
+    },
+  );
+
+  it("phase 4: leaves Bash available for a general coding task", async () => {
+    vi.mocked(services.chatHistory.isReady).mockReturnValue(false);
+    vi.mocked(getRequestTools).mockResolvedValueOnce(
+      ["Read", "Bash"].map((name) => ({
+        type: "function",
+        function: { name, parameters: { type: "object", properties: {} } },
+      })),
+    );
+    await streamChatResponse(
+      convertToUnifiedHistory([
+        { role: "user", content: "Implement validation and run tests" },
+      ]),
+      mockModel,
+      mockLlmApi,
+      mockAbortController,
+    );
+    const request = vi.mocked(mockLlmApi.chatCompletionStream).mock.calls[0][0];
+    expect(request.tools?.map((t: any) => t.function.name)).toEqual([
+      "Read",
+      "Bash",
+    ]);
+    vi.mocked(services.chatHistory.isReady).mockReturnValue(true);
+  });
+
   it("returns the explicit recovery stop explanation instead of preceding model content", async () => {
     const notice =
       "Stopped: argument recovery exhausted. Please clarify the destination.";
