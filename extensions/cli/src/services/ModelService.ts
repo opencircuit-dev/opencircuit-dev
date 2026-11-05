@@ -190,7 +190,7 @@ export class ModelService
                 .length > 0),
       );
       if (configured) {
-        preferredModelName = configured.name;
+        preferredModelName = configured.name || configured.model;
       } else if (template) {
         const restored = this.discoveredModel(template, preferredModelName);
         this.availableModels.push(restored);

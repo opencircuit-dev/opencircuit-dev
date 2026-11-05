@@ -125,7 +125,7 @@ describe("Model Persistence End-to-End", () => {
       expect(state.model?.chatOptions?.disableTools).toBe(true);
       expect(service.getCurrentModelProfile()).toBe(template);
       const persisted = fs.readFileSync(
-        path.join(testDir, "globalContext.json"),
+        path.join(testDir, "index", "globalContext.json"),
         "utf8",
       );
       expect(persisted).not.toContain(template.apiKey);
