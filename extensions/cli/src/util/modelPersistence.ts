@@ -18,7 +18,12 @@ export function modelProfileId(model: ModelConfig): string {
 }
 
 export function getPersistedModelProfileId(): string | null {
-  return new GlobalContext().get("cliSelectedModelProfile") ?? null;
+  const context = new GlobalContext();
+  const selection = context.get("cliSelectedModelProfile");
+  // Older CLI sessions only update the name; do not reuse their stale scope.
+  return selection?.name === context.get("cliSelectedModel")
+    ? (selection?.profileId ?? null)
+    : null;
 }
 
 /**
@@ -42,6 +47,8 @@ export function persistModelName(
   globalContext.update("cliSelectedModel", modelName ?? undefined);
   globalContext.update(
     "cliSelectedModelProfile",
-    modelName && profile ? modelProfileId(profile) : undefined,
+    modelName && profile
+      ? { name: modelName, profileId: modelProfileId(profile) }
+      : undefined,
   );
 }

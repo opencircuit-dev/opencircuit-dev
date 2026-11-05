@@ -4,6 +4,7 @@ import * as path from "path";
 
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 import { constructLlmApi } from "@opencircuit/openai-adapters";
+import { GlobalContext } from "core/globalContext.js";
 import { getGlobalContextFilePath } from "core/util/paths.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -150,6 +151,26 @@ describe("Model Persistence End-to-End", () => {
 
     // Should fall back to first available model (GPT-4)
     expect(state.model?.name).toBe("GPT-4");
+  });
+
+  test("does not reuse a stale provider scope when an older CLI changes only the model name", async () => {
+    const template: ModelConfig = {
+      provider: "gemini",
+      name: "Configured Gemini",
+      model: "gemini-3.8-flash",
+      apiKey: "fake-key",
+      roles: ["chat"],
+    };
+    updateModelName("gemini-3.1-pro-preview", template);
+    new GlobalContext().update("cliSelectedModel", "gpt-5.5");
+    const api = constructLlmApi({ provider: "openai", apiKey: "fake-key" });
+    if (!api) throw new Error("Test adapter could not be initialized");
+    vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+    const service = new ModelService();
+    expect(
+      (await service.initialize({ ...mockAssistant, models: [template] }, null))
+        .model,
+    ).toBe(template);
   });
 
   test("should check both name and model fields when matching", async () => {
