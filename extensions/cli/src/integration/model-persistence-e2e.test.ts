@@ -4,6 +4,7 @@ import * as path from "path";
 
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 import { constructLlmApi } from "@opencircuit/openai-adapters";
+import { getGlobalContextFilePath } from "core/util/paths.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { getModelName, updateModelName } from "../auth/workos.js";
@@ -124,10 +125,7 @@ describe("Model Persistence End-to-End", () => {
       expect(state.model?.model).toBe("custom-discovered-id");
       expect(state.model?.chatOptions?.disableTools).toBe(true);
       expect(service.getCurrentModelProfile()).toBe(template);
-      const persisted = fs.readFileSync(
-        path.join(testDir, "index", "globalContext.json"),
-        "utf8",
-      );
+      const persisted = fs.readFileSync(getGlobalContextFilePath(), "utf8");
       expect(persisted).not.toContain(template.apiKey);
       expect(persisted).not.toContain(template.apiBase);
       const changed = {
