@@ -3,6 +3,10 @@ import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 import { AuthConfig, getModelName } from "../auth/workos.js";
 import { createLlmApi, getLlmApi } from "../config.js";
 import { logger } from "../util/logger.js";
+import {
+  getPersistedModelProfileId,
+  modelProfileId,
+} from "../util/modelPersistence.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
 import { AgentFileServiceState, ModelServiceState } from "./types.js";
@@ -25,6 +29,74 @@ function discoverableOpenAIModels(ids: string[]): string[] {
     .sort();
 }
 
+const discoveryProviders = new Set([
+  "openai",
+  "anthropic",
+  "gemini",
+  "openai-compatible",
+]);
+const claudeChatModel =
+  /^claude-(?:(?:\d+(?:-\d+)*-)?(?:sonnet|haiku|opus)(?:-[a-z0-9]+)*|(?:instant-)?\d+(?:\.\d+)?(?:-\d{8})?)$/;
+const geminiChatModel =
+  /^gemini-\d+(?:\.\d+)?-(?:pro|flash(?:-lite|-8b)?)(?:-(?:latest|\d{3}|preview|exp)(?:-\d{2}-\d{2}|\d{4})?)?$/;
+
+function compatibleChatModel(model: { id: string }): boolean {
+  const id = model.id;
+  if (
+    typeof id !== "string" ||
+    /embed|rerank|whisper|transcrib|speech|tts|diffusion|image|guard|moderation|reward|(?:^|[/:-])flux(?:$|[/:.-])/i.test(
+      id,
+    )
+  ) {
+    return false;
+  }
+  if ("capabilities" in model) {
+    const capabilities = model.capabilities;
+    const chat = ["chat", "chat_completion", "chat_completions", "completion"];
+    if (Array.isArray(capabilities)) {
+      return capabilities.some((capability) => chat.includes(capability));
+    }
+    if (capabilities && typeof capabilities === "object") {
+      return Object.entries(capabilities).some(
+        ([capability, enabled]) =>
+          chat.includes(capability) && enabled === true,
+      );
+    }
+    return false;
+  }
+  // Compatible catalogs commonly omit capabilities; only infer known chat families.
+  return (
+    discoverableOpenAIModels([id]).length > 0 ||
+    claudeChatModel.test(id) ||
+    geminiChatModel.test(id) ||
+    /(?:^|\/)(?:olmo\d*|muse-spark|llama(?:\d|[-_.])|qwen(?:\d|[-_.])|deepseek|mistral|mixtral|gemma(?:\d|[-_.])|phi[-\d]|command-[ra])[\w.:/-]*$/i.test(
+      id,
+    ) ||
+    /(?:^|[-_/])(?:chat|instruct)(?:$|[-_.:])/i.test(id)
+  );
+}
+
+function discoverableChatModels(
+  provider: string,
+  catalog: { id: string }[],
+): string[] {
+  if (provider === "openai") {
+    return discoverableOpenAIModels(catalog.map((model) => model?.id));
+  }
+  return [
+    ...new Set(
+      catalog
+        .filter((model) => {
+          if (typeof model?.id !== "string") return false;
+          if (provider === "anthropic") return claudeChatModel.test(model.id);
+          if (provider === "gemini") return geminiChatModel.test(model.id);
+          return provider === "openai-compatible" && compatibleChatModel(model);
+        })
+        .map((model) => model.id),
+    ),
+  ].sort();
+}
+
 /**
  * Service for managing LLM and model state
  * Depends on auth config and assistant config
@@ -36,7 +108,7 @@ export class ModelService
   private availableModels: ModelConfig[] = [];
   private assistant: AssistantUnrolled | null = null;
   private authConfig: AuthConfig | null = null;
-  private discoveredModels = new Set<ModelConfig>();
+  private discoveredModels = new Map<ModelConfig, ModelConfig>();
 
   constructor() {
     super("ModelService", {
@@ -77,6 +149,7 @@ export class ModelService
     ) || []) as ModelConfig[];
 
     let preferredModelName: string | null | undefined = null;
+    let persistedProfileId: string | null = null;
     let modelSource = "default";
 
     // Priority = agentFile -> last selected model
@@ -87,6 +160,7 @@ export class ModelService
       const persistedName = getModelName(authConfig);
       if (persistedName) {
         preferredModelName = persistedName;
+        persistedProfileId = getPersistedModelProfileId();
         modelSource = "persisted";
       }
     }
@@ -94,15 +168,26 @@ export class ModelService
     // Restore a discovered selection without making startup depend on the network.
     if (
       preferredModelName &&
-      discoverableOpenAIModels([preferredModelName]).length > 0 &&
-      !this.availableModels.some((model) => model.name === preferredModelName)
+      !this.availableModels.some(
+        (model) =>
+          model.name === preferredModelName &&
+          (!persistedProfileId || modelProfileId(model) === persistedProfileId),
+      )
     ) {
+      const preferredId = preferredModelName;
       const configured = this.availableModels.find(
         (model) =>
-          model.provider === "openai" && model.model === preferredModelName,
+          model.model === preferredModelName &&
+          (!persistedProfileId || modelProfileId(model) === persistedProfileId),
       );
       const template = this.availableModels.find(
-        (model) => model.provider === "openai",
+        (model) =>
+          discoveryProviders.has(model.provider) &&
+          (persistedProfileId
+            ? modelProfileId(model) === persistedProfileId
+            : model.provider !== "openai-compatible" &&
+              discoverableChatModels(model.provider, [{ id: preferredId }])
+                .length > 0),
       );
       if (configured) {
         preferredModelName = configured.name;
@@ -122,7 +207,12 @@ export class ModelService
       // During initialization, we need to check against availableModels directly
       const modelIndex = this.availableModels.findIndex((model) => {
         const name = (model as any).name || (model as any).model;
-        return name === preferredModelName;
+        return (
+          name === preferredModelName &&
+          (!persistedProfileId ||
+            modelProfileId(this.discoveredModels.get(model) ?? model) ===
+              persistedProfileId)
+        );
       });
       if (modelIndex === -1) {
         // Preferred model not found, use default model selection
@@ -229,13 +319,30 @@ export class ModelService
       model: id,
       roles: ["chat"],
     };
-    this.discoveredModels.add(model);
+    this.discoveredModels.set(
+      model,
+      this.discoveredModels.get(template) ?? template,
+    );
     return model;
+  }
+
+  getCurrentModelProfile(): ModelConfig | null {
+    const model = this.getState().model;
+    return model ? (this.discoveredModels.get(model) ?? model) : null;
   }
 
   async discoverModels(): Promise<string | null> {
     const { assistant, model: template, authConfig } = this.getState();
-    if (!assistant || template?.provider !== "openai") return null;
+    if (!assistant || !template || !discoveryProviders.has(template.provider)) {
+      return null;
+    }
+    const providerNames: Record<string, string> = {
+      openai: "OpenAI",
+      anthropic: "Anthropic",
+      gemini: "Gemini",
+      "openai-compatible": "OpenAI-compatible",
+    };
+    const providerName = providerNames[template.provider] ?? template.provider;
 
     try {
       const api = createLlmApi(
@@ -251,15 +358,29 @@ export class ModelService
         },
         authConfig,
       );
-      if (!api) throw new Error("OpenAI provider could not be initialized");
+      if (!api) throw new Error("Provider could not be initialized");
       const catalog = await api.list();
       if (!Array.isArray(catalog)) throw new Error("Invalid model catalog");
-      const ids = discoverableOpenAIModels(catalog.map((model) => model?.id));
+      const ids = discoverableChatModels(template.provider, catalog);
 
       // A config reload while the request is pending must not restore old models.
       if (this.getState().assistant !== assistant) return null;
+      if (ids.length === 0) {
+        logger.warn("Model catalog contains no identifiable chat models", {
+          provider: template.provider,
+        });
+        return `${providerName} catalog contains no identifiable chat models. Configure custom model IDs explicitly. Configured models remain available.`;
+      }
+      const defaultEndpoints: Record<string, string> = {
+        openai: "https://api.openai.com/v1/",
+        anthropic: "https://api.anthropic.com/v1/",
+        gemini: "https://generativelanguage.googleapis.com/v1beta/",
+      };
       const endpoint = (model: ModelConfig) =>
-        (model.apiBase ?? "https://api.openai.com/v1/").replace(/\/+$/, "");
+        (model.apiBase ?? defaultEndpoints[model.provider] ?? "").replace(
+          /\/+$/,
+          "",
+        );
       const additions = ids
         .filter(
           (id) =>
@@ -290,8 +411,11 @@ export class ModelService
         typeof error.status === "number"
           ? error.status
           : undefined;
-      logger.warn("OpenAI model discovery failed", { status });
-      return `OpenAI model discovery failed${status ? ` (HTTP ${status})` : ""}. Check the provider connection and credentials. Configured models remain available.`;
+      logger.warn("Model discovery failed", {
+        provider: template.provider,
+        status,
+      });
+      return `${providerName} model discovery failed${status ? ` (HTTP ${status})` : ""}. Check the provider connection, credentials, and model-listing support. Configured models remain available.`;
     }
   }
 

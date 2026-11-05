@@ -10,6 +10,7 @@ import {
   getPersistedModelName,
   persistModelName,
 } from "../util/modelPersistence.js";
+import type { ModelConfig } from "@opencircuit/config-yaml";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,8 +92,11 @@ export function updateConfigUri(_configUri: string | null): void {
   // no-op
 }
 
-export function updateModelName(modelName: string | null): AuthConfig {
-  persistModelName(modelName);
+export function updateModelName(
+  modelName: string | null,
+  profile?: ModelConfig | null,
+): AuthConfig {
+  persistModelName(modelName, profile);
   return null;
 }
 

@@ -358,7 +358,7 @@ describe("ModelService", () => {
         });
       });
 
-      test("does not discover unsupported providers such as OLMo or alter their tool restriction", async () => {
+      test("discovers OLMo models while preserving disabled tools", async () => {
         const olmo: ModelConfig = {
           provider: "openai-compatible",
           name: "OLMo",
@@ -369,10 +369,99 @@ describe("ModelService", () => {
         };
         mockAssistant.models = [olmo];
         vi.mocked(config.getLlmApi).mockReturnValue([api, olmo]);
+        vi.mocked(api.list).mockResolvedValue(
+          catalog([
+            "olmo2:7b",
+            "olmo2:13b",
+            "nomic-embed-text",
+            "llama-guard3",
+            "unknown-model",
+          ]),
+        );
         await service.initialize(mockAssistant, mockAuthConfig);
         await expect(service.discoverModels()).resolves.toBeNull();
-        expect(api.list).not.toHaveBeenCalled();
-        expect(service.getState().model?.chatOptions?.disableTools).toBe(true);
+        expect(api.list).toHaveBeenCalled();
+        const state = await service.switchModel(1);
+        expect(state.model?.model).toBe("olmo2:13b");
+        expect(state.model?.chatOptions?.disableTools).toBe(true);
+        expect(state.model?.apiBase).toBe(olmo.apiBase);
+        expect(service.getAvailableChatModels()).toHaveLength(2);
+      });
+
+      test.each([
+        [
+          "anthropic",
+          "claude-sonnet-4-6",
+          ["claude-haiku-4-5", "gpt-4.1", "unknown-model"],
+          "claude-haiku-4-5",
+        ],
+        [
+          "gemini",
+          "gemini-3.8-flash",
+          [
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-flash-preview-tts",
+            "gemini-embedding-001",
+          ],
+          "gemini-3.1-pro-preview",
+        ],
+        [
+          "openai-compatible",
+          "muse-spark-1.3",
+          ["muse-spark-1.4", "text-embedding-3-small", "unknown-model"],
+          "muse-spark-1.4",
+        ],
+      ] as const)(
+        "discovers chat models for %s",
+        async (provider, model, ids, discovered) => {
+          const template: ModelConfig = {
+            ...mockAssistant.models![0]!,
+            provider,
+            model,
+            apiBase: "https://example.test/v1/",
+            name: "Configured",
+          };
+          mockAssistant.models = [template];
+          vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+          vi.mocked(api.list).mockResolvedValue(catalog([...ids]));
+          await service.initialize(mockAssistant, mockAuthConfig);
+          await expect(service.discoverModels()).resolves.toBeNull();
+          expect(service.getAvailableChatModels()).toHaveLength(2);
+          expect((await service.switchModel(1)).model).toMatchObject({
+            provider,
+            model: discovered,
+            apiBase: template.apiBase,
+            apiKey: template.apiKey,
+          });
+        },
+      );
+
+      test("accepts custom BYOM chat metadata, rejects embedding metadata, and reports unknown-only catalogs", async () => {
+        const template: ModelConfig = {
+          ...mockAssistant.models![0]!,
+          provider: "openai-compatible",
+          model: "my-model",
+          apiBase: "https://example.test/v1/",
+        };
+        mockAssistant.models = [template];
+        vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+        vi.mocked(api.list).mockResolvedValue(
+          catalog(["bespoke-model-v2", "qwen3-unknown"]).map(
+            (model, index) => ({
+              ...model,
+              capabilities: index === 0 ? { chat: true } : ["embedding"],
+            }),
+          ),
+        );
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await service.discoverModels();
+        expect(
+          service.getAvailableChatModels().map((model) => model.name),
+        ).toEqual([template.name, "bespoke-model-v2"]);
+        vi.mocked(api.list).mockResolvedValue(catalog(["unknown-model"]));
+        expect(await service.discoverModels()).toContain(
+          "no identifiable chat models",
+        );
       });
 
       test("ignores results from a configuration replaced while discovery was pending", async () => {

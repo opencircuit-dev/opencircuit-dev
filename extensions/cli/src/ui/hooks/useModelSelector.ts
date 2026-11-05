@@ -48,7 +48,10 @@ export function useModelSelector({
       // Persist the model choice using the actual model name
       // and update the auth service state to reflect the change
       if (modelInfo?.name) {
-        const updatedAuthConfig = updateModelName(modelInfo.name);
+        const updatedAuthConfig = updateModelName(
+          modelInfo.name,
+          services.model.getCurrentModelProfile(),
+        );
 
         // Update the AUTH service state in the container with the new config
         // This ensures that when MODEL service is reloaded, it gets the updated auth config

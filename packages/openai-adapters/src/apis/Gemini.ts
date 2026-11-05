@@ -19,6 +19,7 @@ import {
 } from "openai/resources/index";
 
 import { v4 as uuidv4 } from "uuid";
+import { z } from "zod";
 import { GeminiConfig } from "../types.js";
 import {
   chatChunk,
@@ -73,12 +74,19 @@ export class GeminiApi implements BaseLlmApi {
 
   constructor(protected config: GeminiConfig) {
     this.apiBase = config.apiBase ?? this.apiBase;
+    if (!this.apiBase.endsWith("/")) this.apiBase += "/";
     // Create GoogleGenAI with native fetch to avoid pollution
     // from Vercel AI SDK packages that can break stream handling
     this.genAI = withNativeFetch(
       () =>
         new GoogleGenAI({
           apiKey: this.config.apiKey,
+          httpOptions: {
+            baseUrl: this.apiBase,
+            apiVersion: "",
+            headers: this.config.requestOptions?.headers,
+            timeout: this.config.requestOptions?.timeout,
+          },
         }),
     );
   }
@@ -502,7 +510,55 @@ export class GeminiApi implements BaseLlmApi {
     });
   }
 
-  list(): Promise<Model[]> {
-    throw new Error("Method not implemented.");
+  async list(): Promise<Model[]> {
+    const schema = z.object({
+      models: z.array(
+        z.object({
+          name: z.string().startsWith("models/").min(8),
+          supportedGenerationMethods: z.array(z.string()),
+        }),
+      ),
+      nextPageToken: z.string().optional(),
+    });
+    const models: Model[] = [];
+    const cursors = new Set<string>();
+    const signal = AbortSignal.timeout(
+      Math.min(this.config.requestOptions?.timeout ?? 10_000, 10_000),
+    );
+    let cursor: string | undefined;
+    for (let page = 0; page < 20; page++) {
+      const url = new URL("models", this.apiBase);
+      url.searchParams.set("pageSize", "1000");
+      if (cursor) url.searchParams.set("pageToken", cursor);
+      const response = await customFetch(this.config.requestOptions)(url, {
+        headers: { "x-goog-api-key": this.config.apiKey },
+        signal,
+      });
+      if (!response.ok) {
+        throw Object.assign(new Error("Gemini model catalog request failed"), {
+          status: response.status,
+        });
+      }
+      const data = schema.parse(await response.json());
+      models.push(
+        ...data.models
+          .filter((model) =>
+            model.supportedGenerationMethods.includes("generateContent"),
+          )
+          .map(({ name }) => ({
+            id: name.slice("models/".length),
+            object: "model" as const,
+            created: 0,
+            owned_by: "google",
+          })),
+      );
+      cursor = data.nextPageToken;
+      if (!cursor) return models;
+      if (cursors.has(cursor)) {
+        throw new Error("Invalid Gemini model catalog pagination");
+      }
+      cursors.add(cursor);
+    }
+    throw new Error("Gemini model catalog exceeded pagination limit");
   }
 }

@@ -50,11 +50,16 @@ follow the [beginner QUICKSTART](../../QUICKSTART.md). Choose one provider for
 the active config. Existing templates and active configs are not overwritten
 by upgrades.
 
-The model picker shows configured chat models immediately and discovers known
-general-purpose chat models for the active OpenAI provider using its existing
-credentials and endpoint. Discovered entries are labeled and registered in
-memory, not written to YAML. Unknown or specialized models can still be
-configured explicitly. Other providers, including OLMo, remain configured-only.
+The model picker shows configured chat models immediately and discovers
+general-purpose chat models for the active OpenAI, Anthropic, Gemini, or
+OpenAI-compatible provider using its existing credentials and endpoint.
+Gemini catalogs are checked for `generateContent` support; compatible catalogs
+use chat capability metadata or recognized chat/instruct model families,
+including OLMo and Meta. Unknown or specialized models can still be configured
+explicitly. Endpoints must support model listing for automatic discovery.
+Discovered entries are labeled and registered in memory, not written to YAML.
+Selections are persisted with an opaque provider-profile fingerprint so a
+discovered ID is not restored against unrelated credentials or endpoints.
 If discovery fails, the picker displays a warning and keeps configured models
 selectable. Discovery preserves model options, including disabled tools.
 

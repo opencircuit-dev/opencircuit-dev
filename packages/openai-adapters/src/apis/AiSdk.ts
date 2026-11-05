@@ -16,6 +16,8 @@ import {
   Model,
 } from "openai/resources/index";
 import { AiSdkConfig } from "../types.js";
+import { AnthropicApi } from "./Anthropic.js";
+import { OpenAIApi } from "./OpenAI.js";
 import { customFetch, embedding } from "../util.js";
 import {
   BaseLlmApi,
@@ -310,6 +312,19 @@ export class AiSdkApi implements BaseLlmApi {
   }
 
   async list(): Promise<Model[]> {
-    return [];
+    const config = {
+      apiKey: this.config.apiKey,
+      apiBase: this.config.apiBase,
+      requestOptions: this.config.requestOptions,
+    };
+    if (this.providerId === "anthropic") {
+      return new AnthropicApi({ ...config, provider: "anthropic" }).list();
+    }
+    if (this.providerId === "openai") {
+      return new OpenAIApi({ ...config, provider: "openai" }).list();
+    }
+    throw new Error(
+      "Model discovery is not supported for this AI SDK provider",
+    );
   }
 }

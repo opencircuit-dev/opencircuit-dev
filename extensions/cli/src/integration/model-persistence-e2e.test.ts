@@ -3,6 +3,7 @@ import * as os from "os";
 import * as path from "path";
 
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
+import { constructLlmApi } from "@opencircuit/openai-adapters";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { getModelName, updateModelName } from "../auth/workos.js";
@@ -96,6 +97,51 @@ describe("Model Persistence End-to-End", () => {
     expect(state.model?.name).toBe("Claude 3.5 Sonnet");
     expect(state.model?.provider).toBe("anthropic");
   });
+
+  test.each(["anthropic", "gemini", "openai-compatible"] as const)(
+    "restores discovered %s IDs only for the matching provider profile",
+    async (provider) => {
+      const template: ModelConfig = {
+        provider,
+        name: "Configured profile",
+        model: "configured-model",
+        apiBase: "https://example.test/v1/",
+        apiKey: "fake-private-key",
+        chatOptions: { disableTools: true },
+        roles: ["chat"],
+      };
+      const assistant: AssistantUnrolled = {
+        ...mockAssistant,
+        models: [template],
+      };
+      const api = constructLlmApi({ provider: "openai", apiKey: "fake-key" });
+      if (!api) throw new Error("Test adapter could not be initialized");
+      vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+      vi.mocked(config.createLlmApi).mockReturnValue(api);
+      updateModelName("custom-discovered-id", template);
+      const service = new ModelService();
+      const state = await service.initialize(assistant, null);
+      expect(state.model?.model).toBe("custom-discovered-id");
+      expect(state.model?.chatOptions?.disableTools).toBe(true);
+      expect(service.getCurrentModelProfile()).toBe(template);
+      const persisted = fs.readFileSync(
+        path.join(testDir, "globalContext.json"),
+        "utf8",
+      );
+      expect(persisted).not.toContain(template.apiKey);
+      expect(persisted).not.toContain(template.apiBase);
+      const changed = {
+        ...template,
+        apiBase: "https://other.example.test/v1/",
+      };
+      vi.mocked(config.getLlmApi).mockReturnValue([api, changed]);
+      const other = new ModelService();
+      expect(
+        (await other.initialize({ ...assistant, models: [changed] }, null))
+          .model,
+      ).toBe(changed);
+    },
+  );
 
   test("should handle model name mismatch gracefully", async () => {
     // Save a model name that doesn't exist in the assistant
