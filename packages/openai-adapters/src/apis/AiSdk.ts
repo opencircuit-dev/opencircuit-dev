@@ -318,7 +318,15 @@ export class AiSdkApi implements BaseLlmApi {
       requestOptions: this.config.requestOptions,
     };
     if (this.providerId === "anthropic") {
-      return new AnthropicApi({ ...config, provider: "anthropic" }).list();
+      const apiKey = this.config.apiKey;
+      if (!apiKey) {
+        throw new Error("Anthropic model discovery requires an API key");
+      }
+      return new AnthropicApi({
+        ...config,
+        apiKey,
+        provider: "anthropic",
+      }).list();
     }
     if (this.providerId === "openai") {
       return new OpenAIApi({ ...config, provider: "openai" }).list();
