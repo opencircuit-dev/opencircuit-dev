@@ -1,6 +1,7 @@
-import { GlobalContext } from "core/globalContext.js";
 import { createHash } from "node:crypto";
+
 import type { ModelConfig } from "@opencircuit/config-yaml";
+import { GlobalContext } from "core/globalContext.js";
 
 export function modelProfileId(model: ModelConfig): string {
   // Hash endpoint/auth settings so scoped persistence never stores credentials.

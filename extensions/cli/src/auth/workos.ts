@@ -6,11 +6,12 @@
  * every import site.
  */
 
+import type { ModelConfig } from "@opencircuit/config-yaml";
+
 import {
   getPersistedModelName,
   persistModelName,
 } from "../util/modelPersistence.js";
-import type { ModelConfig } from "@opencircuit/config-yaml";
 
 // ---------------------------------------------------------------------------
 // Types
