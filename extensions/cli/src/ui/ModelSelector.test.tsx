@@ -1,5 +1,5 @@
 import { render } from "ink-testing-library";
-import React from "react";
+import React, { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -42,6 +42,7 @@ describe("ModelSelector discovery", () => {
       expect(lastFrame()).toContain("Discovery unavailable");
       expect(lastFrame()).toContain("Configured GPT (configured)");
     });
+    await act(async () => {});
     stdin.write("\r");
     await vi.waitFor(() =>
       expect(onSelect).toHaveBeenCalledWith(
@@ -73,6 +74,7 @@ describe("ModelSelector discovery", () => {
       expect(lastFrame()).not.toContain("Discovered 24");
       expect(lastFrame()).not.toContain("discovering...");
     });
+    await act(async () => {});
     stdin.write("\u001b[A");
     await vi.waitFor(() =>
       expect(lastFrame()).toContain("Discovered 24 (discovered)"),
@@ -106,6 +108,7 @@ describe("ModelSelector discovery", () => {
       <ModelSelector onSelect={onSelect} onCancel={vi.fn()} />,
     );
     await vi.waitFor(() => expect(lastFrame()).toContain("Second configured"));
+    await act(async () => {});
     stdin.write("\u001b[B");
     await vi.waitFor(() =>
       expect(lastFrame()).toContain("\u27a4 Second configured"),
@@ -114,6 +117,7 @@ describe("ModelSelector discovery", () => {
     if (!finish) throw new Error("Discovery did not start");
     finish(null);
     await vi.waitFor(() => expect(lastFrame()).toContain("Discovered third"));
+    await act(async () => {});
     stdin.write("\r");
     await vi.waitFor(() =>
       expect(onSelect).toHaveBeenCalledWith(
