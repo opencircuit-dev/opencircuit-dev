@@ -10,8 +10,12 @@ export function modelProfileId(model: ModelConfig): string {
       JSON.stringify([
         model.provider,
         model.name,
+        model.model,
         model.apiBase?.replace(/\/+$/, "") ?? "",
         model.apiKey ?? "",
+        model.requestOptions,
+        model.chatOptions,
+        model.roles,
       ]),
     )
     .digest("hex");

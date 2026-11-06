@@ -7,7 +7,6 @@ import { constructLlmApi } from "@opencircuit/openai-adapters";
 import { GlobalContext } from "core/globalContext.js";
 import { getGlobalContextFilePath } from "core/util/paths.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { GlobalContext } from "core/globalContext.js";
 
 import { getModelName, updateModelName } from "../auth/workos.js";
 import * as config from "../config.js";

@@ -384,25 +384,17 @@ export class ModelService
         });
         return `${providerName} catalog contains no identifiable chat models. Configure custom model IDs explicitly. Configured models remain available.`;
       }
-      const defaultEndpoints: Record<string, string> = {
-        openai: "https://api.openai.com/v1/",
-        anthropic: "https://api.anthropic.com/v1/",
-        gemini: "https://generativelanguage.googleapis.com/v1beta/",
-      };
-      const endpoint = (model: ModelConfig) =>
-        (model.apiBase ?? defaultEndpoints[model.provider] ?? "").replace(
-          /\/+$/,
-          "",
-        );
+      const profileId = modelProfileId(
+        this.discoveredModels.get(template) ?? template,
+      );
       const additions = ids
         .filter(
           (id) =>
             !assistant.models?.some(
               (model) =>
                 model?.model === id &&
-                model.provider === template.provider &&
-                model.apiKey === template.apiKey &&
-                endpoint(model) === endpoint(template) &&
+                modelProfileId(this.discoveredModels.get(model) ?? model) ===
+                  profileId &&
                 (model.roles === undefined || model.roles.includes("chat")),
             ),
         )

@@ -643,6 +643,28 @@ describe("ModelService", () => {
         expect(state.model?.apiBase).toBe(second.apiBase);
         expect(service.getCurrentModelIndex()).toBe(3);
       });
+
+      test("keeps discovery scoped to profile options on a shared endpoint", async () => {
+        const first = mockAssistant.models![0]!;
+        const second: ModelConfig = {
+          ...first,
+          name: "Tools disabled",
+          chatOptions: { disableTools: true },
+          requestOptions: { headers: { "X-Deployment": "second" } },
+        };
+        mockAssistant.models = [first, second];
+        vi.mocked(api.list).mockResolvedValue(catalog(["gpt-4.1"]));
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await service.discoverModels();
+        await service.switchModel(1);
+        await service.discoverModels();
+        expect(service.getAvailableChatModels()).toHaveLength(4);
+        const selected = await service.switchModel(3);
+        expect(selected.model?.chatOptions?.disableTools).toBe(true);
+        expect(selected.model?.requestOptions).toEqual(second.requestOptions);
+        await service.discoverModels();
+        expect(service.getAvailableChatModels()).toHaveLength(4);
+      });
     });
 
     test("should return -1 when no model is set", () => {
