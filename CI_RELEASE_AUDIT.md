@@ -1,6 +1,7 @@
 # CI and release reference audit
 
-Canonical repository: `open-circuit-dev/open-circuit`
+Canonical source repository: `opencircuit-dev/opencircuit-dev`
+Public artifact repository: `opencircuit-dev/opencircuit`
 
 ## Retained references
 
@@ -19,33 +20,59 @@ Canonical repository: `open-circuit-dev/open-circuit`
   compatibility validation.
 - Root, Core, and CLI production closures retain strict high-severity audit
   gates.
-  Development-only release tooling is checked by a fail-closed zero-finding
-  gate in `scripts/check-release-tooling-audit-exception.mjs` (the historical
-  entry-point name is preserved). There are no vulnerability exceptions.
+  Development-only release tooling is checked by the bounded, fail-closed
+  policy in `scripts/release-tooling-audit-policy.json` through
+  `scripts/check-release-tooling-audit-exception.mjs` (the historical
+  entry-point name is preserved). The policy is profile-specific,
+  exact-version pinned, limited to low/moderate findings, expires on
+  2027-01-31, and rejects any new package, version, advisory, or high/critical
+  finding. It does not apply to production closures. Its exit path is to
+  upgrade or replace the affected Jest/ESLint/minimatch chains before expiry.
   Conventional changelog/recommendation libraries and the host npm CLI replace
   semantic-release's vulnerable bundled npm dependency.
 
 ## Deferred references
 
 - Standalone VS Code extension and VSIX release workflows have been retired.
-- Binary packaging remains a separate product surface.
+- Binary packaging remains a separate future product surface; it is not part of
+  the current CLI release contract.
 - Credentialed provider workflows remain opt-in and are not part of the
   deterministic default validation path.
 
 ## Reference policy
 
-Repository-owned links must use `https://github.com/open-circuit-dev/open-circuit`
-or its `/issues`, `/discussions`, and `/blob/main/...` descendants. Third-party
+Repository-owned source links must use
+`https://github.com/opencircuit-dev/opencircuit-dev` or its `/issues`,
+`/discussions`, and `/blob/main/...` descendants. Links to the separate public
+artifact repository must use `https://github.com/opencircuit-dev/opencircuit`.
+Historical upstream Continue links in inherited changelogs and comments are
+retained as attribution/history and are not release endpoints. Third-party
 links in workflow comments and dependency metadata are not project references.
 
-Release artifacts are generated and uploaded from the release workflow; they
-are not committed to `opencircuit-dev`. `stable-release.yml` builds the
-`.tgz`/`.sha256` pair and pushes it to the public
-`opencircuit-dev/opencircuit` repository via
-`scripts/publish-release-artifacts.sh` (in this repository), gated by the
-`PUBLIC_RELEASE_REPO_TOKEN`
-secret. Checksum verification remains mandatory for the packaged user install
-path.
+Main-branch validation builds and checks the exact archive but does not publish
+it. `stable-release.yml` is the only stable publisher: it validates the source
+version, runs the dependency/install-script/release gates, preflights the
+public-repository immutability checks, and only then creates the reviewed
+source tag, publishes that exact tarball to npm with provenance, and pushes the
+same tarball plus checksum, SBOM, notices, and provenance to
+`opencircuit-dev/opencircuit` via `scripts/publish-release-artifacts.sh`.
+Publication is protected by the `stable-release` environment and immutable
+same-version checks. Checksum and metadata verification remain mandatory for
+the packaged user install path.
+
+Notices and the SBOM both come from `scripts/cli-bundle-closure.mjs`. The
+closure includes packages from the esbuild metafile
+(`extensions/cli/dist/meta.json`) and every non-dev package npm can install
+from `extensions/cli/package-lock.json`, including optional dependencies. Each
+package is tied to its lockfile entry. Packaging fails if a package has no
+lockfile entry, a version mismatch, no declared license, or a license outside
+the allowlist, or if the committed
+`extensions/cli/THIRD_PARTY_NOTICES.txt` does not list exactly the combined
+bundle/install-time closure. Npm-fetched packages are not embedded in the
+tarball, but they remain part of the published product's license and SBOM
+closure. After a dependency change, run `npm run build` and
+`npm run generate:notices` in `extensions/cli` and commit the result; main
+validation fails on a stale notices file.
 
 ## Validation evidence
 

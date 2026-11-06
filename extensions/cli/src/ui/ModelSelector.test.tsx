@@ -40,7 +40,7 @@ describe("ModelSelector discovery", () => {
     );
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("Discovery unavailable");
-      expect(lastFrame()).toContain("Configured GPT (configured)");
+      expect(lastFrame()).toContain("Configured GPT (openai) (configured)");
     });
     await act(async () => {});
     stdin.write("\r");
@@ -70,14 +70,14 @@ describe("ModelSelector discovery", () => {
       <ModelSelector onSelect={onSelect} onCancel={vi.fn()} />,
     );
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Discovered 1 (discovered)");
+      expect(lastFrame()).toContain("Discovered 1 (openai) (discovered)");
       expect(lastFrame()).not.toContain("Discovered 24");
       expect(lastFrame()).not.toContain("discovering...");
     });
     await act(async () => {});
     stdin.write("\u001b[A");
     await vi.waitFor(() =>
-      expect(lastFrame()).toContain("Discovered 24 (discovered)"),
+      expect(lastFrame()).toContain("Discovered 24 (openai) (discovered)"),
     );
     stdin.write("\r");
     await vi.waitFor(() =>
@@ -124,5 +124,83 @@ describe("ModelSelector discovery", () => {
         expect.objectContaining({ name: "Second configured", index: 1 }),
       ),
     );
+  });
+
+  it("qualifies duplicate names by provider and selects the current model", async () => {
+    mocks.available.mockReturnValue([
+      { name: "Shared model", provider: "openai", index: 0 },
+      { name: "Shared model", provider: "anthropic", index: 1 },
+    ]);
+    mocks.currentIndex.mockReturnValue(1);
+    const onSelect = vi.fn();
+    const { lastFrame, stdin } = render(
+      <ModelSelector onSelect={onSelect} onCancel={vi.fn()} />,
+    );
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Shared model (openai)");
+      expect(lastFrame()).toContain("Shared model (anthropic)");
+    });
+    await act(async () => {});
+    stdin.write("\r");
+    await vi.waitFor(() =>
+      expect(onSelect).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: "anthropic", index: 1 }),
+      ),
+    );
+  });
+
+  it("navigates duplicate names by their provider index", async () => {
+    mocks.available.mockReturnValue([
+      { name: "Shared model", provider: "openai", index: 0 },
+      { name: "Shared model", provider: "anthropic", index: 1 },
+    ]);
+    mocks.currentIndex.mockReturnValue(1);
+    const onSelect = vi.fn();
+    const { lastFrame, stdin } = render(
+      <ModelSelector onSelect={onSelect} onCancel={vi.fn()} />,
+    );
+    await vi.waitFor(() =>
+      expect(lastFrame()).toContain("Shared model (anthropic)"),
+    );
+    await act(async () => {});
+    stdin.write("\u001b[A");
+    await vi.waitFor(() =>
+      expect(lastFrame()).toContain("\u27a4 Shared model (openai)"),
+    );
+    await act(async () => {});
+    stdin.write("\r");
+    await vi.waitFor(() =>
+      expect(onSelect).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: "openai", index: 0 }),
+      ),
+    );
+  });
+
+  it("cancels without selecting a model", async () => {
+    const onSelect = vi.fn();
+    const onCancel = vi.fn();
+    const { lastFrame, stdin } = render(
+      <ModelSelector onSelect={onSelect} onCancel={onCancel} />,
+    );
+    await vi.waitFor(() => expect(lastFrame()).toContain("Select Model"));
+    await act(async () => {});
+    stdin.write("\u001b");
+    await vi.waitFor(() => expect(onCancel).toHaveBeenCalledOnce());
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("reports an empty model list without offering a selection", async () => {
+    mocks.available.mockReturnValue([]);
+    const onSelect = vi.fn();
+    const { lastFrame, stdin } = render(
+      <ModelSelector onSelect={onSelect} onCancel={vi.fn()} />,
+    );
+    await vi.waitFor(() =>
+      expect(lastFrame()).toContain(
+        "No chat models available in the configuration",
+      ),
+    );
+    stdin.write("\r");
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

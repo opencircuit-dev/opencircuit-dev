@@ -39,7 +39,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           name: model.name,
           index: model.index,
           provider: model.provider,
-          displaySuffix: model.discovered ? " (discovered)" : " (configured)",
+          displaySuffix: ` (${model.provider})${model.discovered ? " (discovered)" : " (configured)"}`,
         })),
       );
       setCurrentModelIndex(currentIndex);

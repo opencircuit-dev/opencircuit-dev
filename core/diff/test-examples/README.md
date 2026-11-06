@@ -1,23 +1,21 @@
-# Diff algorithm tests
+# Diff algorithm test fixtures
 
-Tests are specified as
+Fixtures in this directory describe a before/after pair and its expected
+rendered diff:
 
-```
+```text
 <CODE BEFORE>
-
 ---
-
 <CODE AFTER>
-
 ---
-
 <EXPECTED DIFF>
 ```
 
-`---` is the delimeter, and surrounding whitespace will be trimmed.
+The `---` lines delimit the three sections; surrounding whitespace is
+trimmed. Expected output is written explicitly rather than compared only with
+the underlying `myersDiff` result, so tests can capture the display behavior
+the product intends.
 
-The expected diff can be generated with the `displayDiff` function.
-
-We make this explicit instead of comparing to the output of `myersDiff` in case the output from that is either unattainable or not exactly what we want.
-
-In order to generate the expected diff, you can first leave it empty and then run the test. The test will catch this and write the _computed_ diff to the test file. It is up to you to correct this to the expected diff.
+When adding a case, run the focused diff test. An empty expected-diff section
+causes the test helper to write its computed output into the fixture; review
+and edit that output before accepting the test.

@@ -43,6 +43,13 @@ resolution.
 - Keep changes atomic and document rollback and validation.
 - Prefer read-only discovery before modifying files.
 
+## Agent skills
+
+- Add a product-specific skill only for a concrete, reusable Open Circuit workflow.
+- Document prerequisites, supported versions, and activation triggers.
+- Start operational workflows with read-only discovery and distinguish local from remote mutations.
+- Include rollback and before/after verification; use placeholders instead of credentials or customer data.
+
 ## Pull requests
 
 Describe the exact scope, affected packages, validation commands, runtime

@@ -1,6 +1,8 @@
-# Retained-Closure Characterization Tests
+# Retained-closure characterization
 
-These checks capture the CLI/Core behavior before reduction. They use existing repository tests where those tests already provide deterministic coverage.
+These checks preserve selected CLI/Core contracts during changes to package
+boundaries, declarations, workspace configuration, and runtime resolution.
+They reuse existing tests where those already provide deterministic coverage.
 
 | Contract                                  | Test or check                                              | Network mode                          |
 | ----------------------------------------- | ---------------------------------------------------------- | ------------------------------------- |
@@ -14,11 +16,19 @@ These checks capture the CLI/Core behavior before reduction. They use existing r
 | Runtime boundary                          | `node tests/characterization/runtime-boundary-check.mjs`   | No network                            |
 | Retired VS Code surfaces                  | `npm run test:retired-surface-guard`                       | No network                            |
 
-The boundary checks treat existing CLI-to-Core deep imports as observed baseline evidence. They fail only when Core or the emitted/runtime CLI closure crosses the named prohibited repository boundaries.
+Run the retained-closure profile from the repository root with:
+
+```bash
+npm run validate:retained-closure
+```
+
+The boundary checks treat existing CLI-to-Core deep imports as observed
+baseline evidence. They fail when Core or the emitted/runtime CLI closure
+crosses a prohibited repository boundary.
 
 The runtime boundary check is the hermetic CLI-to-Core functional gate. It
-expects the build artifacts to be present, starts a loopback-only mock
+expects build artifacts to be present, starts a loopback-only mock
 OpenAI-compatible server, invokes the emitted CLI with an isolated temporary
-home/configuration, checks the request and streamed response, and verifies the
-bundle metadata contains Core inputs. It never uses provider credentials or
-external network access.
+home/configuration, checks the request and streamed response, and verifies
+that bundle metadata contains Core inputs. It does not use provider
+credentials or external network access.

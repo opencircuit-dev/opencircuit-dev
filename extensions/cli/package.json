@@ -9,6 +9,8 @@
     "dist",
     "README.md",
     "LICENSE.txt",
+    "NOTICE.txt",
+    "THIRD_PARTY_NOTICES.txt",
     "templates"
   ],
   "bin": {
@@ -21,7 +23,9 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:runtime-boundary": "node ../../tests/characterization/runtime-boundary-check.mjs",
     "check:release-artifact": "node ../../scripts/check-cli-release-artifact.mjs",
+    "check:licenses": "node ../../scripts/generate-cli-notices.mjs",
     "release:artifact": "node ../../scripts/package-cli-release.mjs",
+    "generate:notices": "node ../../scripts/generate-cli-notices.mjs",
     "test:smoke": "node smoke-test.mjs",
     "test:smoke-api": "vitest run --config vitest.smoke-api.config.ts",
     "build:tsc": "tsc -p tsconfig.build.json",
@@ -36,8 +40,8 @@
     "repomix:cli": "npx repomix --ignore sdk-repomix.xml -o cli-repomix.xml",
     "lint": "tsc --noEmit && eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "cd ../.. && npm exec prettier -- --write \"extensions/cli/**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "format:check": "cd ../.. && npm exec prettier -- --check \"extensions/cli/**/*.{js,jsx,ts,tsx,json,css,md}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "typecheck": "tsc --noEmit",
     "watch:logs": "touch ~/.ocircuit/logs/oc.log && tail -f ~/.ocircuit/logs/oc.log",
     "semantic-release": "node ../../scripts/release-package.mjs --execute",
@@ -47,10 +51,10 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/open-circuit-dev/open-circuit.git"
+    "url": "git+https://github.com/opencircuit-dev/opencircuit-dev.git"
   },
   "bugs": {
-    "url": "https://github.com/open-circuit-dev/open-circuit/issues"
+    "url": "https://github.com/opencircuit-dev/opencircuit-dev/issues"
   },
   "homepage": "/",
   "dependencies": {
@@ -145,14 +149,6 @@
     "minimatch@<9.0.7": "^9.0.7",
     "qs": "^6.14.2",
     "picomatch": "^4.0.2"
-  },
-  "optionalDependencies": {
-    "@img/sharp-darwin-arm64": "^0.33.5",
-    "@img/sharp-darwin-x64": "^0.33.5",
-    "@img/sharp-linux-arm": "^0.33.5",
-    "@img/sharp-linux-arm64": "^0.33.5",
-    "@img/sharp-linux-x64": "^0.33.5",
-    "@img/sharp-win32-x64": "^0.33.5"
   },
   "allowScripts": {
     "esbuild@0.25.9": true,

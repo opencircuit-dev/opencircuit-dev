@@ -1,11 +1,13 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
 
-import { AuthConfig, getModelName } from "../auth/workos.js";
+import { AuthConfig } from "../auth/workos.js";
 import { createLlmApi, getLlmApi } from "../config.js";
 import { logger } from "../util/logger.js";
 import {
   getPersistedModelProfileId,
   modelProfileId,
+  getPersistedModelName,
+  persistModelName,
 } from "../util/modelPersistence.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
@@ -109,6 +111,8 @@ export class ModelService
   private assistant: AssistantUnrolled | null = null;
   private authConfig: AuthConfig | null = null;
   private discoveredModels = new Map<ModelConfig, ModelConfig>();
+  private sessionModel: ModelConfig | null = null;
+  private sessionProfile: ModelConfig | null = null;
 
   constructor() {
     super("ModelService", {
@@ -150,14 +154,22 @@ export class ModelService
 
     let preferredModelName: string | null | undefined = null;
     let persistedProfileId: string | null = null;
+    let preferredProvider: string | undefined;
     let modelSource = "default";
 
-    // Priority = agentFile -> last selected model
+    // Keep session-only selections across reloads without overriding agent files.
     if (agentFileServiceState?.agentFileModel?.name) {
       preferredModelName = agentFileServiceState.agentFileModel?.name;
       modelSource = "agentFile";
+    } else if (this.sessionModel) {
+      preferredModelName = this.sessionModel.name || this.sessionModel.model;
+      preferredProvider = this.sessionModel.provider;
+      persistedProfileId = this.sessionProfile
+        ? modelProfileId(this.sessionProfile)
+        : null;
+      modelSource = "session";
     } else {
-      const persistedName = getModelName(authConfig);
+      const persistedName = getPersistedModelName();
       if (persistedName) {
         preferredModelName = persistedName;
         persistedProfileId = getPersistedModelProfileId();
@@ -209,6 +221,7 @@ export class ModelService
         const name = (model as any).name || (model as any).model;
         return (
           name === preferredModelName &&
+          (!preferredProvider || model.provider === preferredProvider) &&
           (!persistedProfileId ||
             modelProfileId(this.discoveredModels.get(model) ?? model) ===
               persistedProfileId)
@@ -422,6 +435,36 @@ export class ModelService
   /**
    * Switch to a different chat model by index
    */
+  async setSelectedModel(
+    modelIndex: number,
+  ): Promise<{ state: ModelServiceState; persisted: boolean }> {
+    if (!Number.isInteger(modelIndex)) {
+      throw new Error(`Invalid model index: ${modelIndex}`);
+    }
+
+    const state = await this.switchModel(modelIndex);
+    this.sessionModel = state.model;
+    this.sessionProfile = this.getCurrentModelProfile();
+    const modelName = state.model?.name || state.model?.model;
+    if (!modelName) {
+      logger.warn(
+        "Unable to persist selected model because its name is missing",
+      );
+      return { state, persisted: false };
+    }
+
+    try {
+      persistModelName(modelName, this.sessionProfile);
+      return { state, persisted: true };
+    } catch (error: unknown) {
+      logger.warn(
+        "Unable to persist selected model; keeping the selection for this session",
+        error,
+      );
+      return { state, persisted: false };
+    }
+  }
+
   async switchModel(modelIndex: number): Promise<ModelServiceState> {
     // Get assistant and authConfig from state, but fall back to instance properties
     // This is needed during initialization when state isn't set yet

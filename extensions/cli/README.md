@@ -14,13 +14,19 @@ versioned tarball and checksum are published, verify the checksum and install
 the tarball:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-X.Y.Z.tgz.sha256
-npm install --global ./opencircuit-cli-X.Y.Z.tgz
+shasum -a 256 -c opencircuit-cli-1.0.3.tgz.sha256
+npm install --global ./opencircuit-cli-1.0.3.tgz
 oc --version
 ```
 
-The npm package has not been published. Do not install an unpublished version
-from the npm registry.
+Stable releases publish the exact verified archive to npm and the public
+distribution repository. Do not install an unpublished version from the npm
+registry.
+
+The existing 1.0.3 archive predates the model-picker changes described below.
+Those changes are on source `main`; the latest regeneration failed the release
+dependency audit. See [release preparation](../../README.md#release-preparation)
+for the canonical build/publication entry and its mandatory gates.
 
 Installation places starter provider templates in `~/.ocircuit/templates/`
 without overwriting existing files. Copy one to `~/.ocircuit/config.yaml` or
@@ -37,6 +43,16 @@ oc -p "Summarize the current git diff" --format json
 
 Use `oc ls` to list sessions and `oc --resume` to resume the previous session.
 In an interactive session, `/init` can generate repository guidance.
+
+Use `/model` to open the terminal model picker. Choices show the configured
+name and provider; use the arrow keys and Enter to select, or Esc to cancel.
+Selection uses the chat-model index, so identical display names from different
+providers remain distinct in the picker. A selected model is saved for the next
+session when possible. If saving fails, the CLI reports a session-only selection
+and keeps it active across service reloads. An agent-file model still takes
+precedence when the model service is initialized.
+Saved preferences still use configured names; use unique names for
+unambiguous restoration across providers after restarting the CLI.
 
 ## Configuration and credentials
 

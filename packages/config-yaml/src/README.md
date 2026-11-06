@@ -1,28 +1,26 @@
-# config.yaml specification
+# `@opencircuit/config-yaml`
 
-This specification is a work in progress and subject to change.
+This package contains shared YAML configuration parsing and registry helpers
+used by Open Circuit. The package exposes a Node entry point and a browser
+entry point; keep their behavior compatible when changing shared parsing
+logic.
 
-## Loading a config.yaml file
+`src/index.ts` re-exports the browser utilities, registry client, and
+`parseAgentFileRules()`. The `load/` modules contain configuration unrolling,
+merging, and client rendering; check their tests when changing those
+semantics. Keep credential values in the consuming runtime's secret store,
+not in committed YAML examples.
 
-config.yaml is loaded in the following steps
+## Development
 
-## Unrolling
-
-A "source" config.yaml is "unrolled" so that its packages all get merged into a single config.yaml. This is done by recursively loading all packages and merging them into the config.yaml.
-
-This happens on the server, unless using local mode.
-
-## Client rendering
-
-The unrolled config.yaml is then rendered on the client. This is done by replacing all user secret template variables with their values and replacing all other secrets with secret locations.
-
-## Publishing
-
-Make sure you are logged into the npm registry with `npm login`.
-
-Then, bump the version in `package.json` and then run:
+From the package root (`packages/config-yaml`):
 
 ```bash
 npm run build
-npm publish --access public
+npm test
 ```
+
+`npm run generate-schema` rebuilds the package and generates the JSON schema.
+Before publishing a package version, follow the repository's current
+release/versioning policy and verify the build and tests; this guide does not
+prescribe a standalone `npm publish` command.

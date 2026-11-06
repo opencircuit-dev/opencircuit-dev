@@ -1,43 +1,26 @@
-# Open Circuit Core Binary
+# Core binary packaging
 
-The purpose of this folder is to package Typescript code in a way that can be run from any IDE or platform. We first bundle with `esbuild` and then package into binaries with `pkg`.
+This directory contains the older `pkg`-based packaging path for Core and the
+native workbench backend. It is separate from the supported `oc` CLI release
+pipeline, which builds and packages `extensions/cli`.
 
-The `pkgJson/package.json` contains instructions for building with pkg, and needs to be in a separte folder because there is no CLI flag for the assets option (it must be in a package.json), and pkg doesn't recognize any name other than package.json, but if we use the same package.json with dependencies in it, pkg will automatically include these, significantly increasing the binary size.
+The build is implemented in `build.js` and bundles entry points with esbuild.
+The resulting executables and bundled assets are platform-dependent: native
+modules such as SQLite, LanceDB, and ONNX Runtime must match the target
+platform. The package metadata currently declares a Node 18 macOS ARM64 `pkg`
+target, while the CLI release supports Node.js `>=24.19.0 <27`; do not treat
+this directory as the CLI installer.
 
-The build process is otherwise defined entirely in `build.js`.
+## Commands
 
-### List of native modules
-
-- sqlite3/build/Release/node_sqlite3.node (\*)
-- @lancedb/\*\*
-- esbuild?
-- @esbuild?
-- onnxruntime-node?
-
-### List of dynamically imported modules
-
-- @octokit/rest
-- esbuild
-
-### List of .wasm files
-
-- tree-sitter.wasm
-- tree-sitter-wasms/
-
-(\*) = need to download for each platform manually
-
-## Debugging
-
-Breakpoints can be placed anywhere in the `core` or `binary` folders when debugging the "Core Binary" debug script from VS Code.
-
-## Building
+Install the binary package's dependencies and build from this directory:
 
 ```bash
+npm ci
 npm run build
 ```
 
-## Testing
-
-```bash
-npm run test
-```
+Other package scripts include `npm test`, `npm run rebuild` (esbuild-only),
+and `npm run build:darwin-x64`. The full build expects the related Core
+dependencies and assets to be present. See `package.json` and `build.js` for
+the current target and asset configuration.

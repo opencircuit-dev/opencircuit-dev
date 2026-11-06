@@ -9,7 +9,7 @@
 
 ## Checklist
 
-- [] I've read the [contributing guide](https://github.com/open-circuit-dev/open-circuit/blob/main/CONTRIBUTING.md)
+- [] I've read the [contributing guide](https://github.com/opencircuit-dev/opencircuit-dev/blob/main/CONTRIBUTING.md)
 - [] The relevant docs, if any, have been updated or created
 - [] The relevant tests, if any, have been updated or created
 
