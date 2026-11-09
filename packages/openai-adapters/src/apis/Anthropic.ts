@@ -12,6 +12,7 @@ import {
 } from "@anthropic-ai/sdk/resources";
 import { streamSse } from "@opencircuit/fetch";
 import { OpenAI } from "openai/index";
+import { z } from "zod";
 import {
   ChatCompletion,
   ChatCompletionChunk,
@@ -497,7 +498,50 @@ export class AnthropicApi implements BaseLlmApi {
     throw new Error("Method not implemented.");
   }
 
-  list(): Promise<OpenAI.Models.Model[]> {
-    throw new Error("Method not implemented.");
+  async list(): Promise<OpenAI.Models.Model[]> {
+    const schema = z.object({
+      data: z.array(z.object({ id: z.string().min(1) })),
+      has_more: z.boolean(),
+      last_id: z.string().nullable().optional(),
+    });
+    const models: OpenAI.Models.Model[] = [];
+    const cursors = new Set<string>();
+    const signal = AbortSignal.timeout(
+      Math.min(this.config.requestOptions?.timeout ?? 10_000, 10_000),
+    );
+    let cursor: string | undefined;
+    for (let page = 0; page < 20; page++) {
+      const url = new URL("models", this.apiBase);
+      url.searchParams.set("limit", "1000");
+      if (cursor) url.searchParams.set("after_id", cursor);
+      const response = await customFetch(this.config.requestOptions)(url, {
+        headers: this.getHeaders(),
+        signal,
+      });
+      if (!response.ok) {
+        throw Object.assign(
+          new Error("Anthropic model catalog request failed"),
+          {
+            status: response.status,
+          },
+        );
+      }
+      const data = schema.parse(await response.json());
+      models.push(
+        ...data.data.map(({ id }) => ({
+          id,
+          object: "model" as const,
+          created: 0,
+          owned_by: "anthropic",
+        })),
+      );
+      if (!data.has_more) return models;
+      cursor = data.last_id ?? undefined;
+      if (!cursor || cursors.has(cursor)) {
+        throw new Error("Invalid Anthropic model catalog pagination");
+      }
+      cursors.add(cursor);
+    }
+    throw new Error("Anthropic model catalog exceeded pagination limit");
   }
 }

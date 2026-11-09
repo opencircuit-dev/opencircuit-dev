@@ -1,9 +1,19 @@
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
+import { BaseLlmApi, constructLlmApi } from "@opencircuit/openai-adapters";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 // Mock dependencies before imports
 vi.mock("../config.js");
-vi.mock("../util/modelPersistence.js");
+vi.mock("../util/modelPersistence.js", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../util/modelPersistence.js")>();
+  return {
+    ...actual,
+    getPersistedModelName: vi.fn(),
+    getPersistedModelProfileId: vi.fn().mockReturnValue(null),
+    persistModelName: vi.fn(),
+  };
+});
 
 import { AuthConfig } from "../auth/workos.js";
 import * as config from "../config.js";
@@ -19,6 +29,10 @@ describe("ModelService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(null);
+    vi.mocked(modelPersistence.getPersistedModelProfileId).mockReturnValue(
+      null,
+    );
     service = new ModelService();
 
     mockAssistant = {
@@ -120,6 +134,7 @@ describe("ModelService", () => {
       expect(result.state.model?.name).toBe("Claude 3");
       expect(modelPersistence.persistModelName).toHaveBeenCalledWith(
         "Claude 3",
+        mockAssistant.models![1],
       );
       expect(result.state.assistant).toBe(mockAssistant);
     });
@@ -340,6 +355,316 @@ describe("ModelService", () => {
       vi.mocked(config.createLlmApi).mockReturnValue(mockLlmApi as any);
       await service.switchModel(1);
       expect(service.getCurrentModelIndex()).toBe(1);
+    });
+
+    describe("discoverModels()", () => {
+      let api: BaseLlmApi;
+
+      beforeEach(() => {
+        const constructed = constructLlmApi({
+          provider: "openai",
+          apiKey: "test-key",
+        });
+        if (!constructed)
+          throw new Error("Test OpenAI adapter was not created");
+        api = constructed;
+        vi.spyOn(api, "list").mockResolvedValue([]);
+        vi.mocked(config.getLlmApi).mockReturnValue([
+          api,
+          mockAssistant.models![0]!,
+        ]);
+        vi.mocked(config.createLlmApi).mockReturnValue(api);
+        vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(null);
+      });
+
+      const catalog = (
+        ids: string[],
+      ): Awaited<ReturnType<BaseLlmApi["list"]>> =>
+        ids.map((id) => ({
+          id,
+          object: "model",
+          created: 0,
+          owned_by: "openai",
+        }));
+
+      test("filters specialized models and redundant snapshots, and registers selections", async () => {
+        vi.mocked(api.list).mockResolvedValue(
+          catalog([
+            "gpt-4",
+            "gpt-4-0613",
+            "gpt-4.1",
+            "gpt-4.1-2025-04-14",
+            "gpt-5",
+            "gpt-5-chat-latest",
+            "gpt-5.5",
+            "gpt-5.5",
+            "gpt-5.5-2026-04-23",
+            "gpt-4o-mini-transcribe",
+            "gpt-4o-mini-tts",
+            "gpt-4o-search-preview",
+            "gpt-5-codex",
+            "gpt-5-pro",
+            "text-embedding-3-small",
+            "dall-e-3",
+            "unknown-model",
+          ]),
+        );
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await expect(service.discoverModels()).resolves.toBeNull();
+
+        expect(service.getAvailableChatModels()).toEqual([
+          { provider: "openai", name: "GPT-4", index: 0 },
+          { provider: "anthropic", name: "Claude 3", index: 1 },
+          { provider: "openai", name: "gpt-4.1", index: 2, discovered: true },
+          { provider: "openai", name: "gpt-5", index: 3, discovered: true },
+          { provider: "openai", name: "gpt-5.5", index: 4, discovered: true },
+        ]);
+        expect(mockAssistant.models).toHaveLength(3);
+        const state = await service.switchModel(4);
+        expect(state.model?.model).toBe("gpt-5.5");
+        expect(config.createLlmApi).toHaveBeenLastCalledWith(
+          state.model,
+          mockAuthConfig,
+        );
+        expect(service.getCurrentModelIndex()).toBe(4);
+        expect(service.getModelIndexByName("gpt-5.5", "openai")).toBe(4);
+        await service.discoverModels();
+        expect(service.getAvailableChatModels()).toHaveLength(5);
+      });
+
+      test("preserves provider settings and disabled tools without assigning subagent roles", async () => {
+        const template = mockAssistant.models![0]!;
+        template.apiBase = "https://example.test/v1/";
+        template.roles = ["chat", "subagent"];
+        template.chatOptions = {
+          disableTools: true,
+          baseSystemMessage: "Keep this",
+        };
+        template.requestOptions = {
+          timeout: 2000,
+          headers: { "X-Deployment": "test" },
+          proxy: "http://proxy.test",
+        };
+        vi.mocked(api.list).mockResolvedValue(catalog(["gpt-4.1"]));
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await service.discoverModels();
+        const state = await service.switchModel(2);
+        expect(state.model).toEqual({
+          ...template,
+          name: "gpt-4.1",
+          model: "gpt-4.1",
+          roles: ["chat"],
+        });
+        expect(config.createLlmApi).toHaveBeenNthCalledWith(
+          1,
+          template,
+          mockAuthConfig,
+        );
+      });
+
+      test("keeps configured models usable and reports credential failures without exposing keys", async () => {
+        vi.mocked(api.list).mockRejectedValue({
+          status: 401,
+          message: "Incorrect API key: sk-do-not-display",
+        });
+        await service.initialize(mockAssistant, mockAuthConfig);
+        const warning = await service.discoverModels();
+        expect(warning).toContain("HTTP 401");
+        expect(warning).not.toContain("sk-do-not-display");
+        expect(service.getAvailableChatModels()).toHaveLength(2);
+        await expect(service.switchModel(0)).resolves.toMatchObject({
+          llmApi: api,
+        });
+      });
+
+      test("discovers OLMo models while preserving disabled tools", async () => {
+        const olmo: ModelConfig = {
+          provider: "openai-compatible",
+          name: "OLMo",
+          model: "olmo2:7b",
+          apiBase: "http://ollama.test:11434/v1/",
+          roles: ["chat"],
+          chatOptions: { disableTools: true },
+        };
+        mockAssistant.models = [olmo];
+        vi.mocked(config.getLlmApi).mockReturnValue([api, olmo]);
+        vi.mocked(api.list).mockResolvedValue(
+          catalog([
+            "olmo2:7b",
+            "olmo2:13b",
+            "nomic-embed-text",
+            "llama-guard3",
+            "unknown-model",
+          ]),
+        );
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await expect(service.discoverModels()).resolves.toBeNull();
+        expect(api.list).toHaveBeenCalled();
+        const state = await service.switchModel(1);
+        expect(state.model?.model).toBe("olmo2:13b");
+        expect(state.model?.chatOptions?.disableTools).toBe(true);
+        expect(state.model?.apiBase).toBe(olmo.apiBase);
+        expect(service.getAvailableChatModels()).toHaveLength(2);
+      });
+
+      test.each([
+        [
+          "anthropic",
+          "claude-sonnet-4-6",
+          ["claude-haiku-4-5", "gpt-4.1", "unknown-model"],
+          "claude-haiku-4-5",
+        ],
+        [
+          "gemini",
+          "gemini-3.8-flash",
+          [
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-flash-preview-tts",
+            "gemini-embedding-001",
+          ],
+          "gemini-3.1-pro-preview",
+        ],
+        [
+          "openai-compatible",
+          "muse-spark-1.3",
+          ["muse-spark-1.4", "text-embedding-3-small", "unknown-model"],
+          "muse-spark-1.4",
+        ],
+      ] as const)(
+        "discovers chat models for %s",
+        async (provider, model, ids, discovered) => {
+          const template: ModelConfig = {
+            ...mockAssistant.models![0]!,
+            provider,
+            model,
+            apiBase: "https://example.test/v1/",
+            name: "Configured",
+          };
+          mockAssistant.models = [template];
+          vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+          vi.mocked(api.list).mockResolvedValue(catalog([...ids]));
+          await service.initialize(mockAssistant, mockAuthConfig);
+          await expect(service.discoverModels()).resolves.toBeNull();
+          expect(service.getAvailableChatModels()).toHaveLength(2);
+          expect((await service.switchModel(1)).model).toMatchObject({
+            provider,
+            model: discovered,
+            apiBase: template.apiBase,
+            apiKey: template.apiKey,
+          });
+        },
+      );
+
+      test("accepts custom BYOM chat metadata, rejects embedding metadata, and reports unknown-only catalogs", async () => {
+        const template: ModelConfig = {
+          ...mockAssistant.models![0]!,
+          provider: "openai-compatible",
+          model: "my-model",
+          apiBase: "https://example.test/v1/",
+        };
+        mockAssistant.models = [template];
+        vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+        vi.mocked(api.list).mockResolvedValue(
+          catalog(["bespoke-model-v2", "qwen3-unknown"]).map(
+            (model, index) => ({
+              ...model,
+              capabilities: index === 0 ? { chat: true } : ["embedding"],
+            }),
+          ),
+        );
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await service.discoverModels();
+        expect(
+          service.getAvailableChatModels().map((model) => model.name),
+        ).toEqual([template.name, "bespoke-model-v2"]);
+        vi.mocked(api.list).mockResolvedValue(catalog(["unknown-model"]));
+        expect(await service.discoverModels()).toContain(
+          "no identifiable chat models",
+        );
+      });
+
+      test("ignores results from a configuration replaced while discovery was pending", async () => {
+        let resolveCatalog:
+          | ((value: Awaited<ReturnType<BaseLlmApi["list"]>>) => void)
+          | undefined;
+        vi.mocked(api.list).mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolveCatalog = resolve;
+            }),
+        );
+        await service.initialize(mockAssistant, mockAuthConfig);
+        const request = service.discoverModels();
+        const replacement = { ...mockAssistant, name: "replacement" };
+        await service.initialize(replacement, mockAuthConfig);
+        if (!resolveCatalog) throw new Error("Catalog request did not start");
+        resolveCatalog(catalog(["gpt-5"]));
+        await request;
+        expect(service.getState().assistant).toBe(replacement);
+        expect(service.getAvailableChatModels()).toHaveLength(2);
+      });
+
+      test("restores a previously discovered model without a startup network request", async () => {
+        vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(
+          "gpt-5.5",
+        );
+        const state = await service.initialize(mockAssistant, mockAuthConfig);
+        expect(state.model?.model).toBe("gpt-5.5");
+        expect(service.getAvailableChatModels()[2]?.discovered).toBe(true);
+        expect(api.list).not.toHaveBeenCalled();
+      });
+
+      test("uses an explicitly configured model when restoring its discovered ID", async () => {
+        vi.mocked(modelPersistence.getPersistedModelName).mockReturnValue(
+          "gpt-4",
+        );
+        const state = await service.initialize(mockAssistant, mockAuthConfig);
+        expect(state.model).toBe(mockAssistant.models![0]);
+        expect(service.getAvailableChatModels()).toHaveLength(2);
+        expect(service.getAvailableChatModels()[0]?.discovered).toBeUndefined();
+      });
+
+      test("keeps selection and credentials scoped to the endpoint that discovered a model", async () => {
+        const first = mockAssistant.models![0]!;
+        const second = {
+          ...first,
+          name: "Other endpoint",
+          apiBase: "https://other.example.test/v1/",
+          apiKey: "other-test-key",
+        };
+        mockAssistant.models = [first, second];
+        vi.mocked(api.list).mockResolvedValue(catalog(["gpt-4.1"]));
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await service.discoverModels();
+        await service.switchModel(1);
+        await service.discoverModels();
+        const state = await service.switchModel(3);
+        expect(state.model?.apiKey).toBe("other-test-key");
+        expect(state.model?.apiBase).toBe(second.apiBase);
+        expect(service.getCurrentModelIndex()).toBe(3);
+      });
+
+      test("keeps discovery scoped to profile options on a shared endpoint", async () => {
+        const first = mockAssistant.models![0]!;
+        const second: ModelConfig = {
+          ...first,
+          name: "Tools disabled",
+          chatOptions: { disableTools: true },
+          requestOptions: { headers: { "X-Deployment": "second" } },
+        };
+        mockAssistant.models = [first, second];
+        vi.mocked(api.list).mockResolvedValue(catalog(["gpt-4.1"]));
+        await service.initialize(mockAssistant, mockAuthConfig);
+        await service.discoverModels();
+        await service.switchModel(1);
+        await service.discoverModels();
+        expect(service.getAvailableChatModels()).toHaveLength(4);
+        const selected = await service.switchModel(3);
+        expect(selected.model?.chatOptions?.disableTools).toBe(true);
+        expect(selected.model?.requestOptions).toEqual(second.requestOptions);
+        await service.discoverModels();
+        expect(service.getAvailableChatModels()).toHaveLength(4);
+      });
     });
 
     test("should return -1 when no model is set", () => {

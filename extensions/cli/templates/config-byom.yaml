@@ -1,6 +1,8 @@
 name: Open Circuit BYOM
 version: 1.0.0
 schema: v1
+# /model discovers chat models if this endpoint supports GET /models.
+# Custom IDs without identifiable chat capabilities can be configured explicitly.
 models:
   - name: Local model
     provider: openai-compatible

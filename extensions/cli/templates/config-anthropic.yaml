@@ -1,6 +1,7 @@
 name: Open Circuit Anthropic
 version: 1.0.0
 schema: v1
+# /model discovers Anthropic chat models; this model remains the fallback.
 models:
   - name: Anthropic model
     provider: anthropic

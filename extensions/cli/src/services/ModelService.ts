@@ -4,11 +4,17 @@ import { AuthConfig } from "../auth/workos.js";
 import { createLlmApi, getLlmApi } from "../config.js";
 import { logger } from "../util/logger.js";
 import {
+  getPersistedModelProfileId,
+  modelProfileId,
   getPersistedModelName,
   persistModelName,
 } from "../util/modelPersistence.js";
 
 import { BaseService, ServiceWithDependencies } from "./BaseService.js";
+import {
+  discoverableChatModels,
+  discoveryProviders,
+} from "./modelDiscovery.js";
 import { AgentFileServiceState, ModelServiceState } from "./types.js";
 
 /**
@@ -22,7 +28,9 @@ export class ModelService
   private availableModels: ModelConfig[] = [];
   private assistant: AssistantUnrolled | null = null;
   private authConfig: AuthConfig | null = null;
+  private discoveredModels = new Map<ModelConfig, ModelConfig>();
   private sessionModel: ModelConfig | null = null;
+  private sessionProfile: ModelConfig | null = null;
 
   constructor() {
     super("ModelService", {
@@ -56,12 +64,14 @@ export class ModelService
 
     this.assistant = assistant;
     this.authConfig = authConfig;
+    this.discoveredModels.clear();
     this.availableModels = (assistant.models?.filter(
       (model) =>
         model && (model.roles?.includes("chat") || model.roles === undefined),
     ) || []) as ModelConfig[];
 
     let preferredModelName: string | null | undefined = null;
+    let persistedProfileId: string | null = null;
     let preferredProvider: string | undefined;
     let modelSource = "default";
 
@@ -72,12 +82,53 @@ export class ModelService
     } else if (this.sessionModel) {
       preferredModelName = this.sessionModel.name || this.sessionModel.model;
       preferredProvider = this.sessionModel.provider;
+      persistedProfileId = this.sessionProfile
+        ? modelProfileId(this.sessionProfile)
+        : null;
       modelSource = "session";
     } else {
       const persistedName = getPersistedModelName();
       if (persistedName) {
         preferredModelName = persistedName;
+        persistedProfileId = getPersistedModelProfileId();
         modelSource = "persisted";
+      }
+    }
+
+    // Restore a discovered selection without making startup depend on the network.
+    if (
+      preferredModelName &&
+      !this.availableModels.some(
+        (model) =>
+          model.name === preferredModelName &&
+          (!persistedProfileId || modelProfileId(model) === persistedProfileId),
+      )
+    ) {
+      const preferredId = preferredModelName;
+      const configured = this.availableModels.find(
+        (model) =>
+          model.model === preferredModelName &&
+          (!persistedProfileId || modelProfileId(model) === persistedProfileId),
+      );
+      const template = this.availableModels.find(
+        (model) =>
+          discoveryProviders.has(model.provider) &&
+          (persistedProfileId
+            ? modelProfileId(model) === persistedProfileId
+            : model.provider !== "openai-compatible" &&
+              discoverableChatModels(model.provider, [{ id: preferredId }])
+                .length > 0),
+      );
+      if (configured) {
+        preferredModelName = configured.name || configured.model;
+      } else if (template) {
+        const restored = this.discoveredModel(template, preferredModelName);
+        this.availableModels.push(restored);
+        assistant = {
+          ...assistant,
+          models: [...(assistant.models ?? []), restored],
+        };
+        this.assistant = assistant;
       }
     }
 
@@ -88,7 +139,10 @@ export class ModelService
         const name = (model as any).name || (model as any).model;
         return (
           name === preferredModelName &&
-          (!preferredProvider || model.provider === preferredProvider)
+          (!preferredProvider || model.provider === preferredProvider) &&
+          (!persistedProfileId ||
+            modelProfileId(this.discoveredModels.get(model) ?? model) ===
+              persistedProfileId)
         );
       });
       if (modelIndex === -1) {
@@ -168,6 +222,7 @@ export class ModelService
     provider: string;
     name: string;
     index: number;
+    discovered?: boolean;
   }> {
     // Get assistant from state to ensure we have the latest data
     const { assistant } = this.getState();
@@ -180,12 +235,111 @@ export class ModelService
       (model) =>
         model && (model.roles?.includes("chat") || model.roles === undefined),
     ) || []) as ModelConfig[];
-
     return chatModels.map((model, index) => ({
       provider: model.provider,
       name: (model as any).name || (model as any).model || "unnamed",
       index,
+      ...(this.discoveredModels.has(model) ? { discovered: true } : {}),
     }));
+  }
+
+  private discoveredModel(template: ModelConfig, id: string): ModelConfig {
+    const model: ModelConfig = {
+      ...template,
+      name: id,
+      model: id,
+      roles: ["chat"],
+    };
+    this.discoveredModels.set(
+      model,
+      this.discoveredModels.get(template) ?? template,
+    );
+    return model;
+  }
+
+  getCurrentModelProfile(): ModelConfig | null {
+    const model = this.getState().model;
+    return model ? (this.discoveredModels.get(model) ?? model) : null;
+  }
+
+  async discoverModels(): Promise<string | null> {
+    const { assistant, model: template, authConfig } = this.getState();
+    if (!assistant || !template || !discoveryProviders.has(template.provider)) {
+      return null;
+    }
+    const providerNames: Record<string, string> = {
+      openai: "OpenAI",
+      anthropic: "Anthropic",
+      gemini: "Gemini",
+      "openai-compatible": "OpenAI-compatible",
+    };
+    const providerName = providerNames[template.provider] ?? template.provider;
+
+    try {
+      const api = createLlmApi(
+        {
+          ...template,
+          requestOptions: {
+            ...template.requestOptions,
+            timeout: Math.min(
+              template.requestOptions?.timeout ?? 10_000,
+              10_000,
+            ),
+          },
+        },
+        authConfig,
+      );
+      if (!api) throw new Error("Provider could not be initialized");
+      const catalog = await api.list();
+      if (!Array.isArray(catalog)) throw new Error("Invalid model catalog");
+      const ids = discoverableChatModels(template.provider, catalog);
+
+      // A config reload while the request is pending must not restore old models.
+      if (this.getState().assistant !== assistant) return null;
+      if (ids.length === 0) {
+        logger.warn("Model catalog contains no identifiable chat models", {
+          provider: template.provider,
+        });
+        return `${providerName} catalog contains no identifiable chat models. Configure custom model IDs explicitly. Configured models remain available.`;
+      }
+      const profileId = modelProfileId(
+        this.discoveredModels.get(template) ?? template,
+      );
+      const additions = ids
+        .filter(
+          (id) =>
+            !assistant.models?.some(
+              (model) =>
+                model?.model === id &&
+                modelProfileId(this.discoveredModels.get(model) ?? model) ===
+                  profileId &&
+                (model.roles === undefined || model.roles.includes("chat")),
+            ),
+        )
+        .map((id) => this.discoveredModel(template, id));
+      if (additions.length > 0) {
+        const updated = {
+          ...assistant,
+          models: [...(assistant.models ?? []), ...additions],
+        };
+        this.assistant = updated;
+        this.setState({ assistant: updated });
+      }
+      return null;
+    } catch (error: unknown) {
+      const status =
+        error !== null &&
+        typeof error === "object" &&
+        "status" in error &&
+        typeof error.status === "number"
+          ? error.status
+          : undefined;
+      logger.warn("Model discovery failed", {
+        provider: template.provider,
+        status,
+      });
+      return `${providerName} model discovery failed${status ? ` (HTTP ${status})` : ""}. Check the provider connection, credentials, and model-listing support. Configured models remain available.`;
+    }
   }
 
   /**
@@ -200,6 +354,7 @@ export class ModelService
 
     const state = await this.switchModel(modelIndex);
     this.sessionModel = state.model;
+    this.sessionProfile = this.getCurrentModelProfile();
     const modelName = state.model?.name || state.model?.model;
     if (!modelName) {
       logger.warn(
@@ -209,7 +364,7 @@ export class ModelService
     }
 
     try {
-      persistModelName(modelName);
+      persistModelName(modelName, this.sessionProfile);
       return { state, persisted: true };
     } catch (error: unknown) {
       logger.warn(
@@ -314,6 +469,8 @@ export class ModelService
         model && (model.roles?.includes("chat") || model.roles === undefined),
     ) || []) as ModelConfig[];
 
+    const exactIndex = availableModels.indexOf(state.model);
+    if (exactIndex !== -1) return exactIndex;
     return availableModels.findIndex(
       (model) =>
         model.provider === state.model?.provider &&

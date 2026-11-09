@@ -1,8 +1,106 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Response } from "node-fetch";
+import * as util from "../util.js";
 
 import { GeminiApi } from "./Gemini.js";
 
 describe("GeminiApi", () => {
+  describe("model listing", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("paginates and filters generation capabilities using the configured endpoint", async () => {
+      const fetch = vi.fn<ReturnType<typeof util.customFetch>>();
+      fetch
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              models: [
+                {
+                  name: "models/gemini-3.8-flash",
+                  supportedGenerationMethods: ["generateContent"],
+                },
+                {
+                  name: "models/gemini-embedding-001",
+                  supportedGenerationMethods: ["embedContent"],
+                },
+              ],
+              nextPageToken: "cursor/+",
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              models: [
+                {
+                  name: "models/gemini-3.1-pro-preview",
+                  supportedGenerationMethods: ["generateContent"],
+                },
+              ],
+            }),
+          ),
+        );
+      const transport = vi.spyOn(util, "customFetch").mockReturnValue(fetch);
+      const requestOptions = {
+        timeout: 2000,
+        headers: { "X-Test": "catalog" },
+      };
+      const api = new GeminiApi({
+        provider: "gemini",
+        apiKey: "fake-key",
+        apiBase: "https://example.test/custom/v1beta",
+        requestOptions,
+      });
+      expect((await api.list()).map((model) => model.id)).toEqual([
+        "gemini-3.8-flash",
+        "gemini-3.1-pro-preview",
+      ]);
+      expect(transport).toHaveBeenCalledWith(requestOptions);
+      const [url, init] = fetch.mock.calls[1];
+      expect(String(url)).toContain(
+        "https://example.test/custom/v1beta/models?",
+      );
+      expect(new URL(String(url)).searchParams.get("pageToken")).toBe(
+        "cursor/+",
+      );
+      expect(new URL(String(url)).searchParams.has("key")).toBe(false);
+      expect(init?.headers).toMatchObject({ "x-goog-api-key": "fake-key" });
+    });
+
+    it("rejects HTTP errors without exposing their response body", async () => {
+      const fetch = vi
+        .fn<ReturnType<typeof util.customFetch>>()
+        .mockResolvedValue(new Response("fake-secret", { status: 403 }));
+      vi.spyOn(util, "customFetch").mockReturnValue(fetch);
+      await expect(
+        new GeminiApi({
+          provider: "gemini",
+          apiKey: "fake-key",
+        }).list(),
+      ).rejects.toMatchObject({
+        status: 403,
+        message: "Gemini model catalog request failed",
+      });
+    });
+
+    it.each([{ models: "invalid" }, { models: [], nextPageToken: "repeat" }])(
+      "rejects malformed catalogs and repeated pagination",
+      async (page) => {
+        const fetch = vi
+          .fn<ReturnType<typeof util.customFetch>>()
+          .mockImplementation(async () => new Response(JSON.stringify(page)));
+        vi.spyOn(util, "customFetch").mockReturnValue(fetch);
+        await expect(
+          new GeminiApi({
+            provider: "gemini",
+            apiKey: "fake-key",
+          }).list(),
+        ).rejects.toThrow();
+        expect(fetch.mock.calls.length).toBeLessThanOrEqual(2);
+      },
+    );
+  });
+
   const api = new GeminiApi({
     provider: "gemini",
     apiKey: "test-key",

@@ -1,7 +1,7 @@
 # Open Circuit CLI
 
 The Open Circuit CLI provides the `oc` command for interactive and headless
-coding-agent sessions. This package source is version **1.0.3**. Release
+coding-agent sessions. This package source is version **1.0.4**. Release
 archives are published separately; check the
 [public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
@@ -65,6 +65,19 @@ For provider setup, OpenAI-compatible BYOM endpoints, and OLMo through Ollama,
 follow the [beginner QUICKSTART](../../QUICKSTART.md). Choose one provider for
 the active config. Existing templates and active configs are not overwritten
 by upgrades.
+
+The model picker shows configured chat models immediately and discovers
+general-purpose chat models for the active OpenAI, Anthropic, Gemini, or
+OpenAI-compatible provider using its existing credentials and endpoint.
+Gemini catalogs are checked for `generateContent` support; compatible catalogs
+use chat capability metadata or recognized chat/instruct model families,
+including OLMo and Meta. Unknown or specialized models can still be configured
+explicitly. Endpoints must support model listing for automatic discovery.
+Discovered entries are labeled and registered in memory, not written to YAML.
+Selections are persisted with an opaque provider-profile fingerprint so a
+discovered ID is not restored against unrelated credentials or endpoints.
+If discovery fails, the picker displays a warning and keeps configured models
+selectable. Discovery preserves model options, including disabled tools.
 
 ## Modes and common commands
 

@@ -25,6 +25,7 @@ interface SelectorProps<T extends SelectorOption> {
     isSelected: boolean,
     isCurrent: boolean,
   ) => ReactNode;
+  maxVisibleOptions?: number;
 }
 
 export function Selector<T extends SelectorOption>({
@@ -39,6 +40,7 @@ export function Selector<T extends SelectorOption>({
   onCancel,
   onNavigate,
   renderOption,
+  maxVisibleOptions = options.length,
 }: SelectorProps<T>) {
   // Handle input for loading and error states
   useInput((input, key) => {
@@ -124,22 +126,40 @@ export function Selector<T extends SelectorOption>({
     </>
   );
 
+  const windowStart = Math.max(
+    0,
+    Math.min(
+      selectedIndex - Math.floor(maxVisibleOptions / 2),
+      options.length - maxVisibleOptions,
+    ),
+  );
+
   return (
     <Box {...defaultBoxStyles("blue")}>
       <Text color="blue" bold>
         {title}
       </Text>
       <Box flexDirection="column" marginTop={1}>
-        {options.map((option, index) => {
-          const isSelected = index === selectedIndex;
-          const isCurrent = currentId === option.id;
-          const render = renderOption || defaultRenderOption;
+        {options
+          .slice(windowStart, windowStart + maxVisibleOptions)
+          .map((option, offset) => {
+            const index = windowStart + offset;
+            const isSelected = index === selectedIndex;
+            const isCurrent = currentId === option.id;
+            const render = renderOption || defaultRenderOption;
 
-          return (
-            <Box key={option.id}>{render(option, isSelected, isCurrent)}</Box>
-          );
-        })}
+            return (
+              <Box key={option.id}>{render(option, isSelected, isCurrent)}</Box>
+            );
+          })}
       </Box>
+      {options.length > maxVisibleOptions && (
+        <Text color="gray">
+          {windowStart + 1}-
+          {Math.min(windowStart + maxVisibleOptions, options.length)} of{" "}
+          {options.length}
+        </Text>
+      )}
       <Box marginTop={1}>
         <Text color="gray" dimColor>
           ↑/↓ to navigate, Enter to select, Esc to cancel

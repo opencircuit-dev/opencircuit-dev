@@ -6,6 +6,8 @@
  * every import site.
  */
 
+import type { ModelConfig } from "@opencircuit/config-yaml";
+
 import {
   getPersistedModelName,
   persistModelName,
@@ -91,8 +93,11 @@ export function updateConfigUri(_configUri: string | null): void {
   // no-op
 }
 
-export function updateModelName(modelName: string | null): AuthConfig {
-  persistModelName(modelName);
+export function updateModelName(
+  modelName: string | null,
+  profile?: ModelConfig | null,
+): AuthConfig {
+  persistModelName(modelName, profile);
   return null;
 }
 

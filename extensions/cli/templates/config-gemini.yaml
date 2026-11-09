@@ -1,6 +1,7 @@
 name: Open Circuit Gemini
 version: 1.0.0
 schema: v1
+# /model discovers Gemini chat models; this model remains the fallback.
 models:
   - name: Gemini model
     provider: gemini

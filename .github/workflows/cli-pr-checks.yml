@@ -147,9 +147,10 @@ jobs:
           cd extensions/cli
           npm run test:runtime-boundary
 
-      - name: Validate CLI release artifact
+      - name: Build and validate CLI release artifact
         run: |
           cd extensions/cli
+          npm run release:artifact
           npm run check:release-artifact
 
   runtime-guard:

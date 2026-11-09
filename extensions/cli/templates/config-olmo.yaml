@@ -1,6 +1,7 @@
 name: OLMo on Ollama
 version: 1.0.0
 schema: v1
+# /model discovers chat models from this Ollama endpoint, preserving disabled tools.
 models:
   - name: OLMo
     provider: openai-compatible
