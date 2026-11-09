@@ -116,39 +116,6 @@ only public HTTPS destinations on port 443. These restrictions can affect
 existing workflows and do not provide an operating-system sandbox. Review
 [SECURITY.md](SECURITY.md) for details.
 
-## Release preparation
-
-Maintainers build and validate release artifacts through the registered
-orchestration workflow. To regenerate this checkout's release artifacts and
-the public distribution checkout from clean `main`, use the canonical entry:
-
-```bash
-../../opencircuit-orchestration/scripts/opencircuit-orchestration.sh \
-  --target self --action opencircuit-cli-release-publish \
-  --artifact opencircuit-cli-public
-```
-
-Run it from a checkout layout where `opencircuit-orchestration` is available
-at that path, or use the entry script's absolute path. It builds the exact
-source revision on Server1, validates it, and refreshes the local distribution
-without committing or pushing. A failed test or dependency audit blocks
-publication; never bypass the gate or rename an older archive to a newer
-version. The latest attempt for merged `main` failed the root dependency audit,
-so the existing 1.0.3 archive does not include the newly merged model-picker
-updates.
-
-The local packaging command is:
-
-```bash
-npm --prefix extensions/cli run release:artifact
-```
-
-It stages a versioned tarball, SHA-256 checksum, CycloneDX SBOM, provenance
-manifest, and notices under `release-artifacts/v1.0.3/`. Staging files are
-ignored and are not source changes. Stable publication is performed only by
-the protected `stable-release.yml` workflow, which reuses that exact archive
-for npm and the public distribution repository.
-
 ## Documentation and contribution
 
 - [Beginner QUICKSTART](QUICKSTART.md)
