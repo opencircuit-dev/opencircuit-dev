@@ -36,7 +36,13 @@ describe("real terminal policy in auto and headless execution", () => {
         );
         expect(
           await checkToolPermissionApproval(permissions, call, undefined, true),
-        ).toEqual({ approved: false, denialReason: "policy" });
+        ).toEqual({
+          approved: false,
+          denialReason: "policy",
+          denialMessage: expect.stringContaining(
+            "This command did not execute",
+          ),
+        });
         await expect(runTerminalCommandTool.run({ command })).rejects.toThrow(
           /denied by security policy/,
         );
@@ -65,7 +71,11 @@ describe("real terminal policy in auto and headless execution", () => {
         undefined,
         true,
       ),
-    ).toEqual({ approved: false, denialReason: "policy" });
+    ).toEqual({
+      approved: false,
+      denialReason: "policy",
+      denialMessage: expect.stringContaining("This command did not execute"),
+    });
     expect(
       checkToolPermission(
         { name: "Bash", arguments: { command: "pwd" } },

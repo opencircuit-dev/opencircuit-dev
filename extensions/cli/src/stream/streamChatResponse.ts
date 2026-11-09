@@ -24,6 +24,8 @@ import { logger } from "../util/logger.js";
 import { providerRequestThrottle } from "../util/providerRequestThrottle.js";
 import { validateContextLength } from "../util/tokenizer.js";
 
+import { getArgumentRecovery } from "./argumentRecovery.js";
+import { getFileEditTask } from "./fileEditTask.js";
 import { getRequestTools, handleToolCalls } from "./handleToolCalls.js";
 import {
   handleNormalAutoCompaction,
@@ -487,6 +489,16 @@ async function streamChatResponseLoop(
   let compactionOccurredThisTurn = false; // Track if compaction happened during this conversation turn
 
   const loopGuard = createLoopGuard(isCompacting, isHeadless, abortController);
+  // Snapshot user/workspace evidence before compaction can replace history.
+  const argumentRecovery = getArgumentRecovery(
+    loopGuard.enforced,
+    refreshChatHistoryFromService(chatHistory, isCompacting),
+  );
+
+  const fileEditTask = getFileEditTask(
+    loopGuard.enforced,
+    refreshChatHistoryFromService(chatHistory, isCompacting),
+  );
 
   try {
     while (true) {
@@ -494,6 +506,7 @@ async function streamChatResponseLoop(
       if (stopNotice) return stopNotice;
       // If ChatHistoryService is available, refresh local chatHistory view
       chatHistory = refreshChatHistoryFromService(chatHistory, isCompacting);
+      argumentRecovery.captureContext(chatHistory);
       logger.debug("Starting conversation iteration");
 
       // Get system message once per iteration (can change based on tool permissions mode)
@@ -508,6 +521,9 @@ async function streamChatResponseLoop(
       const tools = applyChatCompletionToolOverrides(
         rawTools,
         model.chatOptions?.toolOverrides,
+      ).filter(
+        (tool) =>
+          !fileEditTask.target || getChatCompletionToolName(tool) !== "Bash",
       );
 
       // Pre-API auto-compaction checkpoint (now includes tools)
@@ -564,6 +580,7 @@ async function streamChatResponseLoop(
       handleContentDisplay(content, callbacks, isHeadless);
 
       // Handle tool calls and check for early return. This updates history via ChatHistoryService.
+      let toolStopNotice: string | undefined;
       const shouldReturn = await handleToolCalls({
         toolCalls,
         chatHistory,
@@ -573,9 +590,15 @@ async function streamChatResponseLoop(
         usage,
         guard: loopGuard.enforced,
         registryGeneration,
+        advertisedTools: tools,
+        argumentRecovery,
+        onStop: (notice) => {
+          toolStopNotice = notice;
+        },
       });
 
       if (shouldReturn) {
+        if (toolStopNotice) return toolStopNotice;
         return finalResponse || content || fullResponse;
       }
 

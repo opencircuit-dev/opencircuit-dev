@@ -6,6 +6,18 @@ This repository keeps a lightweight release-history file for local documentation
 
 ## Unreleased
 
+### Internal 1.0.4 integration
+
+- Integrate public 1.0.4 discovery while keeping Cisco's entitled-model policy
+  authoritative and preserving strict internal audit and license gates.
+- Merge bounded missing-argument recovery and exact Read path-alias
+  normalization after validating the discovery baseline independently.
+- Preserve permission checks, stop on policy denials, and constrain direct
+  single-file edits to their explicit destination. See
+  [file-edit safety](extensions/cli/docs/file-edit-safety.md) for scope and limits.
+- No protected 1.0.4 distribution or runtime replacement is implied by these
+  source merges.
+
 ### CLI 1.0.4 release candidate
 
 - Discover chat models in `/model` for OpenAI, Anthropic, Gemini, and
