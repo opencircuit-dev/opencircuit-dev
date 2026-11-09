@@ -2,7 +2,7 @@
 
 This guide gets a beginner from zero to a working `oc` command.
 
-This internal source checkout is CLI **1.0.3**; release archives are published
+This internal source checkout is CLI **1.0.4**; release archives are published
 separately. Cisco users must use the approved internal package, run `oc init`
 to install its protected profile, and select the packaged Circuit configuration.
 The public-provider examples below do not replace internal SSO onboarding.
@@ -115,7 +115,7 @@ node --version
 
 You should see `v24.19.0`. If you use `nvm`, set the version persistently and make it your default:
 
-This source checkout identifies the CLI package as **1.0.3**. Release archives
+This source checkout identifies the CLI package as **1.0.4**. Release archives
 are published separately; use only a version whose tarball and checksum are
 available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
 

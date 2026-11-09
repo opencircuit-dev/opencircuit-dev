@@ -2,7 +2,7 @@
 
 > A terminal-native coding agent for working through real software tasks.
 
-[![CLI](https://img.shields.io/badge/CLI-1.0.3-111827)](extensions/cli/README.md)
+[![CLI](https://img.shields.io/badge/CLI-1.0.4-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
@@ -12,14 +12,14 @@ headlessly in scripts and CI.
 
 ## Start here
 
-This internal source checkout is CLI **1.0.3**. A source version does not prove
+This internal source checkout is CLI **1.0.4**. A source version does not prove
 that a matching release archive has been published. Internal Cisco users should
 use the approved internal distribution and its protected profile; the public
 installation examples below describe the separate public distribution.
 
 Read the [QUICKSTART](QUICKSTART.md) for installation, provider configuration,
 and first commands. This source checkout identifies the CLI package as
-**1.0.3**. A source version is not proof that its release archive is available;
+**1.0.4**. A source version is not proof that its release archive is available;
 check the [public distribution repository](https://github.com/open-circuit-dev/opencircuit)
 for the latest published tarball and checksum before installing.
 
@@ -29,6 +29,11 @@ and release metadata before installing; do not install an unpublished version
 from the registry.
 
 ### Current internal artifact
+
+Internal 1.0.4 integrates public multi-provider model discovery and
+profile-scoped selection persistence. Cisco SSO continues to use only the
+authenticated gateway's entitled-model policy. No protected internal 1.0.4
+archive has been published; the artifact below remains the stable release.
 
 The protected CLI **1.0.3** package was generated from clean source commit
 `095c5763b986fe60bf1cc3da307c7a2f90d652e6` and published to the internal

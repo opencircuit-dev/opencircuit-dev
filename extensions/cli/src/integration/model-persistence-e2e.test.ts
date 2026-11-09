@@ -3,8 +3,10 @@ import * as os from "os";
 import * as path from "path";
 
 import { AssistantUnrolled, ModelConfig } from "@opencircuit/config-yaml";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { constructLlmApi } from "@opencircuit/openai-adapters";
 import { GlobalContext } from "core/globalContext.js";
+import { getGlobalContextFilePath } from "core/util/paths.js";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { getModelName, updateModelName } from "../auth/workos.js";
 import * as config from "../config.js";
@@ -104,6 +106,88 @@ describe("Model Persistence End-to-End", () => {
     expect(state.model?.provider).toBe("anthropic");
   });
 
+  test("persists discovered selections through the canonical service and retains them across reloads", async () => {
+    const template: ModelConfig = {
+      provider: "openai-compatible",
+      name: "OLMo",
+      model: "olmo2:7b",
+      apiBase: "https://example.test/v1/",
+      apiKey: "fake-key",
+      roles: ["chat"],
+      chatOptions: { disableTools: true },
+    };
+    const assistant: AssistantUnrolled = {
+      ...mockAssistant,
+      models: [template],
+    };
+    const api = constructLlmApi({ provider: "openai", apiKey: "fake-key" });
+    if (!api) throw new Error("Test adapter could not be initialized");
+    vi.spyOn(api, "list").mockResolvedValue([
+      { id: "olmo2:13b", object: "model", created: 0, owned_by: "fixture" },
+    ]);
+    vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+    vi.mocked(config.createLlmApi).mockReturnValue(api);
+    const service = new ModelService();
+    await service.initialize(assistant, null);
+    await service.discoverModels();
+    expect((await service.setSelectedModel(1)).persisted).toBe(true);
+    expect((await service.reload(assistant, null)).model?.model).toBe(
+      "olmo2:13b",
+    );
+    const restarted = new ModelService();
+    const restored = await restarted.initialize(assistant, null);
+    expect(restored.model?.model).toBe("olmo2:13b");
+    expect(restored.model?.chatOptions?.disableTools).toBe(true);
+    const changed = { ...template, apiKey: "different-fake-key" };
+    vi.mocked(config.getLlmApi).mockReturnValue([api, changed]);
+    expect(
+      (await service.reload({ ...assistant, models: [changed] }, null)).model,
+    ).toBe(changed);
+    expect(api.list).toHaveBeenCalledOnce();
+  });
+
+  test.each(["anthropic", "gemini", "openai-compatible"] as const)(
+    "restores discovered %s IDs only for the matching provider profile",
+    async (provider) => {
+      const template: ModelConfig = {
+        provider,
+        name: "Configured profile",
+        model: "configured-model",
+        apiBase: "https://example.test/v1/",
+        apiKey: "fake-private-key",
+        chatOptions: { disableTools: true },
+        roles: ["chat"],
+      };
+      const assistant: AssistantUnrolled = {
+        ...mockAssistant,
+        models: [template],
+      };
+      const api = constructLlmApi({ provider: "openai", apiKey: "fake-key" });
+      if (!api) throw new Error("Test adapter could not be initialized");
+      vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+      vi.mocked(config.createLlmApi).mockReturnValue(api);
+      updateModelName("custom-discovered-id", template);
+      const service = new ModelService();
+      const state = await service.initialize(assistant, null);
+      expect(state.model?.model).toBe("custom-discovered-id");
+      expect(state.model?.chatOptions?.disableTools).toBe(true);
+      expect(service.getCurrentModelProfile()).toBe(template);
+      const persisted = fs.readFileSync(getGlobalContextFilePath(), "utf8");
+      expect(persisted).not.toContain(template.apiKey);
+      expect(persisted).not.toContain(template.apiBase);
+      const changed = {
+        ...template,
+        apiBase: "https://other.example.test/v1/",
+      };
+      vi.mocked(config.getLlmApi).mockReturnValue([api, changed]);
+      const other = new ModelService();
+      expect(
+        (await other.initialize({ ...assistant, models: [changed] }, null))
+          .model,
+      ).toBe(changed);
+    },
+  );
+
   test("should handle model name mismatch gracefully", async () => {
     // Save a model name that doesn't exist in the assistant
     updateModelName("Non-existent Model");
@@ -113,6 +197,26 @@ describe("Model Persistence End-to-End", () => {
 
     // Should fall back to first available model (GPT-4)
     expect(state.model?.name).toBe("GPT-4");
+  });
+
+  test("does not reuse a stale provider scope when an older CLI changes only the model name", async () => {
+    const template: ModelConfig = {
+      provider: "gemini",
+      name: "Configured Gemini",
+      model: "gemini-3.8-flash",
+      apiKey: "fake-key",
+      roles: ["chat"],
+    };
+    updateModelName("gemini-3.1-pro-preview", template);
+    new GlobalContext().update("cliSelectedModel", "gpt-5.5");
+    const api = constructLlmApi({ provider: "openai", apiKey: "fake-key" });
+    if (!api) throw new Error("Test adapter could not be initialized");
+    vi.mocked(config.getLlmApi).mockReturnValue([api, template]);
+    const service = new ModelService();
+    expect(
+      (await service.initialize({ ...mockAssistant, models: [template] }, null))
+        .model,
+    ).toBe(template);
   });
 
   test("should check both name and model fields when matching", async () => {

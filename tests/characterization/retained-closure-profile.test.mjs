@@ -35,11 +35,23 @@ test("retained-closure validation has no orphaned Rust sync surface", () => {
   assert.doesNotMatch(validatorSource, /\bsync\b/);
 });
 
-test("retained-closure builds its release archive before checking it", () => {
-  const build = validatorSource.indexOf('args: ["run", "release:artifact"]');
-  const check = validatorSource.indexOf(
-    'args: ["run", "check:release-artifact"]',
+test("release validation builds the current archive before inspecting it", async () => {
+  const workflow = await fs.readFile(
+    path.join(repositoryRoot, ".github/workflows/cli-pr-checks.yml"),
+    "utf8",
   );
-  assert.ok(build >= 0, "clean validation must generate its own archive");
-  assert.ok(check > build, "archive validation must follow archive generation");
+  for (const [source, build, check] of [
+    [
+      validatorSource,
+      'args: ["run", "release:artifact"]',
+      'args: ["run", "check:release-artifact"]',
+    ],
+    [workflow, "npm run release:artifact", "npm run check:release-artifact"],
+  ]) {
+    assert.ok(source.indexOf(build) >= 0, "archive build must be present");
+    assert.ok(
+      source.indexOf(check) > source.indexOf(build),
+      "archive validation must follow the build",
+    );
+  }
 });

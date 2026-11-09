@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { OCIRCUIT_ASCII_ART, getDisplayableAsciiArt } from "./asciiArt.js";
+import { getVersion } from "./version.js";
 
 describe("asciiArt", () => {
   let originalColumns: number | undefined;
@@ -38,7 +39,7 @@ describe("asciiArt", () => {
 
       expect(result).toContain("██████═╗  █████╗");
       expect(result).toContain("╚═════╝  ╚═════╝");
-      expect(result).toContain("v1.0.3");
+      expect(result).toContain(`v${getVersion()}`);
       expect(result).not.toBe(OCIRCUIT_ASCII_ART);
     });
 

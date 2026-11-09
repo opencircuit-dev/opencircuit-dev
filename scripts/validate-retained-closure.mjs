@@ -194,7 +194,7 @@ const commands = [
     cwd: path.join(repositoryRoot, "extensions/cli"),
   },
   {
-    name: "CLI release archive build",
+    name: "CLI release artifact build",
     command: npmCommand,
     args: ["run", "release:artifact"],
     cwd: path.join(repositoryRoot, "extensions/cli"),

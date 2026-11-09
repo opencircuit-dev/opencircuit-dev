@@ -100,7 +100,7 @@ describe("slashCommands", () => {
   });
 
   describe("handleSlashCommands", () => {
-    it("opens the TUI model selector without starting a competing prompt", async () => {
+    it("opens the Ink model selector without a competing prompt", async () => {
       const result = await handleSlashCommands("/model", mockAssistant);
 
       expect(result).toEqual({ openModelSelector: true });

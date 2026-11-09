@@ -1,6 +1,8 @@
 name: Open Circuit Meta Muse
 version: 1.0.0
 schema: v1
+# /model discovers chat models if this endpoint supports GET /models.
+# This configured model remains available when model listing is unsupported.
 models:
   - name: Meta Muse Spark
     provider: openai-compatible

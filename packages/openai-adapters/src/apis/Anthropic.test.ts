@@ -1,10 +1,101 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Response } from "node-fetch";
+import * as util from "../util.js";
 
 import { CACHING_STRATEGIES } from "./AnthropicCachingStrategies.js";
 import { addCacheControlToLastTwoUserMessages } from "./AnthropicUtils.js";
 import { AnthropicApi } from "./Anthropic.js";
 
 describe("AnthropicApi", () => {
+  describe("model listing", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("paginates with the configured transport, endpoint and authentication", async () => {
+      const fetch = vi.fn<ReturnType<typeof util.customFetch>>();
+      fetch
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              data: [{ id: "claude-sonnet-4-6" }],
+              has_more: true,
+              last_id: "cursor/+",
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              data: [{ id: "claude-haiku-4-5" }],
+              has_more: false,
+            }),
+          ),
+        );
+      const transport = vi.spyOn(util, "customFetch").mockReturnValue(fetch);
+      const requestOptions = {
+        timeout: 2000,
+        headers: { "X-Test": "catalog" },
+      };
+      const api = new AnthropicApi({
+        provider: "anthropic",
+        apiKey: "fake-key",
+        apiBase: "https://example.test/custom/v1",
+        requestOptions,
+      });
+      expect((await api.list()).map((model) => model.id)).toEqual([
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5",
+      ]);
+      expect(transport).toHaveBeenCalledWith(requestOptions);
+      const [url, init] = fetch.mock.calls[1];
+      expect(String(url)).toContain("https://example.test/custom/v1/models?");
+      expect(new URL(String(url)).searchParams.get("after_id")).toBe(
+        "cursor/+",
+      );
+      expect(init?.headers).toMatchObject({
+        "x-api-key": "fake-key",
+        "anthropic-version": "2023-06-01",
+      });
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it("rejects HTTP errors without exposing their response body", async () => {
+      const fetch = vi
+        .fn<ReturnType<typeof util.customFetch>>()
+        .mockResolvedValue(new Response("fake-secret", { status: 401 }));
+      vi.spyOn(util, "customFetch").mockReturnValue(fetch);
+      await expect(
+        new AnthropicApi({
+          provider: "anthropic",
+          apiKey: "fake-key",
+        }).list(),
+      ).rejects.toMatchObject({
+        status: 401,
+        message: "Anthropic model catalog request failed",
+      });
+    });
+
+    it.each([
+      { data: "invalid", has_more: false },
+      {
+        data: [{ id: "claude-sonnet-4-6" }],
+        has_more: true,
+        last_id: "repeat",
+      },
+    ])("rejects malformed catalogs and repeated pagination", async (page) => {
+      const fetch = vi
+        .fn<ReturnType<typeof util.customFetch>>()
+        .mockImplementation(async () => new Response(JSON.stringify(page)));
+      vi.spyOn(util, "customFetch").mockReturnValue(fetch);
+      await expect(
+        new AnthropicApi({
+          provider: "anthropic",
+          apiKey: "fake-key",
+        }).list(),
+      ).rejects.toThrow();
+      expect(fetch.mock.calls.length).toBeLessThanOrEqual(2);
+    });
+  });
+
   describe("_convertBody applies cache_control to last two user messages", () => {
     const api = new AnthropicApi({
       provider: "anthropic",

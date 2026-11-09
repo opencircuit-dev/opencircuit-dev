@@ -1,18 +1,25 @@
 # Open Circuit CLI
 
 The Open Circuit CLI provides the `oc` command for interactive and headless
-coding-agent sessions. This package source is version **1.0.3**. Release
+coding-agent sessions. This package source is version **1.0.4**. Release
 archives are published separately; check the
 [public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
 for installation guidance.
 
-This internal source package is version **1.0.3**. Source version and published
+This internal source package is version **1.0.4**. Source version and published
 archive availability are separate. Cisco users should install the approved
 internal artifact and run `oc init` to install its protected profile; public
 package examples below do not include that profile.
 
 ## Internal 1.0.3 release
+
+Internal source 1.0.4 adds OpenAI, Anthropic, Gemini and OpenAI-compatible
+chat-model discovery, provider-qualified selection and profile-scoped
+persistence. Configured models remain usable when discovery fails.
+Cisco SSO retains its gateway-policy catalog; public discovery cannot add
+models outside that policy. Source integration does not publish an internal
+1.0.4 archive.
 
 The protected internal tarball was generated from clean source commit
 `095c5763b986fe60bf1cc3da307c7a2f90d652e6`. It includes the validated Cisco

@@ -8,8 +8,9 @@ import { ModelService } from "./ModelService.js";
 import { AgentFileServiceState } from "./types.js";
 
 // Mock the dependencies
-vi.mock("../auth/workos.js", () => ({
-  getModelName: vi.fn(() => null),
+vi.mock("../util/modelPersistence.js", () => ({
+  getPersistedModelName: vi.fn(() => null),
+  getPersistedModelProfileId: vi.fn(() => null),
 }));
 
 vi.mock("../config.js", () => ({
@@ -114,9 +115,10 @@ describe("ModelService agent file model prioritization", () => {
       parsedTools: null,
     };
 
-    // Mock getModelName to return a persisted model
-    const { getModelName } = await import("../auth/workos.js");
-    vi.mocked(getModelName).mockReturnValue("claude-3-sonnet");
+    const { getPersistedModelName } = await import(
+      "../util/modelPersistence.js"
+    );
+    vi.mocked(getPersistedModelName).mockReturnValue("claude-3-sonnet");
 
     const createLlmApiMock = vi.mocked(config.createLlmApi);
     createLlmApiMock.mockImplementation(
@@ -195,9 +197,10 @@ describe("ModelService agent file model prioritization", () => {
       parsedTools: null,
     };
 
-    // Make sure getModelName returns null (no persisted model)
-    const { getModelName } = await import("../auth/workos.js");
-    vi.mocked(getModelName).mockReturnValue(null);
+    const { getPersistedModelName } = await import(
+      "../util/modelPersistence.js"
+    );
+    vi.mocked(getPersistedModelName).mockReturnValue(null);
 
     const getLlmApiMock = vi.mocked(config.getLlmApi);
     getLlmApiMock.mockReturnValue([
@@ -238,9 +241,10 @@ describe("ModelService agent file model prioritization", () => {
       parsedTools: null,
     };
 
-    // Mock getModelName to return a different persisted model
-    const { getModelName } = await import("../auth/workos.js");
-    vi.mocked(getModelName).mockReturnValue("claude-3-haiku");
+    const { getPersistedModelName } = await import(
+      "../util/modelPersistence.js"
+    );
+    vi.mocked(getPersistedModelName).mockReturnValue("claude-3-haiku");
 
     const createLlmApiMock = vi.mocked(config.createLlmApi);
     createLlmApiMock.mockImplementation(
