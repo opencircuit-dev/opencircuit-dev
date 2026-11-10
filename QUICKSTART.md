@@ -2,14 +2,14 @@
 
 This guide gets a beginner from zero to a working `oc` command.
 
-This internal source checkout is CLI **1.0.5**; release archives are published
+This internal source checkout is CLI **1.0.6**; release archives are published
 separately. Cisco users must use the approved internal package, run `oc init`
 to install its protected profile, and select the packaged Circuit configuration.
 The public-provider examples below do not replace internal SSO onboarding.
 
 ## Internal Cisco Circuit onboarding
 
-Use the protected internal **1.0.5** tarball and checksum when available in
+Use the protected internal **1.0.6** tarball and checksum when available in
 the approved sibling `opencircuit-internal/` distribution, not a public package.
 That distribution's README records the exact source commit, archive checksum,
 and completed qualification. The internal package includes the approved Cisco
@@ -19,8 +19,8 @@ From the directory containing the approved internal files, with Node 24.19.0
 active:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-internal-1.0.5.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.5.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.6.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.6.tgz &&
   oc --version
 oc init
 ```
@@ -125,7 +125,7 @@ node --version
 
 You should see `v24.19.0`. If you use `nvm`, set the version persistently and make it your default:
 
-This source checkout identifies the CLI package as **1.0.5**. Release archives
+This source checkout identifies the CLI package as **1.0.6**. Release archives
 are published separately; use only a version whose tarball and checksum are
 available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
 
