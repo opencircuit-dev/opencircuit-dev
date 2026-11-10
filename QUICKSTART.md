@@ -41,6 +41,19 @@ model returned by policy. Do not invent a deployment ID, add manual bearer
 tokens, or bypass entitlement rejection. Tokens refresh through OAuth and use
 the OS credential store; macOS persistence uses chunked Keychain items.
 
+If a policy entry is returned with `available: false`, `oc` omits it from model
+selection and rejects direct use. To qualify a selected Cisco model against the
+live gateway, run the protected probe below; it performs one minimal
+non-streaming and one streaming request for that model and reports status only:
+
+```bash
+node scripts/cisco-contract-probe.mjs capabilities --model <policy-model>
+```
+
+A `404 Route Not Found` is a gateway contract failure. The gateway owner must
+remove the stale model from policy or provide its deployment route; do not add
+the deployment manually or retry the missing route.
+
 Canonical Server1 retained-closure validation is required for each protected
 release. Do not infer Mac/runtime acceptance or live Cisco SSO/model access
 from a build alone; live access still depends on your account and network.

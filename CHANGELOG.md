@@ -13,6 +13,9 @@ This repository keeps a lightweight release-history file for local documentation
   1.0.4; no public dependency or audit-policy downgrade is imported.
 - Preserve Cisco SSO/profile handling, entitled-model policy, internal Core
   validation, and the existing approved license and strict audit gates.
+- Treat policy entries marked `available: false` as unavailable in the model
+  picker and gateway adapter, and add a protected capability probe for
+  non-streaming and streaming route qualification.
 - Protected archive generation requires canonical Server1 retained-closure
   validation; source version alone does not imply publication or a Mac upgrade.
 

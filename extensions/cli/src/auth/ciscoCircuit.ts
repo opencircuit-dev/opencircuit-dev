@@ -49,6 +49,13 @@ export interface CiscoCircuitProfile {
 
 export type CiscoCircuitTokenSource = () => Promise<string | null>;
 
+export interface CiscoModelPolicyEntry {
+  id: string;
+  name?: string;
+  deployment?: string;
+  available?: boolean;
+}
+
 const policyEntrySchema = z.union([
   z
     .string()
@@ -60,18 +67,27 @@ const policyEntrySchema = z.union([
       id: z.string().min(1).max(200),
       name: z.string().min(1).max(200).optional(),
       deployment: z.string().min(1).max(200).optional(),
+      available: z.boolean().optional(),
     })
-    .strict(),
+    .strict()
+    .transform(({ id, name, deployment, available }) => ({
+      id,
+      name: name ?? id,
+      deployment,
+      ...(available === false ? { available: false } : {}),
+    })),
   z
     .object({
       model: z.string().min(1).max(200),
       name: z.string().min(1).max(200).optional(),
       provider: z.literal("cisco"),
+      available: z.boolean().optional(),
     })
-    .transform(({ model, name }) => ({
+    .transform(({ model, name, available }) => ({
       id: model,
       name: name ?? model,
       deployment: undefined,
+      ...(available === false ? { available: false } : {}),
     })),
 ]);
 
@@ -79,7 +95,9 @@ const policySchema = z.object({
   models: z.array(policyEntrySchema).min(1).max(100),
 });
 
-export type CiscoModelPolicy = z.infer<typeof policySchema>;
+export interface CiscoModelPolicy {
+  models: CiscoModelPolicyEntry[];
+}
 
 export function loadCiscoCircuitProfile(
   profilePath?: string,
@@ -184,6 +202,9 @@ export class CiscoCircuitGateway {
         const policy = await this.getPolicy();
         const entry = policy.models.find((candidate) => candidate.id === model);
         if (!entry) throw new Error(`Cisco model is not entitled: ${model}`);
+        if (entry.available === false) {
+          throw new Error(`Cisco model is unavailable: ${model}`);
+        }
         if ((entry.deployment ?? model) !== deployment) {
           throw new Error(
             "Cisco model deployment changed; restart the session",
@@ -233,10 +254,13 @@ export class CiscoCircuitGateway {
     } catch {
       throw new Error("Cisco model policy was not valid JSON");
     }
-    const policy = policySchema.parse(payload);
+    const policy = policySchema.parse(payload) as CiscoModelPolicy;
     const ids = policy.models.map((entry) => entry.id);
     if (new Set(ids).size !== ids.length)
       throw new Error("Cisco model policy contains duplicate IDs");
+    if (!policy.models.some((entry) => entry.available !== false)) {
+      throw new Error("Cisco model policy contains no available models");
+    }
     this.policy = policy;
     this.policyExpiresAt = this.now() + POLICY_CACHE_MS;
     return policy;

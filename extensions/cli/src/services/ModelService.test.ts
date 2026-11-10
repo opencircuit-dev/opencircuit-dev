@@ -134,6 +134,43 @@ describe("ModelService", () => {
       },
     );
 
+    test("does not expose explicitly unavailable Cisco models", async () => {
+      const gateway = new CiscoCircuitGateway(async () => "delegated-token", {
+        enabled: true,
+        profile: "cisco-circuit",
+        gatewayBase: "https://organon.cisco.com/vscode-plugin",
+        modelPolicyPath: "/api/model-policy",
+        modelApiVersion: "2024-07-01-preview",
+      });
+      vi.spyOn(gateway, "getPolicy").mockResolvedValue({
+        models: [
+          { id: "mellum2-12b-thinking", available: false },
+          { id: "gemma-4-31b-it" },
+        ],
+      });
+      const gemma = {
+        provider: "openai-compatible",
+        model: "gemma-4-31b-it",
+        name: "gemma-4-31b-it",
+        roles: ["chat"],
+      } as ModelConfig;
+      vi.mocked(config.getLlmApi).mockReturnValue([mockLlmApi as any, gemma]);
+      vi.mocked(config.createLlmApi).mockReturnValue(mockLlmApi as any);
+
+      await service.initialize(mockAssistant, mockAuthConfig, undefined, {
+        authConfig: null,
+        isAuthenticated: true,
+        gateway,
+      });
+
+      expect(service.getAvailableChatModels()).toEqual([
+        expect.objectContaining({
+          name: "gemma-4-31b-it",
+          provider: "openai-compatible",
+        }),
+      ]);
+    });
+
     test("should initialize with default model", async () => {
       vi.mocked(config.getLlmApi).mockReturnValue([
         mockLlmApi as any,

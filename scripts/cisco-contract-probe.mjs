@@ -36,6 +36,15 @@ try {
     const profile = readProfile(options.profile);
     output.policy = await policy(profile);
   }
+  if (mode === "capabilities") {
+    const profile = readProfile(options.profile);
+    output.capabilities = await capabilities(profile, options.models);
+    if (output.capabilities.failures.length > 0) {
+      fail(
+        `Cisco model capability validation failed for ${output.capabilities.failures.join(", ")}`,
+      );
+    }
+  }
   writeOutput(options.output, { status: "pass", mode, ...output });
 } catch (error) {
   writeOutput(options.output, {
@@ -49,9 +58,18 @@ try {
 
 function parseArgs(args) {
   const [mode = ""] = args;
-  if (!["inspect", "discovery", "login", "policy", "all"].includes(mode)) {
+  if (
+    ![
+      "inspect",
+      "discovery",
+      "login",
+      "policy",
+      "capabilities",
+      "all",
+    ].includes(mode)
+  ) {
     fail(
-      "usage: cisco-contract-probe <inspect|discovery|login|policy|all> [options]",
+      "usage: cisco-contract-probe <inspect|discovery|login|policy|capabilities|all> [options]",
     );
   }
   const options = {};
@@ -59,7 +77,12 @@ function parseArgs(args) {
     const argument = args[index];
     if (!argument.startsWith("--")) fail(`unexpected argument: ${argument}`);
     const key = argument.slice(2);
-    if (key === "output" || key === "profile" || key === "vsix") {
+    if (key === "model") {
+      const value = args[++index];
+      if (!value || value.startsWith("--"))
+        fail(`${argument} requires a value`);
+      options.models = [...(options.models ?? []), value];
+    } else if (key === "output" || key === "profile" || key === "vsix") {
       const value = args[++index];
       if (!value || value.startsWith("--"))
         fail(`${argument} requires a value`);
@@ -278,20 +301,125 @@ async function policy(profile) {
     payload.models.length > 100
   )
     fail("model policy shape is invalid");
-  const models = payload.models.map((entry) =>
-    typeof entry === "string" ? entry : entry?.id,
-  );
+  const entries = payload.models.map(normalizePolicyEntry);
   if (
-    models.some((model) => typeof model !== "string" || model.length === 0) ||
-    new Set(models).size !== models.length
-  )
+    entries.some((entry) => !entry.id) ||
+    new Set(entries.map((entry) => entry.id)).size !== entries.length
+  ) {
     fail("model policy contains invalid or duplicate IDs");
+  }
+  const models = entries.filter((entry) => entry.available !== false);
+  if (models.length === 0) fail("model policy contains no available models");
   return {
     status: response.status,
     route: endpointSummary(url.toString(), new URL(profile.gatewayBase)),
-    models,
+    models: models.map((entry) => entry.id),
+    unavailableModels: entries
+      .filter((entry) => entry.available === false)
+      .map((entry) => entry.id),
+    entries,
     digest: sha256String(body),
   };
+}
+
+async function capabilities(profile, requestedModels = []) {
+  const policyReport = await policy(profile);
+  const selected = requestedModels.length
+    ? policyReport.models.filter((model) => requestedModels.includes(model))
+    : policyReport.models;
+  const unknown = requestedModels.filter(
+    (model) => !policyReport.models.includes(model),
+  );
+  if (unknown.length) {
+    fail(`requested model is not available in policy: ${unknown.join(", ")}`);
+  }
+
+  const token = await getStoredToken(profile);
+  const results = [];
+  for (const model of selected) {
+    const entry = policyReport.entries.find(
+      (candidate) => candidate.id === model,
+    );
+    const deployment = entry?.deployment ?? model;
+    for (const stream of [false, true]) {
+      const url = new URL(
+        `api/llm/openai/deployments/${encodeURIComponent(deployment)}/chat/completions`,
+        `${profile.gatewayBase.replace(/\/$/, "")}/`,
+      );
+      url.searchParams.set("api-version", profile.modelApiVersion);
+      const response = await fetch(url, {
+        method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(20_000),
+        headers: {
+          Accept: stream ? "text/event-stream" : "application/json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "Reply with exactly OK." }],
+          model: deployment,
+          max_tokens: 1,
+          stream,
+        }),
+      });
+      const body = await response.text();
+      results.push({
+        model,
+        deployment,
+        stream,
+        status: response.status,
+        contentType: response.headers.get("content-type"),
+        contentPresent: body.trim().length > 0,
+      });
+    }
+  }
+  return {
+    status: results.every(
+      (result) => result.status >= 200 && result.status < 300,
+    )
+      ? "pass"
+      : "fail",
+    models: selected,
+    results,
+    failures: results
+      .filter((result) => result.status < 200 || result.status >= 300)
+      .map(
+        (result) =>
+          `${result.model}/${result.stream ? "stream" : "chat"}:${result.status}`,
+      ),
+  };
+}
+
+function normalizePolicyEntry(entry) {
+  if (typeof entry === "string") return { id: entry };
+  if (!entry || typeof entry !== "object") return { id: null };
+  return {
+    id: entry.id ?? entry.model,
+    deployment: entry.deployment,
+    available: entry.available,
+  };
+}
+
+async function getStoredToken(profile) {
+  const sdk = await import(path.resolve("packages/sdk/dist/index.js"));
+  const store = new sdk.OsTokenStore(
+    `OpenCircuit/${profile.issuer}`,
+    profile.clientId,
+  );
+  const client = new sdk.OpenCircuitClient({ tokenStore: store });
+  client.configureAuth({
+    auth: {
+      enabled: true,
+      profile: "cisco-circuit",
+      ...profile,
+      redirectPort: 0,
+      redirectPath: "/oauth/callback",
+    },
+  });
+  const token = await client.getAccessToken();
+  if (!token) fail("No stored OAuth session; run login first");
+  return token;
 }
 
 function parseEnv(content) {

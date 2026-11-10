@@ -74,6 +74,34 @@ describe("CiscoCircuitGateway", () => {
     }
   });
 
+  it("keeps an explicitly unavailable policy model out of use", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        models: [
+          { id: "mellum2-12b-thinking", available: false },
+          { id: "gemma-4-31b-it" },
+        ],
+      }),
+    );
+    const gateway = new CiscoCircuitGateway(
+      async () => "delegated-token",
+      createAuth(),
+      { fetch: fetchMock },
+    );
+
+    await gateway.getPolicy();
+    await expect(
+      gateway.createLlmApi("mellum2-12b-thinking").chatCompletionNonStream(
+        {
+          messages: [{ content: "hi", role: "user" }],
+          model: "mellum2-12b-thinking",
+        },
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow("Cisco model is unavailable");
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("routes an entitled model through its policy deployment", async () => {
     const fetchMock = vi.fn<typeof fetch>(async (url) =>
       String(url).endsWith("/api/model-policy")

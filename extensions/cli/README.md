@@ -53,6 +53,13 @@ registry.
 
 Circuit uses PKCE/state/OIDC checks, refresh and OS credential storage,
 coalesced model-policy loading, entitlement rejection and approved bearer routes.
+The Cisco policy may mark a stale deployment with `available: false`; such a
+model is omitted from the picker and rejected before any completion request.
+The protected capability probe validates a selected policy model with one
+non-streaming and one streaming request without logging response content:
+`node scripts/cisco-contract-probe.mjs capabilities --model <policy-model>`.
+The gateway owner must remove or correct any model that returns `404`; the CLI
+does not retry a missing route or invent a deployment ID.
 Canonical Server1 retained-closure validation must pass for each protected
 release; it does not by itself qualify live SSO or model access.
 The retired generic `database` context provider warns and skips existing entries;

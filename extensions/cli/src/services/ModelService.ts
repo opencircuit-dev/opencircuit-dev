@@ -74,12 +74,14 @@ export class ModelService
       const policy = await this.gateway.getPolicy();
       assistant = {
         ...assistant,
-        models: policy.models.map((entry) => ({
-          name: entry.name ?? entry.id,
-          provider: "openai-compatible",
-          model: entry.id,
-          roles: ["chat"],
-        })),
+        models: policy.models
+          .filter((entry) => entry.available !== false)
+          .map((entry) => ({
+            name: entry.name ?? entry.id,
+            provider: "openai-compatible",
+            model: entry.id,
+            roles: ["chat"],
+          })),
       };
     }
     this.assistant = assistant;
