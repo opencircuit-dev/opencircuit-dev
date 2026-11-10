@@ -25,6 +25,8 @@ vi.mock("../session.js", () => ({
 
 vi.mock("../util/tokenizer.js", () => ({
   countChatHistoryItemTokens: vi.fn(() => 100), // Mock return value
+  getModelContextLimit: vi.fn(() => 200000),
+  getModelMaxTokens: vi.fn(() => 4096),
 }));
 
 vi.mock("../util/formatError.js", () => ({

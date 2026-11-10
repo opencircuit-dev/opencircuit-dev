@@ -789,6 +789,9 @@ describe("executeStreamedToolCalls", () => {
   });
 
   it("handles permission denied correctly", async () => {
+    const mockedExecuteToolCall = vi
+      .spyOn(await import("../tools/index.js"), "executeToolCall")
+      .mockClear();
     setToolPermissionPolicies([{ tool: "Write", permission: "ask" }]);
 
     // Spy on permission request to be denied
@@ -848,14 +851,16 @@ describe("executeStreamedToolCalls", () => {
     );
 
     // Verify results
-    // Current executeStreamedToolCalls evaluates permission for every call
-    // independently (no "cancel remaining calls after first rejection"
-    // cascade in the real implementation) — both calls are denied on their
-    // own merits since the mocked requestPermission always resolves false.
+    // The first denial cancels siblings before execution or further prompts.
     expect(hasRejection).toEqual(true);
     expect(chatHistoryEntries).toHaveLength(2);
     expect(chatHistoryEntries[0].content).toBe("Permission denied by user");
-    expect(chatHistoryEntries[1].content).toBe("Permission denied by user");
+    expect(chatHistoryEntries[1].content).toContain(
+      "Canceled after a tool denial",
+    );
+    expect(chatHistoryEntries[1].status).toBe("canceled");
+    expect(toolPermissionManager.requestPermission).toHaveBeenCalledTimes(1);
+    expect(mockedExecuteToolCall).not.toHaveBeenCalled();
     expect(callbacks.onToolStart).toHaveBeenCalledWith("Write", {
       filepath: "/test.txt",
       content: "data",

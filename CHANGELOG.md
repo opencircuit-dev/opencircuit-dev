@@ -8,6 +8,12 @@ This repository keeps a lightweight release-history file for local documentation
 
 ### CLI 1.0.4 release candidate
 
+- Bound autonomous turns across compaction with tool-call, repeated-failure,
+  denial, compaction, and wall-clock limits.
+- Allow one schema-guided correction per tool for missing required arguments,
+  with grounded Write destinations and exact built-in Read alias normalization.
+- Stop the turn on a tool denial, preflight batch permissions before execution,
+  and preserve explicit single-file edit destinations without Bash fallbacks.
 - Discover chat models in `/model` for OpenAI, Anthropic, Gemini, and
   OpenAI-compatible providers, including BYOM, Meta, and OLMo.
 - Keep configured models immediately available when catalogs are unsupported,

@@ -260,3 +260,23 @@ Rule 3: Third rule`;
     );
   });
 });
+
+describe("phase 4: file tool selection guidance", () => {
+  it.each(["normal", "plan", "auto"] as const)(
+    "includes file-edit and denial guidance in %s mode",
+    async (mode) => {
+      const result = await constructSystemMessage(mode);
+      expect(result).toContain(
+        "For ordinary file changes, use Read followed by Edit or MultiEdit",
+      );
+      expect(result).toContain("Preserve the exact user-specified destination");
+      expect(result).toContain("Do not infer a need for elevated privileges");
+      expect(result).toContain(
+        "Never retry or bypass a security-policy denial",
+      );
+      expect(result).toContain(
+        "A tool denial means the requested action did not execute",
+      );
+    },
+  );
+});
