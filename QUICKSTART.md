@@ -17,7 +17,7 @@ nvm use 24.19.0
 
 ## 2. Install a release
 
-This source checkout identifies the CLI package as **1.0.4**. Release archives
+This source checkout identifies the CLI package as **1.0.5**. Release archives
 are published separately; use only a version whose tarball and checksum are
 available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
 
@@ -25,8 +25,8 @@ After downloading a matching tarball and `.sha256` file, verify and install
 them from the same directory:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-1.0.3.tgz.sha256
-npm install --global ./opencircuit-cli-1.0.3.tgz
+shasum -a 256 -c opencircuit-cli-1.0.5.tgz.sha256
+npm install --global ./opencircuit-cli-1.0.5.tgz
 oc --version
 ```
 
@@ -35,9 +35,8 @@ versions. Stable releases are also published to npm; install from npm only
 when the exact version is available in the registry. The public distribution
 repository remains the source for matching release archives and checksums.
 
-The existing 1.0.3 archive predates the latest model-picker updates on `main`.
-Regeneration is currently blocked by the release dependency audit; the source
-version alone does not mean those updates are in the downloadable package.
+The source version alone does not mean its archive is downloadable. Check the
+distribution repository for the latest published version before installing.
 
 ## 3. Start the CLI
 
