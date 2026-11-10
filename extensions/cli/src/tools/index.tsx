@@ -1,7 +1,6 @@
 // @ts-ignore
 import { OCircuitError, OCircuitErrorReason } from "core/errors.js";
 import type { ChatCompletionTool } from "openai/resources/index.js";
-import { isModelCapable } from "src/utils/modelCapability.js";
 
 import {
   SERVICE_NAMES,
@@ -15,6 +14,7 @@ import type {
 } from "../services/types.js";
 import { telemetryService } from "../telemetry/telemetryService.js";
 import { logger } from "../util/logger.js";
+import { isModelCapable } from "../utils/modelCapability.js";
 
 import { ALL_BUILT_IN_TOOLS } from "./allBuiltIns.js";
 import { askQuestionTool } from "./askQuestion.js";
@@ -274,17 +274,4 @@ export async function executeToolCall(
   }
 }
 
-// Only checks top-level required
-export function validateToolCallArgsPresent(toolCall: ToolCall, tool: Tool) {
-  const requiredParams = tool.parameters.required ?? [];
-  for (const paramName of requiredParams) {
-    if (
-      toolCall.arguments[paramName] === undefined ||
-      toolCall.arguments[paramName] === null
-    ) {
-      throw new Error(
-        `Required parameter "${paramName}" missing for tool "${toolCall.name}"`,
-      );
-    }
-  }
-}
+export { validateToolCallArgsPresent } from "./toolArgumentValidation.js";

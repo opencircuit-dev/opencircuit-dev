@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { ModelConfig } from "@opencircuit/config-yaml";
 import { BaseLlmApi, isResponsesModel } from "@opencircuit/openai-adapters";
 import type { ChatHistoryItem } from "core/index.js";
@@ -21,6 +22,8 @@ import {
 import { logger } from "../util/logger.js";
 import { validateContextLength } from "../util/tokenizer.js";
 
+import { getArgumentRecovery } from "./argumentRecovery.js";
+import { getFileEditTask } from "./fileEditTask.js";
 import { getRequestTools, handleToolCalls } from "./handleToolCalls.js";
 import {
   handleNormalAutoCompaction,
@@ -37,6 +40,7 @@ import {
   getDefaultCompletionOptions,
   StreamCallbacks,
 } from "./streamChatResponse.types.js";
+import { createLoopGuard, withTurnScope } from "./turnGuardLoop.js";
 
 dotenv.config();
 
@@ -429,9 +433,32 @@ export async function processStreamingResponse(
   };
 }
 
-// Main function that handles the conversation loop
+// Entry point. A user turn opens a guard scope; compaction sub-turns started
+// within it share that turn's guard (cost, calls and wall-clock budget).
 // eslint-disable-next-line max-params
-export async function streamChatResponse(
+export function streamChatResponse(
+  chatHistory: ChatHistoryItem[],
+  model: ModelConfig,
+  llmApi: BaseLlmApi,
+  abortController: AbortController,
+  callbacks?: StreamCallbacks,
+  isCompacting = false,
+) {
+  const run = () =>
+    streamChatResponseLoop(
+      chatHistory,
+      model,
+      llmApi,
+      abortController,
+      callbacks,
+      isCompacting,
+    );
+  return isCompacting ? run() : withTurnScope(run);
+}
+
+// Main function that handles the conversation loop
+// eslint-disable-next-line max-params, max-statements
+async function streamChatResponseLoop(
   chatHistory: ChatHistoryItem[],
   model: ModelConfig,
   llmApi: BaseLlmApi,
@@ -451,48 +478,69 @@ export async function streamChatResponse(
   let finalResponse = "";
   let compactionOccurredThisTurn = false; // Track if compaction happened during this conversation turn
 
-  while (true) {
-    // If ChatHistoryService is available, refresh local chatHistory view
-    chatHistory = refreshChatHistoryFromService(chatHistory, isCompacting);
-    logger.debug("Starting conversation iteration");
+  const loopGuard = createLoopGuard(isCompacting, isHeadless, abortController);
+  // Snapshot user/workspace evidence before compaction can replace history.
+  const argumentRecovery = getArgumentRecovery(
+    loopGuard.enforced,
+    refreshChatHistoryFromService(chatHistory, isCompacting),
+  );
 
-    // Get system message once per iteration (can change based on tool permissions mode)
-    const systemMessage = await services.systemMessage.getSystemMessage(
-      services.toolPermissions.getState().currentMode,
-    );
+  const fileEditTask = getFileEditTask(
+    loopGuard.enforced,
+    refreshChatHistoryFromService(chatHistory, isCompacting),
+  );
 
-    // Recompute tools on each iteration to handle mode changes during streaming
-    const rawTools = model.chatOptions?.disableTools
-      ? []
-      : await getRequestTools(isHeadless);
-    const tools = applyChatCompletionToolOverrides(
-      rawTools,
-      model.chatOptions?.toolOverrides,
-    );
+  try {
+    while (true) {
+      const stopNotice = loopGuard.stopIfBreached(isHeadless, callbacks);
+      if (stopNotice) return stopNotice;
+      // If ChatHistoryService is available, refresh local chatHistory view
+      chatHistory = refreshChatHistoryFromService(chatHistory, isCompacting);
+      argumentRecovery.captureContext(chatHistory);
+      logger.debug("Starting conversation iteration");
 
-    // Pre-API auto-compaction checkpoint (now includes tools)
-    const preCompactionResult = await handlePreApiCompaction(chatHistory, {
-      model,
-      llmApi,
-      isCompacting,
-      isHeadless,
-      callbacks,
-      systemMessage,
-      tools,
-    });
-    chatHistory = preCompactionResult.chatHistory;
-    if (preCompactionResult.wasCompacted) {
-      compactionOccurredThisTurn = true;
-    }
+      // Get system message once per iteration (can change based on tool permissions mode)
+      const systemMessage = await services.systemMessage.getSystemMessage(
+        services.toolPermissions.getState().currentMode,
+      );
 
-    logger.debug("Tools prepared", {
-      toolCount: tools.length,
-      toolNames: tools.map(getChatCompletionToolName),
-    });
+      // Recompute tools on each iteration to handle mode changes during streaming
+      const rawTools = model.chatOptions?.disableTools
+        ? []
+        : await getRequestTools(isHeadless);
+      const tools = applyChatCompletionToolOverrides(
+        rawTools,
+        model.chatOptions?.toolOverrides,
+      ).filter(
+        (tool) =>
+          !fileEditTask.target || getChatCompletionToolName(tool) !== "Bash",
+      );
 
-    // Get response from LLM
-    const { content, toolCalls, shouldContinue, usage } =
-      await processStreamingResponse({
+      // Pre-API auto-compaction checkpoint (now includes tools)
+      const preCompactionResult = await handlePreApiCompaction(chatHistory, {
+        model,
+        llmApi,
+        isCompacting,
+        isHeadless,
+        callbacks,
+        systemMessage,
+        tools,
+      });
+      chatHistory = preCompactionResult.chatHistory;
+      if (preCompactionResult.wasCompacted) {
+        loopGuard.noteCompaction();
+        compactionOccurredThisTurn = true;
+      }
+
+      const registryGeneration = loopGuard.registerRegistry(
+        tools.map(getChatCompletionToolName),
+      );
+      logger.debug("Tools prepared", {
+        toolCount: tools.length,
+        toolNames: tools.map(getChatCompletionToolName),
+      });
+
+      const streamed = await processStreamingResponse({
         isHeadless,
         chatHistory,
         model,
@@ -502,95 +550,110 @@ export async function streamChatResponse(
         tools,
         systemMessage,
       });
+      const { content, toolCalls, shouldContinue, usage } = streamed;
 
-    if (abortController?.signal.aborted) {
-      return finalResponse || content || fullResponse;
-    }
+      if (abortController?.signal.aborted) {
+        return finalResponse || content || fullResponse;
+      }
 
-    fullResponse += content;
+      fullResponse += content;
 
-    // Update final response based on mode
-    finalResponse = updateFinalResponse(
-      content,
-      shouldContinue,
-      isHeadless,
-      finalResponse,
-    );
-
-    // Handle content display
-    handleContentDisplay(content, callbacks, isHeadless);
-
-    // Handle tool calls and check for early return. This updates history via ChatHistoryService.
-    const shouldReturn = await handleToolCalls({
-      toolCalls,
-      chatHistory,
-      content,
-      callbacks,
-      isHeadless,
-      usage,
-    });
-
-    if (shouldReturn) {
-      return finalResponse || content || fullResponse;
-    }
-
-    // After tool execution, validate that we haven't exceeded context limit
-    const postToolResult = await handlePostToolValidation(
-      toolCalls,
-      chatHistory,
-      {
-        model,
-        llmApi,
-        isCompacting,
+      // Update final response based on mode
+      finalResponse = updateFinalResponse(
+        content,
+        shouldContinue,
         isHeadless,
-        callbacks,
-        systemMessage,
-        tools,
-      },
-    );
-    chatHistory = postToolResult.chatHistory;
-    if (postToolResult.wasCompacted) {
-      compactionOccurredThisTurn = true;
-    }
+        finalResponse,
+      );
 
-    // Normal auto-compaction check at 80% threshold
-    const compactionResult = await handleNormalAutoCompaction(
-      chatHistory,
-      shouldContinue,
-      {
-        model,
-        llmApi,
-        isCompacting,
+      // Handle content display
+      handleContentDisplay(content, callbacks, isHeadless);
+
+      // Handle tool calls and check for early return. This updates history via ChatHistoryService.
+      let toolStopNotice: string | undefined;
+      const shouldReturn = await handleToolCalls({
+        toolCalls,
+        chatHistory,
+        content,
+        callbacks,
         isHeadless,
-        callbacks,
-        systemMessage,
-        tools,
-      },
-    );
-    chatHistory = compactionResult.chatHistory;
-    if (compactionResult.wasCompacted) {
-      compactionOccurredThisTurn = true;
-    }
+        usage,
+        guard: loopGuard.enforced,
+        registryGeneration,
+        advertisedTools: tools,
+        argumentRecovery,
+        onStop: (notice) => {
+          toolStopNotice = notice;
+        },
+      });
 
-    // If compaction happened during this turn and we're about to stop,
-    // automatically send a continuation message to keep the agent going
-    const autoOCircuitResult = handleAutoContinuation(
-      compactionOccurredThisTurn,
-      shouldContinue,
-      chatHistory,
-    );
-    chatHistory = autoOCircuitResult.chatHistory;
-    const shouldAutoContinue = autoOCircuitResult.shouldAutoContinue;
+      if (shouldReturn) {
+        if (toolStopNotice) return toolStopNotice;
+        return finalResponse || content || fullResponse;
+      }
 
-    // Reset flag to avoid infinite continuation
-    if (shouldAutoContinue) {
-      compactionOccurredThisTurn = false;
-    }
+      // After tool execution, validate that we haven't exceeded context limit
+      const postToolResult = await handlePostToolValidation(
+        toolCalls,
+        chatHistory,
+        {
+          model,
+          llmApi,
+          isCompacting,
+          isHeadless,
+          callbacks,
+          systemMessage,
+          tools,
+        },
+      );
+      chatHistory = postToolResult.chatHistory;
+      if (postToolResult.wasCompacted) {
+        loopGuard.noteCompaction();
+        compactionOccurredThisTurn = true;
+      }
 
-    // Check if we should continue (skip break if auto-continuing after compaction)
-    if (!shouldContinue && !shouldAutoContinue) {
-      break;
+      // Normal auto-compaction check at 80% threshold
+      const compactionResult = await handleNormalAutoCompaction(
+        chatHistory,
+        shouldContinue,
+        {
+          model,
+          llmApi,
+          isCompacting,
+          isHeadless,
+          callbacks,
+          systemMessage,
+          tools,
+        },
+      );
+      chatHistory = compactionResult.chatHistory;
+      if (compactionResult.wasCompacted) {
+        loopGuard.noteCompaction();
+        compactionOccurredThisTurn = true;
+      }
+
+      // If compaction happened during this turn and we're about to stop,
+      // automatically send a continuation message to keep the agent going
+      const autoOCircuitResult = handleAutoContinuation(
+        compactionOccurredThisTurn,
+        shouldContinue,
+        chatHistory,
+      );
+      chatHistory = autoOCircuitResult.chatHistory;
+      const shouldAutoContinue = autoOCircuitResult.shouldAutoContinue;
+
+      // Reset flag to avoid infinite continuation
+      if (shouldAutoContinue) {
+        compactionOccurredThisTurn = false;
+      }
+
+      // Check if we should continue (skip break if auto-continuing after compaction)
+      if (!shouldContinue && !shouldAutoContinue) {
+        break;
+      }
     }
+  } finally {
+    loopGuard.dispose();
   }
 
   logger.debug("streamChatResponse complete", {

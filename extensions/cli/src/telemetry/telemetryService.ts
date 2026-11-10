@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import os from "os";
 
 import { metrics } from "@opentelemetry/api";
@@ -34,6 +35,16 @@ export interface TelemetryConfig {
   includeAccountUuid: boolean;
 }
 
+export const TURN_GUARD_METRICS = [
+  "turn_guard_breach_total",
+  "turn_guard_invalid_call_id_total",
+  "turn_guard_unknown_tool_total",
+  "turn_guard_duplicate_record_total",
+  "turn_guard_stale_reservation_total",
+  "turn_guard_late_result_discarded_total",
+  "turn_guard_config_invalid_total",
+] as const;
+
 class TelemetryService {
   private meterProvider: MeterProvider | null = null;
   private meter: any = null;
@@ -57,6 +68,7 @@ class TelemetryService {
   private startupTimeHistogram: any = null;
   private responseTimeHistogram: any = null;
   private slashCommandCounter: any = null;
+  private turnGuardCounters = new Map<string, any>();
 
   constructor() {
     this.config = this.loadConfig();
@@ -374,6 +386,27 @@ class TelemetryService {
     if (!this.isEnabled()) return;
 
     this.commitCounter.add(1, this.getStandardAttributes());
+  }
+
+  // Fixed metric names and a single bounded label ("reason"); anything else is dropped.
+  public recordTurnGuardEvent(
+    metric: (typeof TURN_GUARD_METRICS)[number],
+    value: number,
+    reason?: string,
+  ) {
+    if (!this.isEnabled() || !TURN_GUARD_METRICS.includes(metric)) return;
+    if (!Number.isFinite(value) || value <= 0) return;
+    let counter = this.turnGuardCounters.get(metric);
+    if (!counter) {
+      counter = this.meter.createCounter(metric, {
+        description: "Turn guard event count",
+        unit: "count",
+      });
+      this.turnGuardCounters.set(metric, counter);
+    }
+    const label: Record<string, string> =
+      reason && /^[a-z_]{1,32}$/.test(reason) ? { reason } : {};
+    counter.add(value, this.getStandardAttributes(label));
   }
 
   public recordCost(cost: number, model: string) {
