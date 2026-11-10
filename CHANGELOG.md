@@ -6,6 +6,18 @@ This repository keeps a lightweight release-history file for local documentation
 
 ## Unreleased
 
+### Internal CLI 1.0.5
+
+- Align the internal package version with public CLI 1.0.5. Discovery,
+  bounded recovery, and file-edit safeguards already shipped internally in
+  1.0.4; no public dependency or audit-policy downgrade is imported.
+- Preserve Cisco SSO/profile handling, entitled-model policy, internal Core
+  validation, and the existing approved license and strict audit gates.
+- Protected archive generation requires canonical Server1 retained-closure
+  validation; source version alone does not imply publication or a Mac upgrade.
+
+## 1.0.4
+
 ### Internal 1.0.4 integration
 
 - Integrate public 1.0.4 discovery while keeping Cisco's entitled-model policy
@@ -15,8 +27,8 @@ This repository keeps a lightweight release-history file for local documentation
 - Preserve permission checks, stop on policy denials, and constrain direct
   single-file edits to their explicit destination. See
   [file-edit safety](extensions/cli/docs/file-edit-safety.md) for scope and limits.
-- No protected 1.0.4 distribution or runtime replacement is implied by these
-  source merges.
+- These source merges did not themselves publish a protected archive or
+  replace a runtime; qualification is recorded by the internal distribution.
 
 ### CLI 1.0.4 release candidate
 

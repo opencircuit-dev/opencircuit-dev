@@ -2,27 +2,25 @@
 
 This guide gets a beginner from zero to a working `oc` command.
 
-This internal source checkout is CLI **1.0.4**; release archives are published
+This internal source checkout is CLI **1.0.5**; release archives are published
 separately. Cisco users must use the approved internal package, run `oc init`
 to install its protected profile, and select the packaged Circuit configuration.
 The public-provider examples below do not replace internal SSO onboarding.
 
 ## Internal Cisco Circuit onboarding
 
-Use the protected internal **1.0.3** tarball and checksum from the
-approved internal distribution, not the public 1.0.0 examples below. This
-package was generated from clean source commit
-`095c5763b986fe60bf1cc3da307c7a2f90d652e6`, includes the validated Cisco
-profile, and is published in the sibling `opencircuit-internal/` distribution
-checkout.
+Use the protected internal **1.0.5** tarball and checksum when available in
+the approved sibling `opencircuit-internal/` distribution, not a public package.
+That distribution's README records the exact source commit, archive checksum,
+and completed qualification. The internal package includes the approved Cisco
+profile; a source-version bump alone does not publish it.
 
 From the directory containing the approved internal files, with Node 24.19.0
-active (archive SHA-256:
-`fb0aca2bf72505a09157bc08043ba331380e257c161ce9fdcc0e53150b9d5a29`):
+active:
 
 ```bash
-shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.3.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.5.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.5.tgz &&
   oc --version
 oc init
 ```
@@ -43,10 +41,9 @@ model returned by policy. Do not invent a deployment ID, add manual bearer
 tokens, or bypass entitlement rejection. Tokens refresh through OAuth and use
 the OS credential store; macOS persistence uses chunked Keychain items.
 
-The latest complete profileless 1.0.3 test pipeline passed Core and CLI typechecks, CLI build and
-smoke tests, all 944 Core tests that ran (68 skipped), and validation-artifact
-generation. It did not rerun retained-closure or e2e validation. Live Cisco
-SSO/model access still depends on your account and network.
+Canonical Server1 retained-closure validation is required for each protected
+release. Do not infer Mac/runtime acceptance or live Cisco SSO/model access
+from a build alone; live access still depends on your account and network.
 The generic `database` provider is retired; use database MCP instead.
 
 ## Security boundaries
@@ -115,7 +112,7 @@ node --version
 
 You should see `v24.19.0`. If you use `nvm`, set the version persistently and make it your default:
 
-This source checkout identifies the CLI package as **1.0.4**. Release archives
+This source checkout identifies the CLI package as **1.0.5**. Release archives
 are published separately; use only a version whose tarball and checksum are
 available in the [distribution repository](https://github.com/open-circuit-dev/opencircuit).
 

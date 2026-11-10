@@ -1,37 +1,36 @@
 # Open Circuit CLI
 
 The Open Circuit CLI provides the `oc` command for interactive and headless
-coding-agent sessions. This package source is version **1.0.4**. Release
+coding-agent sessions. This package source is version **1.0.5**. Release
 archives are published separately; check the
 [public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
 for installation guidance.
 
-This internal source package is version **1.0.4**. Source version and published
+This internal source package is version **1.0.5**. Source version and published
 archive availability are separate. Cisco users should install the approved
 internal artifact and run `oc init` to install its protected profile; public
 package examples below do not include that profile.
 
-## Internal 1.0.3 release
+## Internal 1.0.5 release
 
-Internal source 1.0.4 adds OpenAI, Anthropic, Gemini and OpenAI-compatible
+Internal source 1.0.5 retains OpenAI, Anthropic, Gemini and OpenAI-compatible
 chat-model discovery, provider-qualified selection and profile-scoped
 persistence. Configured models remain usable when discovery fails.
 Cisco SSO retains its gateway-policy catalog; public discovery cannot add
-models outside that policy. Source integration does not publish an internal
-1.0.4 archive.
+models outside that policy. Bounded tool recovery and file-edit safeguards
+already shipped internally in 1.0.4; this release aligns the package version
+with public 1.0.5 without replacing internal policy.
 
-The protected internal tarball was generated from clean source commit
-`095c5763b986fe60bf1cc3da307c7a2f90d652e6`. It includes the validated Cisco
-profile and is published with a SHA-256 checksum in the sibling
-`opencircuit-internal/` distribution checkout. SHA-256:
-`fb0aca2bf72505a09157bc08043ba331380e257c161ce9fdcc0e53150b9d5a29`.
-The canonical Server1 retained qualification passed for this source commit.
+Use the approved sibling `opencircuit-internal/` distribution for the exact
+protected archive, checksum, source commit, and qualification record. Source
+version alone does not publish an archive. Run the following only after the
+matching 1.0.5 tarball and sidecar are available there.
 
 ```bash
 cd ../opencircuit-internal
-shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.3.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.5.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.5.tgz &&
   oc --version
 oc init
 ```
@@ -54,8 +53,8 @@ registry.
 
 Circuit uses PKCE/state/OIDC checks, refresh and OS credential storage,
 coalesced model-policy loading, entitlement rejection and approved bearer routes.
-The latest Server1 validation did not run retained-closure audits or e2e tests
-and does not qualify live SSO or model access.
+Canonical Server1 retained-closure validation must pass for each protected
+release; it does not by itself qualify live SSO or model access.
 The retired generic `database` context provider warns and skips existing entries;
 use database MCP instead.
 

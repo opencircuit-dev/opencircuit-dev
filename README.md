@@ -2,7 +2,7 @@
 
 > A terminal-native coding agent for working through real software tasks.
 
-[![CLI](https://img.shields.io/badge/CLI-1.0.4-111827)](extensions/cli/README.md)
+[![CLI](https://img.shields.io/badge/CLI-1.0.5-111827)](extensions/cli/README.md)
 [![Node.js](https://img.shields.io/badge/Node.js-24.19.0-16a34a)](.nvmrc)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb)](LICENSE)
 
@@ -12,14 +12,14 @@ headlessly in scripts and CI.
 
 ## Start here
 
-This internal source checkout is CLI **1.0.4**. A source version does not prove
+This internal source checkout is CLI **1.0.5**. A source version does not prove
 that a matching release archive has been published. Internal Cisco users should
 use the approved internal distribution and its protected profile; the public
 installation examples below describe the separate public distribution.
 
 Read the [QUICKSTART](QUICKSTART.md) for installation, provider configuration,
 and first commands. This source checkout identifies the CLI package as
-**1.0.4**. A source version is not proof that its release archive is available;
+**1.0.5**. A source version is not proof that its release archive is available;
 check the [public distribution repository](https://github.com/open-circuit-dev/opencircuit)
 for the latest published tarball and checksum before installing.
 
@@ -30,31 +30,30 @@ from the registry.
 
 ### Current internal artifact
 
-Internal 1.0.4 integrates public multi-provider model discovery and
+Internal 1.0.5 retains public multi-provider model discovery and
 profile-scoped selection persistence. Cisco SSO continues to use only the
-authenticated gateway's entitled-model policy. No protected internal 1.0.4
-archive has been published; the artifact below remains the stable release.
+authenticated gateway's entitled-model policy. Bounded tool recovery and
+file-edit safeguards already shipped internally in 1.0.4; this release aligns
+the package version with public 1.0.5 without replacing internal policy.
 
-The protected CLI **1.0.3** package was generated from clean source commit
-`095c5763b986fe60bf1cc3da307c7a2f90d652e6` and published to the internal
-distribution. The tarball and `.sha256` sidecar are available in the sibling
-`opencircuit-internal/` checkout. The package includes the validated protected
-Cisco profile.
+Use the approved sibling `opencircuit-internal/` distribution for the exact
+protected archive, checksum, source commit, and qualification record. Source
+version alone does not publish an artifact. Run the following only after the
+matching 1.0.5 tarball and sidecar are available there.
 
-SHA-256: `fb0aca2bf72505a09157bc08043ba331380e257c161ce9fdcc0e53150b9d5a29`.
 Verify the sidecar before installing:
 
 ```bash
 cd ../opencircuit-internal
-shasum -a 256 -c opencircuit-cli-internal-1.0.3.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.3.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.5.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.5.tgz &&
   oc --version
 oc init
 ```
 
-The canonical Server1 retained qualification passed for this source commit.
-The profile-bearing package is for the internal distribution only; do not
-upload it to the public distribution.
+Canonical Server1 retained-closure validation must pass before packaging each
+new source commit. The profile-bearing package is for the internal distribution
+only; do not upload it to the public distribution.
 
 Follow the [internal quickstart](QUICKSTART.md#internal-cisco-circuit-onboarding)
 for browser SSO and entitled-model selection. Manual token/appkey configuration
@@ -303,7 +302,7 @@ From the repository root:
 
 ```bash
 npm --prefix extensions/cli run release:artifact
-shasum -a 256 -c release-artifacts/v1.0.3/opencircuit-cli-1.0.3.tgz.sha256
+shasum -a 256 -c release-artifacts/v1.0.5/opencircuit-cli-1.0.5.tgz.sha256
 ```
 
 It stages a versioned tarball, SHA-256 checksum, CycloneDX SBOM, provenance
