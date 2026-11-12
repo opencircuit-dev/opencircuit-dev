@@ -76,8 +76,8 @@ jobs:
     if: needs.changes.outputs.cli_core == 'true'
     strategy:
       matrix:
-        # Cross-platform CLI validation is deferred; retain the Ubuntu gate.
-        os: [ubuntu-latest]
+        # Retain the oldest supported Ubuntu alongside newer releases.
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
         node-version: [24.19.0]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -95,9 +95,9 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: extensions/cli/node_modules
-          key: ${{ runner.os }}-node${{ matrix.node-version }}-cli-modules-${{ hashFiles('extensions/cli/package-lock.json') }}
+          key: ${{ matrix.os }}-node${{ matrix.node-version }}-cli-modules-${{ hashFiles('extensions/cli/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node${{ matrix.node-version }}-cli-modules-
+            ${{ matrix.os }}-node${{ matrix.node-version }}-cli-modules-
 
       - name: Setup packages
         uses: ./.github/actions/setup-packages
@@ -142,7 +142,6 @@ jobs:
           npm run test:e2e
 
       - name: Run Ubuntu CLI-Core runtime functional test
-        if: matrix.os == 'ubuntu-latest'
         run: |
           cd extensions/cli
           npm run test:runtime-boundary
