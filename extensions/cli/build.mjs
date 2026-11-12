@@ -67,6 +67,22 @@ try {
         __dirname,
         "../../packages/sdk/dist/index.js",
       ),
+      "@opencircuit/agent-host": resolve(
+        __dirname,
+        "../../packages/agent-host/dist/index.js",
+      ),
+      "@opencircuit/ahp-protocol-host": resolve(
+        __dirname,
+        "../../packages/agent-host/vendor/agent-host-protocol",
+      ),
+      "@opencircuit/ahp-protocol-sdk": resolve(
+        __dirname,
+        "../../packages/sdk/vendor/agent-host-protocol",
+      ),
+      "@opencircuit/ahp-protocol-sdk/client": resolve(
+        __dirname,
+        "../../packages/sdk/vendor/agent-host-protocol/dist/client/index.js",
+      ),
       core: resolve(__dirname, "../../core"),
       "@opencircuit/fetch": resolve(
         __dirname,

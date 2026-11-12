@@ -14,8 +14,23 @@
     "dist/OpenCircuitClient.js.map",
     "dist/OpenCircuitClient.d.ts",
     "dist/OpenCircuitClient.d.ts.map",
-    "README.md"
+    "dist/ahp.js",
+    "dist/ahp.js.map",
+    "dist/ahp.d.ts",
+    "dist/ahp.d.ts.map",
+    "README.md",
+    "vendor/agent-host-protocol"
   ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ahp": {
+      "types": "./dist/ahp.d.ts",
+      "import": "./dist/ahp.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
@@ -37,5 +52,8 @@
     "@types/node": "^24.3.0",
     "typescript": "^5.6.3",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "@opencircuit/ahp-protocol-sdk": "file:vendor/agent-host-protocol"
   }
 }

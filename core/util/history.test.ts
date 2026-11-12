@@ -161,8 +161,118 @@ describe("Explicit Core session creation", () => {
     expect(persisted.creationRequestHash).toBe(
       createHash("sha256").update(options.idempotencyKey, "utf8").digest("hex"),
     );
+    expect(persisted.creationProposedSessionId).toBeUndefined();
     expect(persisted.creationRequestId).toBeUndefined();
     expect(created.session).not.toHaveProperty("creationRequestHash");
+  });
+
+  test.each([
+    "123e4567-e89b-42d3-a456-426614174000",
+    "0194f3d2-7c6a-7abc-8def-1234567890ab",
+  ])(
+    "Core accepts a canonical proposed session ID: %s",
+    (proposedSessionId) => {
+      const created = historyManager.create({
+        ...options,
+        proposedSessionId,
+        idempotencyKey: `proposed-${proposedSessionId}`,
+      });
+
+      expect(created.session.sessionId).toBe(proposedSessionId);
+      expect(historyManager.load(proposedSessionId)).toEqual(created.session);
+      const persisted = JSON.parse(
+        fs.readFileSync(getSessionFilePath(proposedSessionId), "utf8"),
+      );
+      expect(persisted.creationProposedSessionId).toBe(proposedSessionId);
+      expect(created.session).not.toHaveProperty("creationProposedSessionId");
+    },
+  );
+
+  test.each([
+    "123E4567-e89b-42d3-a456-426614174000",
+    "{123e4567-e89b-42d3-a456-426614174000}",
+    "urn:uuid:123e4567-e89b-42d3-a456-426614174000",
+    "00000000-0000-0000-0000-000000000000",
+    "ffffffff-ffff-ffff-ffff-ffffffffffff",
+    "123e4567-e89b-12d3-a456-426614174000",
+    "123e4567e89b42d3a456426614174000",
+    "123e4567-e89b-42d3-a456-42661417400/",
+  ])("Core rejects an invalid proposed session ID: %s", (proposedSessionId) => {
+    expectHistoryError(
+      () =>
+        historyManager.create({
+          ...options,
+          proposedSessionId,
+          idempotencyKey: `invalid-proposed-${proposedSessionId}`,
+        }),
+      "HISTORY_INVALID_CREATE_REQUEST",
+    );
+    expect(historyManager.list({})).toEqual([]);
+  });
+
+  test("A proposed session ID collision is not replaced with a generated ID", () => {
+    const proposedSessionId = "123e4567-e89b-42d3-a456-426614174001";
+    const first = historyManager.create({
+      ...options,
+      proposedSessionId,
+      idempotencyKey: "proposed-collision-first",
+    });
+
+    expectHistoryError(
+      () =>
+        historyManager.create({
+          ...options,
+          proposedSessionId,
+          idempotencyKey: "proposed-collision-second",
+        }),
+      "HISTORY_SESSION_ID_CONFLICT",
+    );
+    expect(historyManager.list({})).toEqual([first.metadata]);
+  });
+
+  test("A proposed session ID retry remains idempotent", () => {
+    const request = {
+      ...options,
+      proposedSessionId: "123e4567-e89b-42d3-a456-426614174002",
+      idempotencyKey: "proposed-idempotent-retry",
+    };
+    const first = historyManager.create(request);
+    const retry = new HistoryManager().create(request);
+
+    expect(retry).toEqual(first);
+    expect(historyManager.list({})).toHaveLength(1);
+  });
+
+  test("A proposed session ID retry with changed metadata is rejected", () => {
+    const request = {
+      ...options,
+      proposedSessionId: "123e4567-e89b-42d3-a456-426614174003",
+      idempotencyKey: "proposed-idempotent-conflict",
+    };
+    historyManager.create(request);
+
+    expectHistoryError(
+      () => historyManager.create({ ...request, title: "Different title" }),
+      "HISTORY_CREATE_IDEMPOTENCY_CONFLICT",
+    );
+  });
+
+  test("Changing the proposed session ID with a reused key is rejected", () => {
+    const request = {
+      ...options,
+      proposedSessionId: "123e4567-e89b-42d3-a456-426614174005",
+      idempotencyKey: "proposed-idempotent-id-conflict",
+    };
+    historyManager.create(request);
+
+    expectHistoryError(
+      () =>
+        historyManager.create({
+          ...request,
+          proposedSessionId: "123e4567-e89b-42d3-a456-426614174006",
+        }),
+      "HISTORY_CREATE_IDEMPOTENCY_CONFLICT",
+    );
   });
 
   test("Core's registered messenger handler round-trips JSON request and response", async () => {
@@ -344,6 +454,40 @@ describe("Explicit Core session creation", () => {
       .filter((name) => /^[0-9a-f-]{36}\.json$/i.test(name));
     expect(sessionFiles).toHaveLength(1);
     const retry = historyManager.create(options);
+    expect(historyManager.list({})).toEqual([retry.metadata]);
+  });
+
+  test("A proposed session ID survives an index failure and retries by ID", () => {
+    const proposedSessionId = "123e4567-e89b-42d3-a456-426614174004";
+    const sessionsListPath = getSessionsListPath();
+    const realRenameSync = fs.renameSync;
+    const renameSpy = jest
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (String(destination) === sessionsListPath) {
+          throw Object.assign(new Error("simulated index write failure"), {
+            code: "EIO",
+          });
+        }
+        return realRenameSync(source, destination);
+      });
+
+    const request = {
+      ...options,
+      proposedSessionId,
+      idempotencyKey: "proposed-index-retry",
+    };
+    try {
+      expectHistoryError(
+        () => historyManager.create(request),
+        "HISTORY_STORAGE",
+      );
+    } finally {
+      renameSpy.mockRestore();
+    }
+
+    const retry = historyManager.create(request);
+    expect(retry.session.sessionId).toBe(proposedSessionId);
     expect(historyManager.list({})).toEqual([retry.metadata]);
   });
 

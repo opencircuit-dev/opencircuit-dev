@@ -167,7 +167,10 @@ function validateAliases() {
   // Check for unnecessary aliases (defined but not used)
   const unnecessaryAliases = [];
   for (const alias of definedAliases) {
-    if (!localPackages.has(alias)) {
+    const packageRoot = alias.startsWith("@")
+      ? alias.split("/").slice(0, 2).join("/")
+      : alias.split("/")[0];
+    if (!localPackages.has(alias) && !localPackages.has(packageRoot)) {
       unnecessaryAliases.push(alias);
     }
   }

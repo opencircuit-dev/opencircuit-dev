@@ -1,0 +1,23 @@
+// Generated from types/*.ts — do not edit.
+// Regenerate with: npm run generate:typescript
+// Generated from @windowExempt annotations in types/ — do not edit
+// Run `npm run generate` to regenerate.
+/**
+ * Notification methods that do not count against the window on a windowed
+ * subscription. Every other notification for a subscription counts.
+ *
+ * @see {@link /specification/windowed-delivery#control-messages | Windowed Delivery: Control Messages}
+ */
+export const WINDOW_EXEMPT_METHODS = [
+  "channel/credit",
+  "tcp/reset",
+  "unsubscribe",
+];
+const windowExemptMethods = new Set(WINDOW_EXEMPT_METHODS);
+/**
+ * Whether a notification with this method counts against the window on a
+ * windowed subscription. Methods that are not recognized count.
+ */
+export function countsAgainstWindow(method) {
+  return !windowExemptMethods.has(method);
+}
