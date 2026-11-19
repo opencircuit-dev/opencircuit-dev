@@ -6,6 +6,7 @@ import "./init.js";
 import { Command } from "commander";
 
 import { chat } from "./commands/chat.js";
+import { agentCommand } from "./commands/agent.js";
 import { checks } from "./commands/checks.js";
 import { initTemplatesCommand } from "./commands/initTemplates.js";
 import { listSessionsCommand } from "./commands/ls.js";
@@ -314,6 +315,8 @@ program
   .action(async () => {
     await initTemplatesCommand();
   });
+
+program.addCommand(agentCommand());
 
 // Serve subcommand
 program

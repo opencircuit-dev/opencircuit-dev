@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import YAML from "yaml";
 
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -14,6 +15,26 @@ const validatorPath = path.join(
   "validate-retained-closure.mjs",
 );
 const validatorSource = await fs.readFile(validatorPath, "utf8");
+
+test("CLI CI tests each supported Ubuntu release with the runtime boundary gate", async () => {
+  const workflow = YAML.parse(
+    await fs.readFile(
+      path.join(repositoryRoot, ".github/workflows/cli-pr-checks.yml"),
+      "utf8",
+    ),
+  );
+  const job = workflow.jobs.test;
+  assert.deepEqual(job.strategy.matrix.os, [
+    "ubuntu-22.04",
+    "ubuntu-24.04",
+    "ubuntu-26.04",
+  ]);
+  const boundary = job.steps.find((step) =>
+    step.run?.includes("npm run test:runtime-boundary"),
+  );
+  assert.ok(boundary, "runtime boundary gate must be present");
+  assert.equal(boundary.if, undefined, "all Ubuntu releases need the gate");
+});
 
 test("retained-closure validation covers the retained CLI/Core product surface", () => {
   for (const step of [

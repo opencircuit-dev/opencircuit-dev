@@ -67,6 +67,11 @@ export interface CreateSessionOptions {
   workspaceDirectory: string;
   /** Initial model title, if selected, limited to 512 UTF-8 bytes. */
   chatModelTitle?: string | null;
+  /**
+   * Optional client-proposed canonical UUID v4 or v7 session ID.
+   * Non-AHP callers should leave this unset so Core generates the ID.
+   */
+  proposedSessionId?: string;
   /** Stable across retries of the same logical create request; 1–256 UTF-8 bytes. */
   idempotencyKey: string;
 }

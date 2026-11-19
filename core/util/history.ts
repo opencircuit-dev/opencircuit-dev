@@ -21,6 +21,7 @@ import type { IMessenger } from "../protocol/messenger/index.js";
 type PersistedSession = Session & {
   creationRequestId?: string;
   creationRequestHash?: string;
+  creationProposedSessionId?: string;
   revision?: number;
 };
 
@@ -29,6 +30,7 @@ export type SessionHistoryErrorCode =
   | "HISTORY_CORRUPT"
   | "HISTORY_STORAGE"
   | "HISTORY_INVALID_CREATE_REQUEST"
+  | "HISTORY_SESSION_ID_CONFLICT"
   | "HISTORY_CREATE_IDEMPOTENCY_CONFLICT"
   | "HISTORY_SAVE_CONFLICT";
 
@@ -49,6 +51,8 @@ const MAX_IDEMPOTENCY_KEY_BYTES = 256;
 const MAX_WORKSPACE_DIRECTORY_BYTES = 4096;
 const MAX_SESSION_TITLE_BYTES = 512;
 const MAX_CHAT_MODEL_TITLE_BYTES = 512;
+const CANONICAL_SESSION_ID =
+  /^(?!00000000-0000-0000-0000-000000000000$)(?!ffffffff-ffff-ffff-ffff-ffffffffffff$)[0-9a-f]{8}-[0-9a-f]{4}-[47][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function idempotencyDigest(idempotencyKey: string): string {
   return createHash("sha256").update(idempotencyKey, "utf8").digest("hex");
@@ -264,7 +268,10 @@ function validateCreateOptions(options: unknown): CreateSessionOptions {
       candidate.chatModelTitle !== null &&
       (typeof candidate.chatModelTitle !== "string" ||
         Buffer.byteLength(candidate.chatModelTitle, "utf8") >
-          MAX_CHAT_MODEL_TITLE_BYTES))
+          MAX_CHAT_MODEL_TITLE_BYTES)) ||
+    (candidate.proposedSessionId !== undefined &&
+      (typeof candidate.proposedSessionId !== "string" ||
+        !CANONICAL_SESSION_ID.test(candidate.proposedSessionId)))
   ) {
     throw invalid();
   }
@@ -560,6 +567,7 @@ export class HistoryManager {
     const {
       creationRequestId: _creationRequestId,
       creationRequestHash: _creationRequestHash,
+      creationProposedSessionId: _creationProposedSessionId,
       ...publicData
     } = session;
     return { ...publicData, revision: session.revision ?? 0 };
@@ -618,7 +626,8 @@ export class HistoryManager {
       if (
         existing.title !== requestedTitle ||
         existing.workspaceDirectory !== options.workspaceDirectory ||
-        existing.chatModelTitle !== options.chatModelTitle
+        existing.chatModelTitle !== options.chatModelTitle ||
+        existing.creationProposedSessionId !== options.proposedSessionId
       ) {
         throw new SessionHistoryError(
           "HISTORY_CREATE_IDEMPOTENCY_CONFLICT",
@@ -650,10 +659,13 @@ export class HistoryManager {
     let persisted: PersistedSession | undefined;
     try {
       for (let attempt = 0; attempt < 5; attempt++) {
-        session.sessionId = uuidv4();
+        session.sessionId = options.proposedSessionId ?? uuidv4();
         persisted = {
           ...session,
           creationRequestHash: idempotencyDigest(options.idempotencyKey),
+          ...(options.proposedSessionId
+            ? { creationProposedSessionId: options.proposedSessionId }
+            : {}),
         };
         try {
           writeFileAtomically(
@@ -664,6 +676,12 @@ export class HistoryManager {
           break;
         } catch (error) {
           if (isNodeError(error) && error.code === "EEXIST") {
+            if (options.proposedSessionId) {
+              throw new SessionHistoryError(
+                "HISTORY_SESSION_ID_CONFLICT",
+                `The proposed OpenCircuit session ID ${options.proposedSessionId} is already in use`,
+              );
+            }
             persisted = undefined;
             continue;
           }
@@ -791,6 +809,9 @@ export class HistoryManager {
           : {}),
         ...(previous?.creationRequestHash
           ? { creationRequestHash: previous.creationRequestHash }
+          : {}),
+        ...(previous?.creationProposedSessionId
+          ? { creationProposedSessionId: previous.creationProposedSessionId }
           : {}),
       };
       writeFileAtomically(

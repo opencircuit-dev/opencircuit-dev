@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    if: github.repository == 'brettconnor/opencircuit-dev'
+    if: github.repository == 'opencircuit-dev/opencircuit-dev'
     uses: ./.github/workflows/reusable-release.yml
     with:
       package-name: "sdk"
