@@ -159,11 +159,21 @@ export class NativeWorkbenchBackend {
     },
     "models.list": async (_payload: unknown, context: RpcContext) => {
       const core = await this._core(context);
-      const { config } = await core.configHandler.loadConfig();
-      return (config?.modelsByRole.chat ?? []).map((model) => ({
+      const { config, errors, configLoadInterrupted } =
+        await core.configHandler.loadConfig();
+      const models = (config?.modelsByRole.chat ?? []).map((model) => ({
         id: model.title,
         name: model.title,
       }));
+      return {
+        models,
+        configDiagnostic: {
+          configPresent: config !== undefined,
+          configLoadInterrupted: configLoadInterrupted ?? false,
+          configErrorCount: errors?.length ?? 0,
+          chatModelCount: models.length,
+        },
+      };
     },
     "chat.create": async (payload: unknown, context: RpcContext) => {
       const value = asRecord(payload);
