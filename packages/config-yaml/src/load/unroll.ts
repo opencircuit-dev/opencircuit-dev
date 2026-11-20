@@ -45,8 +45,13 @@ export function parseConfigYaml(configYaml: string): ConfigYaml {
     if (e instanceof ZodError) {
       throw configSchemaParseError(e);
     }
-    throw new Error(
-      `Failed to parse config: ${e instanceof Error ? e.message : e}`,
+    throw Object.assign(
+      new Error("Failed to parse config: invalid YAML syntax"),
+      {
+        diagnosticCategory: "schema_validation" as const,
+        diagnosticCode: "other" as const,
+        diagnosticPath: "",
+      },
     );
   }
 }
@@ -68,7 +73,11 @@ export function parseAssistantUnrolled(configYaml: string): AssistantUnrolled {
     if (e instanceof ZodError) {
       throw configSchemaParseError(e);
     }
-    throw new Error("Failed to parse config");
+    throw Object.assign(new Error("Failed to parse config"), {
+      diagnosticCategory: "schema_validation" as const,
+      diagnosticCode: "other" as const,
+      diagnosticPath: "",
+    });
   }
 }
 

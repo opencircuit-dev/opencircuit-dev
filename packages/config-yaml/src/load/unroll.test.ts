@@ -119,6 +119,22 @@ models:
     });
     expect((thrown as Error).message).not.toContain("not-a-model-role");
   });
+
+  it("classifies YAML syntax failures without retaining the parser message", () => {
+    let thrown: unknown;
+    try {
+      parseConfigYaml('name: local smoke\nmodels: ["secret-value"');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      diagnosticCategory: "schema_validation",
+      diagnosticCode: "other",
+      diagnosticPath: "",
+    });
+    expect((thrown as Error).message).not.toContain("secret-value");
+  });
 });
 
 describe("replaceInputsWithSecrets tests", () => {
