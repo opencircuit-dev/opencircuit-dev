@@ -18,6 +18,10 @@ export function getConfigErrorDiagnostics(error: unknown): {
     | "too_small"
     | "too_big"
     | "invalid_format"
+    | "filesystem_not_found"
+    | "filesystem_permission"
+    | "filesystem_other"
+    | "runtime_error"
     | "other";
   diagnosticPath?: string;
 } {
@@ -41,6 +45,10 @@ export function getConfigErrorDiagnostics(error: unknown): {
     "too_small",
     "too_big",
     "invalid_format",
+    "filesystem_not_found",
+    "filesystem_permission",
+    "filesystem_other",
+    "runtime_error",
     "other",
   ]);
   const diagnostics: ReturnType<typeof getConfigErrorDiagnostics> = {};
@@ -66,6 +74,26 @@ export function getConfigErrorDiagnostics(error: unknown): {
     /^[A-Za-z0-9_.\[\]]{0,160}$/.test(value.diagnosticPath)
   ) {
     diagnostics.diagnosticPath = value.diagnosticPath;
+  }
+
+  if (diagnostics.diagnosticCode === undefined) {
+    const errorCode = value.code;
+    if (errorCode === "ENOENT") {
+      diagnostics.diagnosticCategory ??= "config_resolution";
+      diagnostics.diagnosticCode = "filesystem_not_found";
+    } else if (errorCode === "EACCES" || errorCode === "EPERM") {
+      diagnostics.diagnosticCategory ??= "config_resolution";
+      diagnostics.diagnosticCode = "filesystem_permission";
+    } else if (
+      typeof errorCode === "string" &&
+      /^E[A-Z0-9_]{1,31}$/.test(errorCode)
+    ) {
+      diagnostics.diagnosticCategory ??= "config_resolution";
+      diagnostics.diagnosticCode = "filesystem_other";
+    } else if (error instanceof Error) {
+      diagnostics.diagnosticCategory ??= "config_resolution";
+      diagnostics.diagnosticCode = "runtime_error";
+    }
   }
 
   return diagnostics;

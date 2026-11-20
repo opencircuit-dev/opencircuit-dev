@@ -26,4 +26,24 @@ describe("getConfigErrorDiagnostics", () => {
       }),
     ).toEqual({});
   });
+
+  test("classifies filesystem failures without preserving their paths", () => {
+    const error = Object.assign(new Error("private path omitted"), {
+      code: "ENOENT",
+      path: "/private/user/config.yaml",
+    });
+    expect(getConfigErrorDiagnostics(error)).toEqual({
+      diagnosticCategory: "config_resolution",
+      diagnosticCode: "filesystem_not_found",
+    });
+  });
+
+  test("classifies other thrown errors without exposing their messages", () => {
+    expect(
+      getConfigErrorDiagnostics(new Error("private details omitted")),
+    ).toEqual({
+      diagnosticCategory: "config_resolution",
+      diagnosticCode: "runtime_error",
+    });
+  });
 });

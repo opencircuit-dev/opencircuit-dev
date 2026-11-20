@@ -503,15 +503,20 @@ function configLoadErrorCode(
   fatalErrors: readonly { diagnosticCode?: string }[],
 ): string {
   const code = fatalErrors[0]?.diagnosticCode;
-  return code === "invalid_type" ||
-    code === "unrecognized_keys" ||
-    code === "invalid_union" ||
-    code === "invalid_value" ||
-    code === "too_small" ||
-    code === "too_big" ||
-    code === "invalid_format"
-    ? code
-    : "other";
+  const safeCodes = new Set([
+    "invalid_type",
+    "unrecognized_keys",
+    "invalid_union",
+    "invalid_value",
+    "too_small",
+    "too_big",
+    "invalid_format",
+    "filesystem_not_found",
+    "filesystem_permission",
+    "filesystem_other",
+    "runtime_error",
+  ]);
+  return code && safeCodes.has(code) ? code : "other";
 }
 
 function configLoadErrorPath(
