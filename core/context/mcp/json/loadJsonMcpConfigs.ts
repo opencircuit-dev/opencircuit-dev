@@ -24,7 +24,7 @@ import { getUriPathBasename, joinPathsToUri } from "../../../util/uri";
 /**
  * Loads MCP configs from JSON files in ~/.ocircuit/mcpServers and workspace .ocircuit/mcpServers
  */
-export async function loadJsonMcpConfigs(
+async function loadJsonMcpConfigsInternal(
   ide: IDE,
   includeGlobal: boolean,
   globalRequestOptions: RequestOptions | undefined = undefined,
@@ -202,4 +202,36 @@ export async function loadJsonMcpConfigs(
     mcpServers,
     errors,
   };
+}
+
+/**
+ * MCP discovery is optional profile enrichment. A failure to inspect MCP
+ * settings must not prevent unrelated chat models from loading.
+ */
+export async function loadJsonMcpConfigs(
+  ide: IDE,
+  includeGlobal: boolean,
+  globalRequestOptions: RequestOptions | undefined = undefined,
+): Promise<{
+  mcpServers: InternalMcpOptions[];
+  errors: ConfigValidationError[];
+}> {
+  try {
+    return await loadJsonMcpConfigsInternal(
+      ide,
+      includeGlobal,
+      globalRequestOptions,
+    );
+  } catch {
+    return {
+      mcpServers: [],
+      errors: [
+        {
+          fatal: false,
+          message:
+            "Failed to discover optional MCP server configurations. Other profile settings remain available.",
+        },
+      ],
+    };
+  }
 }
