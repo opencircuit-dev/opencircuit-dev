@@ -165,6 +165,7 @@ export class NativeWorkbenchBackend {
         id: model.title,
         name: model.title,
       }));
+      const fatalErrors = errors?.filter((error) => error.fatal) ?? [];
       return {
         models,
         configDiagnostic: {
@@ -172,6 +173,10 @@ export class NativeWorkbenchBackend {
           configLoadInterrupted: configLoadInterrupted ?? false,
           configErrorCount: errors?.length ?? 0,
           chatModelCount: models.length,
+          configErrorCategory: configLoadErrorCategory(
+            configLoadInterrupted ?? false,
+            fatalErrors.map((error) => error.message),
+          ),
         },
       };
     },
@@ -456,6 +461,41 @@ export class NativeWorkbenchBackend {
       }
     }
   }
+}
+
+/** Return only a fixed category. Never expose config validation messages in IPC diagnostics. */
+function configLoadErrorCategory(
+  interrupted: boolean,
+  fatalMessages: readonly string[],
+):
+  | "none"
+  | "schema_validation"
+  | "model_validation"
+  | "config_resolution"
+  | "other" {
+  if (!interrupted) {
+    return "none";
+  }
+  if (fatalMessages.length === 0) {
+    return "other";
+  }
+  if (
+    fatalMessages.some((message) =>
+      /invalid_type|unrecognized_keys|expected .+ received|validation error/i.test(
+        message,
+      ),
+    )
+  ) {
+    return "schema_validation";
+  }
+  if (
+    fatalMessages.some((message) =>
+      /model|provider|api key|request header/i.test(message),
+    )
+  ) {
+    return "model_validation";
+  }
+  return "config_resolution";
 }
 
 export async function runNativeWorkbenchBackend(
