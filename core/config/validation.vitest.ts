@@ -46,4 +46,16 @@ describe("getConfigErrorDiagnostics", () => {
       diagnosticCode: "runtime_error",
     });
   });
+
+  test("records which config-load boundary raised an unclassified error", () => {
+    expect(
+      getConfigErrorDiagnostics(
+        new Error("private details omitted"),
+        "profile_load_error",
+      ),
+    ).toEqual({
+      diagnosticCategory: "config_resolution",
+      diagnosticCode: "profile_load_error",
+    });
+  });
 });

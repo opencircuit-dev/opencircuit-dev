@@ -151,7 +151,7 @@ export class ConfigHandler {
       errors.push({
         fatal: true,
         message: `Error loading local assistants${e instanceof Error ? ":\n" + e.message : ""}`,
-        ...getConfigErrorDiagnostics(e),
+        ...getConfigErrorDiagnostics(e, "profile_discovery_error"),
       });
       return {
         profiles: [],

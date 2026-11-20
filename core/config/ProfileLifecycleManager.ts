@@ -93,7 +93,7 @@ export class ProfileLifecycleManager {
               {
                 fatal: true,
                 message,
-                ...getConfigErrorDiagnostics(e),
+                ...getConfigErrorDiagnostics(e, "profile_load_error"),
               },
             ],
             config: undefined,

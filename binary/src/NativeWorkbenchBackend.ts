@@ -514,6 +514,8 @@ function configLoadErrorCode(
     "filesystem_not_found",
     "filesystem_permission",
     "filesystem_other",
+    "profile_discovery_error",
+    "profile_load_error",
     "runtime_error",
   ]);
   return code && safeCodes.has(code) ? code : "other";

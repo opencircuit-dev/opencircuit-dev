@@ -3,7 +3,10 @@ import { ConfigValidationError } from "@opencircuit/config-yaml";
 import { ModelDescription, SerializedOCircuitConfig } from "../";
 
 /** Preserve only bounded diagnostics when config-load errors cross Core layers. */
-export function getConfigErrorDiagnostics(error: unknown): {
+export function getConfigErrorDiagnostics(
+  error: unknown,
+  fallbackCode?: "profile_discovery_error" | "profile_load_error",
+): {
   diagnosticCategory?:
     | "none"
     | "schema_validation"
@@ -21,6 +24,8 @@ export function getConfigErrorDiagnostics(error: unknown): {
     | "filesystem_not_found"
     | "filesystem_permission"
     | "filesystem_other"
+    | "profile_discovery_error"
+    | "profile_load_error"
     | "runtime_error"
     | "other";
   diagnosticPath?: string;
@@ -48,6 +53,8 @@ export function getConfigErrorDiagnostics(error: unknown): {
     "filesystem_not_found",
     "filesystem_permission",
     "filesystem_other",
+    "profile_discovery_error",
+    "profile_load_error",
     "runtime_error",
     "other",
   ]);
@@ -92,7 +99,7 @@ export function getConfigErrorDiagnostics(error: unknown): {
       diagnostics.diagnosticCode = "filesystem_other";
     } else if (error instanceof Error) {
       diagnostics.diagnosticCategory ??= "config_resolution";
-      diagnostics.diagnosticCode = "runtime_error";
+      diagnostics.diagnosticCode = fallbackCode ?? "runtime_error";
     }
   }
 
