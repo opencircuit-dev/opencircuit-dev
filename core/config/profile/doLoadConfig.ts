@@ -343,18 +343,26 @@ export default async function doLoadConfig(options: {
     }
   }
 
-  newConfig.tools.push(
-    ...(await withProfileLoadStage("post_load_config_tools", async () =>
-      getConfigDependentToolDefinitions({
-        rules: newConfig!.rules,
-        enableExperimentalTools:
-          newConfig!.experimental?.enableExperimentalTools ?? false,
-        isRemote: await ide.isWorkspaceRemote(),
-        modelName: newConfig!.selectedModelByRole.chat?.model,
-        ide,
-      }),
-    )),
-  );
+  try {
+    newConfig.tools.push(
+      ...(await withProfileLoadStage("post_load_config_tools", async () =>
+        getConfigDependentToolDefinitions({
+          rules: newConfig!.rules,
+          enableExperimentalTools:
+            newConfig!.experimental?.enableExperimentalTools ?? false,
+          isRemote: await ide.isWorkspaceRemote(),
+          modelName: newConfig!.selectedModelByRole.chat?.model,
+          ide,
+        }),
+      )),
+    );
+  } catch {
+    errors.push({
+      fatal: false,
+      message:
+        "Could not load optional config-dependent tools. Configured chat models remain available.",
+    });
+  }
 
   // Detect duplicate tool names
   const counts: Record<string, number> = {};
