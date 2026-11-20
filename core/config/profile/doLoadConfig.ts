@@ -56,11 +56,14 @@ async function withProfileLoadStage<T>(
   } catch (error) {
     const failure =
       error instanceof Error ? error : new Error("Profile load failed");
-    Object.assign(failure, {
-      diagnosticCategory: "config_resolution" as const,
-      diagnosticCode: "profile_load_error" as const,
-      diagnosticPath: stage,
-    });
+    const existing = failure as Error & {
+      diagnosticCategory?: string;
+      diagnosticCode?: string;
+      diagnosticPath?: string;
+    };
+    existing.diagnosticCategory ??= "config_resolution";
+    existing.diagnosticCode ??= "profile_load_error";
+    existing.diagnosticPath ??= stage;
     throw failure;
   }
 }
