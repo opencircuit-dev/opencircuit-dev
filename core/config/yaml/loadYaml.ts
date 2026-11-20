@@ -64,6 +64,40 @@ async function withConfigLoadStage<T>(
   }
 }
 
+function tagFatalConfigErrors(
+  errors: ConfigValidationError[],
+  stage: string,
+): ConfigValidationError[] {
+  return errors.map((error) => {
+    if (!error.fatal) {
+      return error;
+    }
+    const diagnostic = error as ConfigValidationError & {
+      diagnosticCategory?:
+        | "schema_validation"
+        | "model_validation"
+        | "config_resolution"
+        | "other";
+      diagnosticCode?:
+        | "invalid_type"
+        | "unrecognized_keys"
+        | "invalid_union"
+        | "invalid_value"
+        | "too_small"
+        | "too_big"
+        | "invalid_format"
+        | "other";
+      diagnosticPath?: string;
+    };
+    return {
+      ...error,
+      diagnosticCategory: diagnostic.diagnosticCategory ?? "config_resolution",
+      diagnosticCode: diagnostic.diagnosticCode ?? "other",
+      diagnosticPath: diagnostic.diagnosticPath ?? stage,
+    };
+  });
+}
+
 async function loadConfigYaml(options: {
   overrideConfigYaml: AssistantUnrolled | undefined;
   ideSettings: IdeSettings;
@@ -116,7 +150,9 @@ async function loadConfigYaml(options: {
         await getRegistryClient(),
       );
       if (unrolledLocal.errors) {
-        errors.push(...unrolledLocal.errors);
+        errors.push(
+          ...tagFatalConfigErrors(unrolledLocal.errors, "yaml_local_blocks"),
+        );
       }
       if (unrolledLocal.config) {
         config = mergeUnrolledAssistants(config, unrolledLocal.config);
@@ -134,7 +170,7 @@ async function loadConfigYaml(options: {
     );
     config = unrollResult.config;
     if (unrollResult.errors) {
-      errors.push(...unrollResult.errors);
+      errors.push(...tagFatalConfigErrors(unrollResult.errors, "yaml_unroll"));
     }
   }
 
