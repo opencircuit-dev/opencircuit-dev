@@ -45,6 +45,9 @@ type ProfileLoadStage =
   | "yaml_loader"
   | "json_loader"
   | "rules_loader"
+  | "post_load_selected_models"
+  | "post_load_mcp_status"
+  | "post_load_config_tools"
   | "post_load";
 
 async function withProfileLoadStage<T>(
@@ -236,11 +239,16 @@ export default async function doLoadConfig(options: {
   });
 
   // Rectify model selections for each role
-  newConfig = rectifySelectedModelsFromGlobalContext(newConfig, profileId);
+  newConfig = await withProfileLoadStage("post_load_selected_models", () =>
+    rectifySelectedModelsFromGlobalContext(newConfig!, profileId),
+  );
 
   // Add things from MCP servers
   const mcpManager = MCPManagerSingleton.getInstance();
-  const mcpServerStatuses = mcpManager.getStatuses();
+  const mcpServerStatuses = await withProfileLoadStage(
+    "post_load_mcp_status",
+    () => mcpManager.getStatuses(),
+  );
 
   const serializableStatuses = mcpServerStatuses.map((server) => {
     const { client, ...rest } = server;
@@ -336,14 +344,16 @@ export default async function doLoadConfig(options: {
   }
 
   newConfig.tools.push(
-    ...(await getConfigDependentToolDefinitions({
-      rules: newConfig.rules,
-      enableExperimentalTools:
-        newConfig.experimental?.enableExperimentalTools ?? false,
-      isRemote: await ide.isWorkspaceRemote(),
-      modelName: newConfig.selectedModelByRole.chat?.model,
-      ide,
-    })),
+    ...(await withProfileLoadStage("post_load_config_tools", async () =>
+      getConfigDependentToolDefinitions({
+        rules: newConfig!.rules,
+        enableExperimentalTools:
+          newConfig!.experimental?.enableExperimentalTools ?? false,
+        isRemote: await ide.isWorkspaceRemote(),
+        modelName: newConfig!.selectedModelByRole.chat?.model,
+        ide,
+      }),
+    )),
   );
 
   // Detect duplicate tool names
