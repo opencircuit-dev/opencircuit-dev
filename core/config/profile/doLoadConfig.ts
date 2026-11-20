@@ -37,6 +37,34 @@ import { migrateJsonSharedConfig } from "../migrateSharedConfig";
 import { rectifySelectedModelsFromGlobalContext } from "../selectedModels";
 import { loadOCircuitConfigFromYaml } from "../yaml/loadYaml";
 
+type ProfileLoadStage =
+  | "ide_info"
+  | "ide_identity"
+  | "ide_settings"
+  | "config_paths"
+  | "yaml_loader"
+  | "json_loader"
+  | "rules_loader"
+  | "post_load";
+
+async function withProfileLoadStage<T>(
+  stage: ProfileLoadStage,
+  operation: () => Promise<T> | T,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    const failure =
+      error instanceof Error ? error : new Error("Profile load failed");
+    Object.assign(failure, {
+      diagnosticCategory: "config_resolution" as const,
+      diagnosticCode: "profile_load_error" as const,
+      diagnosticPath: stage,
+    });
+    throw failure;
+  }
+}
+
 async function loadRules(ide: IDE) {
   const rules: RuleWithSource[] = [];
   const errors = [];
@@ -80,20 +108,29 @@ export default async function doLoadConfig(options: {
     packageIdentifier,
   } = options;
 
-  const ideInfo = await ide.getIdeInfo();
-  const uniqueId = await ide.getUniqueId();
-  const ideSettings = await ide.getIdeSettings();
+  const ideInfo = await withProfileLoadStage("ide_info", () =>
+    ide.getIdeInfo(),
+  );
+  const uniqueId = await withProfileLoadStage("ide_identity", () =>
+    ide.getUniqueId(),
+  );
+  const ideSettings = await withProfileLoadStage("ide_settings", () =>
+    ide.getIdeSettings(),
+  );
 
   // Migrations for old config files
   // Removes
-  const configJsonPath = getConfigJsonPath();
-  if (fs.existsSync(configJsonPath)) {
-    migrateJsonSharedConfig(configJsonPath, ide);
-  }
-
-  const configYamlPath = localPathOrUriToPath(
-    overrideConfigYamlByPath || getConfigYamlPath(ideInfo.ideType),
-  );
+  const { configYamlPath } = await withProfileLoadStage("config_paths", () => {
+    const configJsonPath = getConfigJsonPath();
+    if (fs.existsSync(configJsonPath)) {
+      migrateJsonSharedConfig(configJsonPath, ide);
+    }
+    return {
+      configYamlPath: localPathOrUriToPath(
+        overrideConfigYamlByPath || getConfigYamlPath(ideInfo.ideType),
+      ),
+    };
+  });
 
   let newConfig: OCircuitConfig | undefined;
   let errors: ConfigValidationError[] | undefined;
@@ -109,27 +146,31 @@ export default async function doLoadConfig(options: {
     hasPreReadContent ||
     fs.existsSync(configYamlPath)
   ) {
-    const result = await loadOCircuitConfigFromYaml({
-      ide,
-      ideSettings,
-      ideInfo,
-      uniqueId,
-      llmLogger,
-      overrideConfigYaml,
-      packageIdentifier,
-    });
+    const result = await withProfileLoadStage("yaml_loader", () =>
+      loadOCircuitConfigFromYaml({
+        ide,
+        ideSettings,
+        ideInfo,
+        uniqueId,
+        llmLogger,
+        overrideConfigYaml,
+        packageIdentifier,
+      }),
+    );
     newConfig = result.config;
     errors = result.errors;
     configLoadInterrupted = result.configLoadInterrupted;
     configName = result.configName;
   } else {
-    const result = await loadOCircuitConfigFromJson(
-      ide,
-      ideSettings,
-      ideInfo,
-      uniqueId,
-      llmLogger,
-      overrideConfigJson,
+    const result = await withProfileLoadStage("json_loader", () =>
+      loadOCircuitConfigFromJson(
+        ide,
+        ideSettings,
+        ideInfo,
+        uniqueId,
+        llmLogger,
+        overrideConfigJson,
+      ),
     );
     newConfig = result.config;
     errors = result.errors;
@@ -150,7 +191,10 @@ export default async function doLoadConfig(options: {
   errors = [...(errors ?? [])];
 
   // Load rules and always include the RulesContextProvider
-  const { rules, errors: rulesErrors } = await loadRules(ide);
+  const { rules, errors: rulesErrors } = await withProfileLoadStage(
+    "rules_loader",
+    () => loadRules(ide),
+  );
   errors.push(...rulesErrors);
   newConfig.rules.unshift(...rules);
 
@@ -353,7 +397,7 @@ export default async function doLoadConfig(options: {
   IdeInfoService.setup(uniqueId, ideInfo);
 
   // TODO: pass config to pre-load non-system TTS models
-  await TTS.setup();
+  await withProfileLoadStage("post_load", () => TTS.setup());
 
   return {
     config: newConfig,
