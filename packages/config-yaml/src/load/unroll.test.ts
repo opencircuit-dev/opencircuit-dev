@@ -2,6 +2,7 @@ import { PackageIdentifier } from "../interfaces/slugs.js";
 import {
   fillTemplateVariables,
   getTemplateVariables,
+  parseConfigYaml,
   parseMarkdownRuleOrAssistantUnrolled,
   replaceInputsWithSecrets,
 } from "./unroll.js";
@@ -91,6 +92,32 @@ model: # should be models
     expect(rule).toHaveProperty("name", "foo/bar");
     expect(rule).toHaveProperty("globs", undefined);
     expect(rule).toHaveProperty("rule", dubiousContent);
+  });
+});
+
+describe("parseConfigYaml diagnostics", () => {
+  it("retains only safe schema coordinates on parse errors", () => {
+    let thrown: unknown;
+    try {
+      parseConfigYaml(`
+name: local smoke
+version: 1.0.0
+models:
+  - name: local model
+    provider: ollama
+    model: olmo2:7b
+    roles: [not-a-model-role]
+`);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      diagnosticCategory: "schema_validation",
+      diagnosticCode: "invalid_value",
+      diagnosticPath: "models[0].roles[0]",
+    });
+    expect((thrown as Error).message).not.toContain("not-a-model-role");
   });
 });
 

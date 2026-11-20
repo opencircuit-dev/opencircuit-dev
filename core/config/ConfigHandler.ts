@@ -23,6 +23,7 @@ import {
   ProfileDescription,
   ProfileLifecycleManager,
 } from "./ProfileLifecycleManager.js";
+import { getConfigErrorDiagnostics } from "./validation.js";
 
 export type { ProfileDescription };
 
@@ -150,6 +151,7 @@ export class ConfigHandler {
       errors.push({
         fatal: true,
         message: `Error loading local assistants${e instanceof Error ? ":\n" + e.message : ""}`,
+        ...getConfigErrorDiagnostics(e),
       });
       return {
         profiles: [],

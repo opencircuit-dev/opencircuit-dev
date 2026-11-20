@@ -14,6 +14,7 @@ import {
 import { Logger } from "../util/Logger.js";
 import { finalToBrowserConfig } from "./load.js";
 import { IProfileLoader } from "./profile/IProfileLoader.js";
+import { getConfigErrorDiagnostics } from "./validation.js";
 
 export interface ProfileDescription {
   fullSlug: FullSlug;
@@ -92,6 +93,7 @@ export class ProfileLifecycleManager {
               {
                 fatal: true,
                 message,
+                ...getConfigErrorDiagnostics(e),
               },
             ],
             config: undefined,

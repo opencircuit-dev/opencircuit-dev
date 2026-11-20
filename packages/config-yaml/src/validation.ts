@@ -21,6 +21,20 @@ export interface ConfigValidationError {
   diagnosticPath?: string;
 }
 
+export interface ConfigValidationDiagnostic {
+  diagnosticCategory: "schema_validation";
+  diagnosticCode:
+    | "invalid_type"
+    | "unrecognized_keys"
+    | "invalid_union"
+    | "invalid_value"
+    | "too_small"
+    | "too_big"
+    | "invalid_format"
+    | "other";
+  diagnosticPath: string;
+}
+
 export interface ConfigResult<T> {
   config: T | undefined;
   errors: ConfigValidationError[] | undefined;
@@ -44,6 +58,81 @@ function mostSpecificValidationIssue(issue: any): any {
   return issue;
 }
 
+/** Convert a Zod issue into bounded metadata without retaining issue messages or values. */
+export function getConfigValidationDiagnostic(
+  rootIssue: any,
+): ConfigValidationDiagnostic {
+  const issue = mostSpecificValidationIssue(rootIssue);
+  const issuePath = Array.isArray(issue?.path) ? issue.path : [];
+  const rootPath = Array.isArray(rootIssue?.path) ? rootIssue.path : [];
+  const fullIssuePath =
+    rootIssue !== issue && rootPath.length > 0 && issuePath[0] !== rootPath[0]
+      ? [...rootPath, ...issuePath]
+      : issuePath;
+  const allowedPathParts = new Set([
+    "name",
+    "version",
+    "schema",
+    "metadata",
+    "models",
+    "provider",
+    "model",
+    "apiBase",
+    "apiKey",
+    "roles",
+    "capabilities",
+    "contextLength",
+    "maxStopWords",
+    "defaultCompletionOptions",
+    "cacheBehavior",
+    "requestOptions",
+    "embedOptions",
+    "chatOptions",
+    "disableTools",
+    "baseSystemMessage",
+    "baseAgentSystemMessage",
+    "basePlanSystemMessage",
+    "toolOverrides",
+    "promptTemplates",
+    "useLegacyCompletionsEndpoint",
+    "useResponsesApi",
+    "env",
+    "autocompleteOptions",
+  ]);
+  const diagnosticPath =
+    fullIssuePath.length > 0
+      ? fullIssuePath
+          .map((part: unknown) => {
+            if (
+              typeof part === "number" &&
+              Number.isSafeInteger(part) &&
+              part >= 0
+            ) {
+              return `[${part}]`;
+            }
+            return typeof part === "string" && allowedPathParts.has(part)
+              ? part
+              : "field";
+          })
+          .join(".")
+          .replace(/\.\[/g, "[")
+      : "";
+  const knownCodes = new Set([
+    "invalid_type",
+    "unrecognized_keys",
+    "invalid_union",
+    "invalid_value",
+    "too_small",
+    "too_big",
+    "invalid_format",
+  ]);
+  return {
+    diagnosticCategory: "schema_validation",
+    diagnosticCode: knownCodes.has(issue?.code) ? issue.code : "other",
+    diagnosticPath,
+  };
+}
+
 export function validateConfigYaml(
   config: ConfigYaml,
 ): ConfigValidationError[] {
@@ -52,78 +141,13 @@ export function validateConfigYaml(
   try {
     configYamlSchema.parse(config);
   } catch (e: any) {
-    const rootIssue = Array.isArray(e?.issues) ? e.issues[0] : undefined;
-    const issue = mostSpecificValidationIssue(rootIssue);
-    const issuePath = Array.isArray(issue?.path) ? issue.path : [];
-    const rootPath = Array.isArray(rootIssue?.path) ? rootIssue.path : [];
-    const fullIssuePath =
-      rootIssue !== issue && rootPath.length > 0 && issuePath[0] !== rootPath[0]
-        ? [...rootPath, ...issuePath]
-        : issuePath;
-    const allowedPathParts = new Set([
-      "name",
-      "version",
-      "schema",
-      "metadata",
-      "models",
-      "provider",
-      "model",
-      "apiBase",
-      "apiKey",
-      "roles",
-      "capabilities",
-      "contextLength",
-      "maxStopWords",
-      "defaultCompletionOptions",
-      "cacheBehavior",
-      "requestOptions",
-      "embedOptions",
-      "chatOptions",
-      "disableTools",
-      "baseSystemMessage",
-      "baseAgentSystemMessage",
-      "basePlanSystemMessage",
-      "toolOverrides",
-      "promptTemplates",
-      "useLegacyCompletionsEndpoint",
-      "useResponsesApi",
-      "env",
-      "autocompleteOptions",
-    ]);
-    const diagnosticPath =
-      fullIssuePath.length > 0
-        ? fullIssuePath
-            .map((part: unknown) => {
-              if (
-                typeof part === "number" &&
-                Number.isSafeInteger(part) &&
-                part >= 0
-              ) {
-                return `[${part}]`;
-              }
-              return typeof part === "string" && allowedPathParts.has(part)
-                ? part
-                : "field";
-            })
-            .join(".")
-            .replace(/\.\[/g, "[")
-        : "";
-    const knownCodes = new Set([
-      "invalid_type",
-      "unrecognized_keys",
-      "invalid_union",
-      "invalid_value",
-      "too_small",
-      "too_big",
-      "invalid_format",
-    ]);
     return [
       {
         fatal: true,
         message: e.message,
-        diagnosticCategory: "schema_validation",
-        diagnosticCode: knownCodes.has(issue?.code) ? issue.code : "other",
-        diagnosticPath,
+        ...getConfigValidationDiagnostic(
+          Array.isArray(e?.issues) ? e.issues[0] : undefined,
+        ),
       },
     ];
   }

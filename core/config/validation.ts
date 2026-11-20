@@ -2,6 +2,75 @@ import { ConfigValidationError } from "@opencircuit/config-yaml";
 
 import { ModelDescription, SerializedOCircuitConfig } from "../";
 
+/** Preserve only bounded diagnostics when config-load errors cross Core layers. */
+export function getConfigErrorDiagnostics(error: unknown): {
+  diagnosticCategory?:
+    | "none"
+    | "schema_validation"
+    | "model_validation"
+    | "config_resolution"
+    | "other";
+  diagnosticCode?:
+    | "invalid_type"
+    | "unrecognized_keys"
+    | "invalid_union"
+    | "invalid_value"
+    | "too_small"
+    | "too_big"
+    | "invalid_format"
+    | "other";
+  diagnosticPath?: string;
+} {
+  if (!error || typeof error !== "object") {
+    return {};
+  }
+
+  const value = error as Record<string, unknown>;
+  const categories = new Set([
+    "none",
+    "schema_validation",
+    "model_validation",
+    "config_resolution",
+    "other",
+  ]);
+  const codes = new Set([
+    "invalid_type",
+    "unrecognized_keys",
+    "invalid_union",
+    "invalid_value",
+    "too_small",
+    "too_big",
+    "invalid_format",
+    "other",
+  ]);
+  const diagnostics: ReturnType<typeof getConfigErrorDiagnostics> = {};
+
+  if (
+    typeof value.diagnosticCategory === "string" &&
+    categories.has(value.diagnosticCategory)
+  ) {
+    diagnostics.diagnosticCategory = value.diagnosticCategory as NonNullable<
+      ReturnType<typeof getConfigErrorDiagnostics>["diagnosticCategory"]
+    >;
+  }
+  if (
+    typeof value.diagnosticCode === "string" &&
+    codes.has(value.diagnosticCode)
+  ) {
+    diagnostics.diagnosticCode = value.diagnosticCode as NonNullable<
+      ReturnType<typeof getConfigErrorDiagnostics>["diagnosticCode"]
+    >;
+  }
+  if (
+    typeof value.diagnosticPath === "string" &&
+    /^[A-Za-z0-9_.\[\]]{0,160}$/.test(value.diagnosticPath)
+  ) {
+    diagnostics.diagnosticPath = value.diagnosticPath;
+  }
+
+  return diagnostics;
+}
+
 /**
  * Validates a SerializedOCircuitConfig object to ensure all properties are correctly formed.
  * @param config The configuration object to validate.
