@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+import type { AuthOptions } from "@opencircuit/config-types";
+
 import type { OAuthTokenSet, SecureTokenStore } from "./AuthManager.js";
 
 export class TokenStoreUnavailable extends Error {
@@ -20,6 +22,17 @@ interface CommandResult {
   stdout: string;
   stderr: string;
   code: number;
+}
+
+export function createOAuthTokenStore(
+  auth: Pick<AuthOptions, "clientId" | "issuer">,
+  platform: NodeJS.Platform = process.platform,
+): OsTokenStore {
+  return new OsTokenStore(
+    `OpenCircuit/${auth.issuer ?? "oauth"}`,
+    auth.clientId ?? "cisco-circuit",
+    platform,
+  );
 }
 
 /** Host credential-manager storage. There is intentionally no file fallback. */
@@ -56,10 +69,11 @@ export class OsTokenStore implements SecureTokenStore {
 
   async clear(): Promise<void> {
     const chunkCount = await this.storedChunkCount();
-    const services = [this.service];
+    const services: string[] = [];
     for (let index = 0; index < chunkCount; index++) {
       services.push(this.chunkService(index));
     }
+    services.push(this.service);
     for (const service of services) {
       const result = await this.runClear(service);
       if (result.code !== 0 && !NOT_FOUND.test(result.stderr)) {
@@ -76,10 +90,13 @@ export class OsTokenStore implements SecureTokenStore {
 
   private async storedChunkCount(): Promise<number> {
     if (this.platform !== "darwin") return 0;
-    const stored = await this.runLookup().catch(() => null);
-    return stored?.startsWith(CHUNK_MANIFEST_PREFIX)
-      ? (parseChunkCount(stored) ?? 0)
-      : 0;
+    const stored = await this.runLookup();
+    if (!stored?.startsWith(CHUNK_MANIFEST_PREFIX)) return 0;
+    const count = parseChunkCount(stored);
+    if (count === null) {
+      throw new TokenStoreUnavailable("Stored OAuth credentials are invalid");
+    }
+    return count;
   }
 
   private async loadChunks(manifest: string): Promise<string> {
@@ -135,24 +152,24 @@ export class OsTokenStore implements SecureTokenStore {
       const lines = chunks.map((chunk, index) =>
         this.addItemCommand(this.chunkService(index), chunk),
       );
-      lines.push(
-        this.addItemCommand(
+      for (const line of lines) {
+        const result = await this.runCommand("security", ["-i"], `${line}\n`);
+        if (result.code !== 0) return result;
+      }
+      for (let index = chunks.length; index < previousCount; index++) {
+        const result = await this.runClear(this.chunkService(index));
+        if (result.code !== 0 && !NOT_FOUND.test(result.stderr)) {
+          return result;
+        }
+      }
+      return this.runCommand(
+        "security",
+        ["-i"],
+        `${this.addItemCommand(
           this.service,
           `${CHUNK_MANIFEST_PREFIX}${chunks.length}`,
-        ),
+        )}\n`,
       );
-      for (let index = chunks.length; index < previousCount; index++) {
-        lines.push(
-          [
-            "delete-generic-password",
-            "-a",
-            quoteSecurityArgument(this.account),
-            "-s",
-            quoteSecurityArgument(this.chunkService(index)),
-          ].join(" "),
-        );
-      }
-      return this.runCommand("security", ["-i"], `${lines.join("\n")}\n`);
     }
     return this.runCommand(
       "secret-tool",

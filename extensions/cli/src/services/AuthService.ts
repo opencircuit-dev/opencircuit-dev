@@ -8,8 +8,8 @@ import {
 import {
   MemoryTokenStore,
   OpenCircuitClient,
-  OsTokenStore,
   TokenStoreUnavailable,
+  createOAuthTokenStore,
 } from "@opencircuit/sdk";
 import YAML from "yaml";
 
@@ -57,7 +57,7 @@ export class AuthService extends BaseService<AuthServiceState> {
     const resolved = resolveCiscoCircuitAuth(parsed);
     this.authOptions = authOptionsSchema.parse(resolved);
     this.client = new OpenCircuitClient({
-      tokenStore: createTokenStore(this.authOptions),
+      tokenStore: createOAuthTokenStore(this.authOptions),
     });
     this.client.configureAuth({ auth: this.authOptions } as ConfigJson);
 
@@ -162,10 +162,4 @@ function resolveLocalConfigPath(configPath?: string): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-function createTokenStore(auth: AuthOptions): OsTokenStore {
-  const account = auth.clientId ?? "cisco-circuit";
-  const issuer = auth.issuer ?? "oauth";
-  return new OsTokenStore(`OpenCircuit/${issuer}`, account);
 }

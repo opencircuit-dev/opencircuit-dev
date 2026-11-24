@@ -49,7 +49,7 @@ export class CiscoCircuitApi implements BaseLlmApi {
     body: ChatCompletionCreateParamsNonStreaming,
     signal: AbortSignal,
   ): Promise<ChatCompletion> {
-    await this.requireAccessToken();
+    await this.requireAccessToken(signal);
     return this.client.chat.completions.create(body, { signal });
   }
 
@@ -57,7 +57,7 @@ export class CiscoCircuitApi implements BaseLlmApi {
     body: ChatCompletionCreateParamsStreaming,
     signal: AbortSignal,
   ): AsyncGenerator<ChatCompletionChunk> {
-    await this.requireAccessToken();
+    await this.requireAccessToken(signal);
     const response = await this.client.chat.completions.create(body, {
       signal,
     });
@@ -120,7 +120,9 @@ export class CiscoCircuitApi implements BaseLlmApi {
       requestUrl.searchParams.set("api-version", this.apiVersion);
     }
 
-    const token = await this.requireAccessToken();
+    const signal =
+      init?.signal ?? (input instanceof Request ? input.signal : undefined);
+    const token = await this.requireAccessToken(signal);
 
     const headers = new Headers(init?.headers);
     headers.delete("api-key");
@@ -129,8 +131,24 @@ export class CiscoCircuitApi implements BaseLlmApi {
     return this.fetchImpl(requestUrl, { ...init, headers });
   }
 
-  private async requireAccessToken(): Promise<string> {
-    const token = await this.accessToken();
+  private async requireAccessToken(signal?: AbortSignal): Promise<string> {
+    signal?.throwIfAborted();
+    let token: string | null;
+    if (signal) {
+      let onAbort!: () => void;
+      const cancelled = new Promise<never>((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener("abort", onAbort, { once: true });
+      });
+      try {
+        token = await Promise.race([this.accessToken(), cancelled]);
+      } finally {
+        signal.removeEventListener("abort", onAbort);
+      }
+      signal.throwIfAborted();
+    } else {
+      token = await this.accessToken();
+    }
     if (!token) throw new Error("Cisco Circuit authentication is required");
     return token;
   }

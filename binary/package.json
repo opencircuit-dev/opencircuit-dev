@@ -41,20 +41,29 @@
     "ts-jest": "^29.1.4",
     "typescript": "^5.6.3"
   },
+  "overrides": {
+    "rimraf": {
+      "glob": {
+        ".": "14.0.3",
+        "minimatch": "11.0.3"
+      }
+    }
+  },
   "dependencies": {
     "@octokit/rest": "^20.1.2",
-    "adm-zip": "^0.5.16",
+    "@opencircuit/config-types": "file:../packages/config-types",
+    "@opencircuit/openai-adapters": "file:../packages/openai-adapters",
+    "@opencircuit/sdk": "file:../packages/sdk",
+    "adm-zip": "^0.6.1",
     "commander": "^12.0.0",
     "core": "file:../core",
-    "follow-redirects": "^1.15.5",
-    "mac-ca": "^2.0.3",
+    "follow-redirects": "^1.16.2",
     "ncp": "^2.0.0",
     "node-fetch": "^3.3.2",
-    "system-ca": "^1.0.2",
-    "tar": "^7.5.13",
-    "undici": "^7.24.0",
-    "uuid": "^9.0.1",
+    "tar": "^7.5.22",
+    "undici": "^7.30.2",
+    "uuid": "^11.1.1",
     "vectordb": "0.4.20",
-    "win-ca": "^3.5.1"
+    "yaml": "^2.4.2"
   }
 }

@@ -52,4 +52,102 @@ describe("CiscoCircuitApi", () => {
         ),
     ).toThrow("Cisco Circuit gateway endpoint is not approved");
   });
+
+  it.each([
+    ["streaming", 1],
+    ["streaming", 2],
+    ["non-streaming", 1],
+    ["non-streaming", 2],
+  ] as const)(
+    "cancels a %s request while token lookup %i is pending",
+    async (mode, blockedCall) => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let calls = 0;
+      const getToken = vi.fn(async () => {
+        calls++;
+        if (calls === blockedCall) await gate;
+        return "synthetic-token";
+      });
+      const fetchMock = vi.fn<typeof fetch>();
+      const api = new CiscoCircuitApi(
+        "https://organon.cisco.com/vscode-plugin/api/llm/openai/deployments/test-model/",
+        getToken,
+        "2026-01-01",
+        fetchMock,
+      );
+      const controller = new AbortController();
+      const body = {
+        messages: [{ content: "Hi", role: "user" as const }],
+        model: "test-model",
+      };
+      const pending =
+        mode === "streaming"
+          ? api
+              .chatCompletionStream(
+                { ...body, stream: true },
+                controller.signal,
+              )
+              .next()
+          : api.chatCompletionNonStream(body, controller.signal);
+      try {
+        await vi.waitFor(() =>
+          expect(getToken).toHaveBeenCalledTimes(blockedCall),
+        );
+        controller.abort();
+        const outcome = await Promise.race([
+          pending.then(
+            () => "resolved",
+            () => "cancelled",
+          ),
+          new Promise<string>((resolve) =>
+            setTimeout(() => resolve("still waiting"), 100),
+          ),
+        ]);
+        expect(outcome).toBe("cancelled");
+      } finally {
+        release();
+        await pending.catch(() => undefined);
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("observes cancellation triggered during the token lookup itself", async () => {
+    const controller = new AbortController();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const api = new CiscoCircuitApi(
+      "https://organon.cisco.com/vscode-plugin/api/llm/openai/deployments/test-model/",
+      async () => {
+        controller.abort();
+        await gate;
+        return "synthetic-token";
+      },
+      "2026-01-01",
+    );
+    const pending = api.chatCompletionNonStream(
+      { messages: [{ content: "Hi", role: "user" }], model: "test-model" },
+      controller.signal,
+    );
+    try {
+      const outcome = await Promise.race([
+        pending.then(
+          () => "resolved",
+          () => "cancelled",
+        ),
+        new Promise<string>((resolve) =>
+          setTimeout(() => resolve("still waiting"), 100),
+        ),
+      ]);
+      expect(outcome).toBe("cancelled");
+    } finally {
+      release();
+      await pending.catch(() => undefined);
+    }
+  });
 });

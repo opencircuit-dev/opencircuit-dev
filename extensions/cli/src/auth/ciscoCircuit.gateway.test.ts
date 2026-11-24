@@ -1,4 +1,5 @@
 import type { AuthOptions } from "@opencircuit/config-types";
+import * as adapters from "@opencircuit/openai-adapters";
 import { describe, expect, it, vi } from "vitest";
 
 import { CiscoCircuitGateway } from "./ciscoCircuit.js";
@@ -19,6 +20,12 @@ function createAuth(): AuthOptions {
 }
 
 describe("CiscoCircuitGateway", () => {
+  it("uses the shared gateway implementation", () => {
+    expect(Reflect.get(adapters, "CiscoCircuitGateway")).toBe(
+      CiscoCircuitGateway,
+    );
+  });
+
   it("normalizes Circuit policy and authenticates policy and deployment requests", async () => {
     const fetchMock = vi.fn<typeof fetch>(async (url) =>
       String(url).endsWith("/api/model-policy")
@@ -152,5 +159,30 @@ describe("CiscoCircuitGateway", () => {
       ),
     ).rejects.toThrow("Cisco model is not entitled");
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not restore a cached policy after sign-out invalidates an in-flight read", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const fetchMock = vi.fn<typeof fetch>(async () => {
+      await gate;
+      return Response.json({ models: ["approved-model"] });
+    });
+    const gateway = new CiscoCircuitGateway(
+      async () => "delegated-token",
+      createAuth(),
+      {
+        fetch: fetchMock,
+      },
+    );
+    const pending = gateway.getPolicy();
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    gateway.clearPolicyCache();
+    release();
+    await expect(pending).rejects.toThrow();
+    await gateway.getPolicy();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
