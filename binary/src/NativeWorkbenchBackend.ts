@@ -10,6 +10,7 @@ import { Core } from "core/core";
 import type { FromCoreProtocol, ToCoreProtocol } from "core/protocol";
 import { InProcessMessenger } from "core/protocol/messenger";
 import type { Message } from "core/protocol/messenger";
+import historyManager from "core/util/history";
 import { CiscoCircuitSession } from "./CiscoCircuitSession";
 import { IpcIde } from "./IpcIde";
 
@@ -194,7 +195,7 @@ export class NativeWorkbenchBackend {
       return {
         contractVersion: 1,
         coreVersion: "1.1.0",
-        capabilities: { ciscoNonStreaming: true },
+        capabilities: { ciscoNonStreaming: true, sessionModelSelection: true },
       };
     },
     "auth.login": async (_payload: unknown, _context: RpcContext) => {
@@ -279,6 +280,17 @@ export class NativeWorkbenchBackend {
         ),
       );
       return { sessionId: created.session.sessionId };
+    },
+    "chat.resolveCreate": async (payload: unknown, context: RpcContext) => {
+      await this._core(context);
+      const value = asRecord(payload);
+      const workspaceUri = requiredString(value.workspaceUri);
+      await authorizeWorkspace(context, workspaceUri);
+      const session = historyManager.resolveCreateRequest(
+        requiredString(value.idempotencyKey),
+        workspaceUri,
+      );
+      return session ? { sessionId: session.sessionId } : null;
     },
     "chat.list": async (payload: unknown, context: RpcContext) => {
       await this._core(context);
@@ -516,6 +528,7 @@ export class NativeWorkbenchBackend {
     );
     if (workspaceUri)
       assertSessionWorkspace(session.workspaceDirectory, workspaceUri);
+    const modelId = optionalString(input.modelId);
     const userMessage = { role: "user" as const, content: text };
     const coreMessageId = context.requestId;
     const messages = [
@@ -532,7 +545,7 @@ export class NativeWorkbenchBackend {
     await context.emit({ type: "turnStarted" });
     const llmStream = cisco
       ? cisco.streamChat(
-          requiredString(session.chatModelTitle),
+          requiredString(modelId ?? session.chatModelTitle),
           messages,
           context.signal,
           input.stream !== false,
@@ -543,7 +556,7 @@ export class NativeWorkbenchBackend {
             {
               messages,
               completionOptions: {},
-              title: session.chatModelTitle ?? "OpenCircuit",
+              title: modelId ?? session.chatModelTitle ?? "OpenCircuit",
             },
             coreMessageId,
           ),
@@ -571,7 +584,13 @@ export class NativeWorkbenchBackend {
     } finally {
       context.signal.removeEventListener("abort", abort);
     }
-    await this._persistTurn(sessionId, userMessage, assistantText, context);
+    await this._persistTurn(
+      sessionId,
+      userMessage,
+      assistantText,
+      context,
+      !streamError && !context.signal.aborted ? modelId : undefined,
+    );
     if (context.signal.aborted) {
       return { status: "cancelled" };
     }
@@ -587,6 +606,7 @@ export class NativeWorkbenchBackend {
     userMessage: { role: "user"; content: string },
     assistantText: string,
     context: RpcContext,
+    modelId?: string,
   ): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt++) {
       const latest = await this.messenger.withContext(context, () =>
@@ -610,7 +630,11 @@ export class NativeWorkbenchBackend {
         await this.messenger.withContext(context, () =>
           this.messenger.externalRequest(
             "history/save",
-            { ...latest, history },
+            {
+              ...latest,
+              history,
+              ...(modelId ? { chatModelTitle: modelId } : {}),
+            },
             context.requestId,
           ),
         );

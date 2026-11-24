@@ -165,6 +165,27 @@ describe("Explicit Core session creation", () => {
     expect(created.session).not.toHaveProperty("creationRequestHash");
   });
 
+  test("resolves an existing create key only within its workspace", () => {
+    const created = historyManager.create(options);
+    expect(
+      historyManager.resolveCreateRequest(
+        options.idempotencyKey,
+        options.workspaceDirectory,
+      ),
+    ).toEqual(created.session);
+    expect(
+      historyManager.resolveCreateRequest(
+        "missing",
+        options.workspaceDirectory,
+      ),
+    ).toBeUndefined();
+    expect(() =>
+      historyManager.resolveCreateRequest(options.idempotencyKey, "/other"),
+    ).toThrow(
+      expect.objectContaining({ code: "HISTORY_CREATE_IDEMPOTENCY_CONFLICT" }),
+    );
+  });
+
   test("Core's registered messenger handler round-trips JSON request and response", async () => {
     const manager = new HistoryManager();
     const messenger = new InProcessMessenger<

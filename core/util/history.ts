@@ -601,6 +601,27 @@ export class HistoryManager {
     return undefined;
   }
 
+  resolveCreateRequest(
+    idempotencyKey: string,
+    workspaceDirectory: string,
+  ): Session | undefined {
+    const options = validateCreateOptions({
+      idempotencyKey,
+      workspaceDirectory,
+    });
+    const existing = this.findByIdempotencyKey(options.idempotencyKey);
+    if (!existing) {
+      return undefined;
+    }
+    if (existing.workspaceDirectory !== options.workspaceDirectory) {
+      throw new SessionHistoryError(
+        "HISTORY_CREATE_IDEMPOTENCY_CONFLICT",
+        "The idempotency key belongs to a different workspace",
+      );
+    }
+    return this.publicSession(existing);
+  }
+
   create(options: CreateSessionOptions): CreatedSession {
     const validatedOptions = validateCreateOptions(options);
     const lock = acquireCreateLock(validatedOptions.idempotencyKey);

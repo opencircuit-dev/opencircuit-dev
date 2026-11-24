@@ -3,11 +3,13 @@ import { randomUUID } from "node:crypto";
 import { PassThrough } from "node:stream";
 
 const sessionMocks = vi.hoisted(() => ({ fromConfig: vi.fn() }));
+const historyMocks = vi.hoisted(() => ({ resolveCreateRequest: vi.fn() }));
 
 vi.mock("core/core", () => ({ Core: class {} }));
 vi.mock("core/protocol/messenger", () => ({
   InProcessMessenger: class {},
 }));
+vi.mock("core/util/history", () => ({ default: historyMocks }));
 vi.mock("../src/IpcIde", () => ({ IpcIde: class {} }));
 vi.mock("../src/CiscoCircuitSession", () => ({
   CiscoCircuitSession: { fromConfig: sessionMocks.fromConfig },
@@ -21,6 +23,7 @@ import {
 describe("native workbench model-list contract", () => {
   beforeEach(() => {
     sessionMocks.fromConfig.mockReset().mockResolvedValue(undefined);
+    historyMocks.resolveCreateRequest.mockReset();
   });
 
   it("returns models and bounded configuration diagnostics", async () => {
@@ -149,11 +152,98 @@ describe("native workbench model-list contract", () => {
     expect(result.configDiagnostic.chatModelCount).toBe(1);
   });
 
+  it("resolves an existing create key only after workspace authorization", async () => {
+    const backend = new NativeWorkbenchBackend();
+    Reflect.set(backend, "core", {});
+    historyMocks.resolveCreateRequest.mockReturnValue({
+      sessionId: "existing",
+    });
+    const context = {
+      requestId: "test",
+      signal: new AbortController().signal,
+      emit: async () => {},
+      requestHost: async () => ["/test-workspace"],
+    };
+    const request = {
+      workspaceUri: "file:///test-workspace",
+      idempotencyKey: "create-key",
+    };
+    expect(
+      await backend.handlers["chat.resolveCreate"](request, context),
+    ).toEqual({ sessionId: "existing" });
+    expect(historyMocks.resolveCreateRequest).toHaveBeenCalledWith(
+      "create-key",
+      "file:///test-workspace",
+    );
+    historyMocks.resolveCreateRequest.mockClear();
+    await expect(
+      backend.handlers["chat.resolveCreate"](
+        { ...request, workspaceUri: "file:///other" },
+        context,
+      ),
+    ).rejects.toThrow();
+    expect(historyMocks.resolveCreateRequest).not.toHaveBeenCalled();
+  });
+
+  it("routes and persists the selected model for a continued Cisco session", async () => {
+    const streamChat = vi.fn(async function* () {
+      yield { role: "assistant", content: "answer" };
+    });
+    sessionMocks.fromConfig.mockResolvedValue({ streamChat });
+    const backend = new NativeWorkbenchBackend();
+    Reflect.set(backend, "core", {});
+    const session = {
+      sessionId: "session",
+      chatModelTitle: "first",
+      workspaceDirectory: "file:///test-workspace",
+      history: [],
+    };
+    const externalRequest = vi.fn(async (method: string) => {
+      if (method === "history/load") return session;
+      if (method === "history/save") return { revision: 1 };
+      throw new Error("unexpected request");
+    });
+    Reflect.set(backend, "messenger", {
+      withContext: (_context: unknown, fn: () => unknown) => fn(),
+      externalRequest,
+    });
+    const signal = new AbortController().signal;
+    await backend.handlers["chat.runTurn"](
+      {
+        chat: { sessionId: "session" },
+        input: {
+          text: "hello",
+          workspaceUri: "file:///test-workspace",
+          modelId: "second",
+        },
+      },
+      {
+        requestId: "test",
+        signal,
+        emit: async () => {},
+        requestHost: async () => ["/test-workspace"],
+      },
+    );
+    expect(streamChat).toHaveBeenCalledWith(
+      "second",
+      [{ role: "user", content: "hello" }],
+      signal,
+      true,
+    );
+    expect(externalRequest).toHaveBeenCalledWith(
+      "history/save",
+      expect.objectContaining({
+        sessionId: "session",
+        chatModelTitle: "second",
+      }),
+      "test",
+    );
+  });
+
   it("routes a turn using the persisted session model", async () => {
     const streamChat = vi.fn(async function* () {
       yield { role: "assistant", content: "answer" };
     });
-
     sessionMocks.fromConfig.mockResolvedValue({ streamChat });
     const backend = new NativeWorkbenchBackend();
     Reflect.set(backend, "core", {});
