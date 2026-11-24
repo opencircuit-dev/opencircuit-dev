@@ -1,20 +1,20 @@
 # Open Circuit CLI
 
 The Open Circuit CLI provides the `oc` command for interactive and headless
-coding-agent sessions. This package source is version **1.0.6**. Release
+coding-agent sessions. This package source is version **1.0.7**. Release
 archives are published separately; check the
 [public distribution checkout](https://github.com/open-circuit-dev/opencircuit)
 for the latest available tarball. See the [QUICKSTART](../../QUICKSTART.md)
 for installation guidance.
 
-This internal source package is version **1.0.6**. Source version and published
+This internal source package is version **1.0.7**. Source version and published
 archive availability are separate. Cisco users should install the approved
 internal artifact and run `oc init` to install its protected profile; public
 package examples below do not include that profile.
 
-## Internal 1.0.6 release
+## Internal 1.0.7 release
 
-Internal source 1.0.6 retains OpenAI, Anthropic, Gemini and OpenAI-compatible
+Internal source 1.0.7 retains OpenAI, Anthropic, Gemini and OpenAI-compatible
 chat-model discovery, provider-qualified selection and profile-scoped
 persistence. Configured models remain usable when discovery fails.
 Cisco SSO retains its gateway-policy catalog; public discovery cannot add
@@ -22,16 +22,17 @@ models outside that policy. Bounded tool recovery and file-edit safeguards
 already shipped internally in 1.0.4; this release aligns the package version
 with public 1.0.5 without replacing internal policy. Internal 1.0.6 adds
 explicit policy availability handling and capability-probe coverage.
+Internal 1.0.7 adds configuration resilience fixes and patched Hono dependencies.
 
 Use the approved sibling `opencircuit-internal/` distribution for the exact
 protected archive, checksum, source commit, and qualification record. Source
 version alone does not publish an archive. Run the following only after the
-matching 1.0.6 tarball and sidecar are available there.
+matching 1.0.7 tarball and sidecar are available there.
 
 ```bash
 cd ../opencircuit-internal
-shasum -a 256 -c opencircuit-cli-internal-1.0.6.tgz.sha256 &&
-  npm install --global ./opencircuit-cli-internal-1.0.6.tgz &&
+shasum -a 256 -c opencircuit-cli-internal-1.0.7.tgz.sha256 &&
+  npm install --global ./opencircuit-cli-internal-1.0.7.tgz &&
   oc --version
 oc init
 ```
