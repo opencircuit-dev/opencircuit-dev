@@ -147,7 +147,7 @@
       "minimatch": "11.0.3"
     },
     "deepmerge": "$deepmerge",
-    "@hono/node-server": "2.1.5",
+    "@hono/node-server": "2.1.11",
     "tar": "^7.5.13",
     "@tootallnate/once": "2.0.1",
     "@istanbuljs/load-nyc-config": {

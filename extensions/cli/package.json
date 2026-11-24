@@ -154,7 +154,7 @@
   },
   "overrides": {
     "minimatch": "$minimatch",
-    "@hono/node-server": "2.1.5",
+    "@hono/node-server": "2.1.11",
     "qs": "6.17.1",
     "picomatch": "^4.0.2"
   },

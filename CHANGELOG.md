@@ -11,6 +11,8 @@ This repository keeps a lightweight release-history file for local documentation
   tool loading. Keep configured chat models available when those optional
   facilities fail, and retain the internal OAuth and embedding behavior.
 - These source changes do not replace the published internal 1.0.6 archive.
+- Update the Core and CLI Hono closures to address newly reported audit
+  findings without changing the strict release audit policy.
 
 ### Internal CLI 1.0.6
 
