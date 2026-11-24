@@ -6,6 +6,12 @@ This repository keeps a lightweight release-history file for local documentation
 
 ## Unreleased
 
+- Backport public Core and YAML configuration diagnostics through upstream
+  `11ba2c5e8`, including nonfatal optional MCP discovery and config-dependent
+  tool loading. Keep configured chat models available when those optional
+  facilities fail, and retain the internal OAuth and embedding behavior.
+- These source changes do not replace the published internal 1.0.6 archive.
+
 ### Internal CLI 1.0.6
 
 - Treat policy entries marked `available: false` as unavailable in the model

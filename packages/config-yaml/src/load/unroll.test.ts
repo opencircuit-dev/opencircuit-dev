@@ -135,6 +135,48 @@ model: # should be models
   });
 });
 
+describe("parseConfigYaml diagnostics", () => {
+  it("retains only safe schema coordinates on parse errors", () => {
+    let thrown: unknown;
+    try {
+      parseConfigYaml(`
+name: local smoke
+version: 1.0.0
+models:
+  - name: local model
+    provider: ollama
+    model: olmo2:7b
+    roles: [not-a-model-role]
+`);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      diagnosticCategory: "schema_validation",
+      diagnosticCode: "invalid_value",
+      diagnosticPath: "models[0].roles[0]",
+    });
+    expect((thrown as Error).message).not.toContain("not-a-model-role");
+  });
+
+  it("classifies YAML syntax failures without retaining the parser message", () => {
+    let thrown: unknown;
+    try {
+      parseConfigYaml('name: local smoke\nmodels: ["secret-value"');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      diagnosticCategory: "schema_validation",
+      diagnosticCode: "other",
+      diagnosticPath: "",
+    });
+    expect((thrown as Error).message).not.toContain("secret-value");
+  });
+});
+
 describe("replaceInputsWithSecrets tests", () => {
   it("replaces single input with secret", () => {
     const yamlContent = `

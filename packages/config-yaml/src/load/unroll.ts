@@ -24,7 +24,11 @@ import {
   configYamlSchema,
   Rule,
 } from "../schemas/index.js";
-import { ConfigResult, ConfigValidationError } from "../validation.js";
+import {
+  ConfigResult,
+  ConfigValidationError,
+  getConfigValidationDiagnostic,
+} from "../validation.js";
 import { BlockDuplicationDetector } from "./blockDuplicationDetector.js";
 import { packageIdentifierToShorthandSlug } from "./clientRender.js";
 import { BlockType, getBlockType } from "./getBlockType.js";
@@ -36,25 +40,27 @@ export function parseConfigYaml(configYaml: string): ConfigYaml {
     if (result.success) {
       return result.data;
     }
-
-    throw new Error(formatZodError(result.error), {
-      cause: "result.success was false",
-    });
+    throw result.error;
   } catch (e) {
-    if (
-      e instanceof Error &&
-      "cause" in e &&
-      e.cause === "result.success was false"
-    ) {
-      throw new Error(`Failed to parse config: ${e.message}`);
-    } else if (e instanceof ZodError) {
-      throw new Error(`Failed to parse config: ${formatZodError(e)}`);
-    } else {
-      throw new Error(
-        `Failed to parse config: ${e instanceof Error ? e.message : e}`,
-      );
+    if (e instanceof ZodError) {
+      throw configSchemaParseError(e);
     }
+    throw Object.assign(
+      new Error("Failed to parse config: invalid YAML syntax"),
+      {
+        diagnosticCategory: "schema_validation" as const,
+        diagnosticCode: "other" as const,
+        diagnosticPath: "",
+      },
+    );
   }
+}
+
+function configSchemaParseError(error: ZodError): Error {
+  return Object.assign(
+    new Error(`Failed to parse config: ${formatZodError(error)}`),
+    getConfigValidationDiagnostic(error.issues[0]),
+  );
 }
 
 export function parseAssistantUnrolled(configYaml: string): AssistantUnrolled {
@@ -63,10 +69,15 @@ export function parseAssistantUnrolled(configYaml: string): AssistantUnrolled {
     const result = assistantUnrolledSchema.parse(parsed);
     return result;
   } catch (e: any) {
-    console.error(
-      `Failed to parse unrolled assistant: ${e.message}\n\n${configYaml}`,
-    );
-    throw new Error(`Failed to parse config: ${formatZodError(e)}`);
+    console.error("Failed to parse unrolled assistant config schema");
+    if (e instanceof ZodError) {
+      throw configSchemaParseError(e);
+    }
+    throw Object.assign(new Error("Failed to parse config"), {
+      diagnosticCategory: "schema_validation" as const,
+      diagnosticCode: "other" as const,
+      diagnosticPath: "",
+    });
   }
 }
 

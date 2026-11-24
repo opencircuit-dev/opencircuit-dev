@@ -43,6 +43,61 @@ import {
   convertYamlRuleToOCircuitRule,
 } from "./yamlToOCircuitConfig";
 
+async function withConfigLoadStage<T>(
+  stage: string,
+  operation: () => Promise<T> | T,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    const failure =
+      error instanceof Error ? error : new Error("Config load failed");
+    const diagnostics = failure as Error & {
+      diagnosticCategory?: string;
+      diagnosticCode?: string;
+      diagnosticPath?: string;
+    };
+    diagnostics.diagnosticCategory ??= "config_resolution";
+    diagnostics.diagnosticCode ??= "profile_load_error";
+    diagnostics.diagnosticPath ??= stage;
+    throw failure;
+  }
+}
+
+function tagFatalConfigErrors(
+  errors: ConfigValidationError[],
+  stage: string,
+): ConfigValidationError[] {
+  return errors.map((error) => {
+    if (!error.fatal) {
+      return error;
+    }
+    const diagnostic = error as ConfigValidationError & {
+      diagnosticCategory?:
+        | "schema_validation"
+        | "model_validation"
+        | "config_resolution"
+        | "other";
+      diagnosticCode?:
+        | "invalid_type"
+        | "unrecognized_keys"
+        | "invalid_union"
+        | "invalid_value"
+        | "too_small"
+        | "too_big"
+        | "invalid_format"
+        | "other";
+      diagnosticPath?: string;
+    };
+    return {
+      ...error,
+      diagnosticCategory: diagnostic.diagnosticCategory ?? "config_resolution",
+      diagnosticCode: diagnostic.diagnosticCode ?? "other",
+      diagnosticPath: diagnostic.diagnosticPath ?? stage,
+    };
+  });
+}
+
 async function loadConfigYaml(options: {
   overrideConfigYaml: AssistantUnrolled | undefined;
   ideSettings: IdeSettings;
@@ -66,9 +121,10 @@ async function loadConfigYaml(options: {
       content: b.content,
     }));
   });
-  const localPackageIdentifiers: PackageIdentifier[] = (
-    await Promise.all(localBlockPromises)
-  ).flat();
+  const localPackageIdentifiers: PackageIdentifier[] =
+    await withConfigLoadStage("yaml_local_blocks", async () =>
+      (await Promise.all(localBlockPromises)).flat(),
+    );
 
   // Registry client is only used if local blocks are present, but logic same for hub/local assistants
   const getRegistryClient = async () => {
@@ -94,7 +150,9 @@ async function loadConfigYaml(options: {
         await getRegistryClient(),
       );
       if (unrolledLocal.errors) {
-        errors.push(...unrolledLocal.errors);
+        errors.push(
+          ...tagFatalConfigErrors(unrolledLocal.errors, "yaml_local_blocks"),
+        );
       }
       if (unrolledLocal.config) {
         config = mergeUnrolledAssistants(config, unrolledLocal.config);
@@ -102,19 +160,17 @@ async function loadConfigYaml(options: {
     }
   } else {
     // This is how we allow use of blocks locally
-    const unrollResult = await unrollAssistant(
-      packageIdentifier,
-      await getRegistryClient(),
-      {
+    const unrollResult = await withConfigLoadStage("yaml_unroll", async () =>
+      unrollAssistant(packageIdentifier, await getRegistryClient(), {
         renderSecrets: true,
         currentUserSlug: "",
         platformClient: new LocalPlatformClient(ide),
         injectBlocks: localPackageIdentifiers,
-      },
+      }),
     );
     config = unrollResult.config;
     if (unrollResult.errors) {
-      errors.push(...unrollResult.errors);
+      errors.push(...tagFatalConfigErrors(unrollResult.errors, "yaml_unroll"));
     }
   }
 
@@ -218,7 +274,10 @@ export async function configYamlToOCircuitConfig(options: {
 
   // Prompt files -
   try {
-    const promptFiles = await getAllPromptFiles(ide, undefined, true);
+    const promptFiles = await withConfigLoadStage(
+      "yaml_runtime_conversion.prompt_files",
+      () => getAllPromptFiles(ide, undefined, true),
+    );
 
     promptFiles.forEach((file) => {
       try {
@@ -335,10 +394,14 @@ export async function configYamlToOCircuitConfig(options: {
     }
   }
 
-  const { providers, errors: contextErrors } = loadConfigContextProviders(
-    config.context,
-    !!config.docs?.length,
-    ideInfo.ideType,
+  const { providers, errors: contextErrors } = await withConfigLoadStage(
+    "yaml_runtime_conversion.context_providers",
+    () =>
+      loadConfigContextProviders(
+        config.context,
+        !!config.docs?.length,
+        ideInfo.ideType,
+      ),
   );
 
   ocircuitConfig.contextProviders = providers;
@@ -351,14 +414,15 @@ export async function configYamlToOCircuitConfig(options: {
     (server) =>
       convertYamlMcpConfigToInternalMcpOptions(server, config.requestOptions),
   );
-  const { errors: jsonMcpErrors, mcpServers } = await loadJsonMcpConfigs(
-    ide,
-    true,
-    config.requestOptions,
+  const { errors: jsonMcpErrors, mcpServers } = await withConfigLoadStage(
+    "yaml_runtime_conversion.json_mcp",
+    () => loadJsonMcpConfigs(ide, true, config.requestOptions),
   );
   localErrors.push(...jsonMcpErrors);
   mcpOptions.push(...mcpServers);
-  mcpManager.setConnections(mcpOptions, false, { ide });
+  await withConfigLoadStage("yaml_runtime_conversion.mcp_registration", () =>
+    mcpManager.setConnections(mcpOptions, false, { ide }),
+  );
 
   return { config: ocircuitConfig, errors: localErrors };
 }
@@ -382,14 +446,17 @@ export async function loadOCircuitConfigFromYaml(options: {
     packageIdentifier,
   } = options;
 
-  const configYamlResult = await loadConfigYaml({
-    overrideConfigYaml,
-    ideSettings,
-    ide,
-    packageIdentifier,
-  });
+  const configYamlResult = await withConfigLoadStage("yaml_unroll", () =>
+    loadConfigYaml({
+      overrideConfigYaml,
+      ideSettings,
+      ide,
+      packageIdentifier,
+    }),
+  );
 
-  if (!configYamlResult.config || configYamlResult.configLoadInterrupted) {
+  const unrolledAssistant = configYamlResult.config;
+  if (!unrolledAssistant || configYamlResult.configLoadInterrupted) {
     return {
       errors: configYamlResult.errors,
       config: undefined,
@@ -399,22 +466,23 @@ export async function loadOCircuitConfigFromYaml(options: {
   }
 
   const { config: ocircuitConfig, errors: localErrors } =
-    await configYamlToOCircuitConfig({
-      unrolledAssistant: configYamlResult.config,
-      ide,
-      ideInfo,
-      uniqueId,
-      llmLogger,
-    });
+    await withConfigLoadStage("yaml_runtime_conversion", () =>
+      configYamlToOCircuitConfig({
+        unrolledAssistant,
+        ide,
+        ideInfo,
+        uniqueId,
+        llmLogger,
+      }),
+    );
 
   // Apply shared config
   // TODO: override several of these values with user/org shared config
   // Don't try catch this - has security implications and failure should be fatal
-  const sharedConfig = new GlobalContext().getSharedConfig();
-  const withShared = modifyAnyConfigWithSharedConfig(
-    ocircuitConfig,
-    sharedConfig,
-  );
+  const withShared = await withConfigLoadStage("yaml_shared_merge", () => {
+    const sharedConfig = new GlobalContext().getSharedConfig();
+    return modifyAnyConfigWithSharedConfig(ocircuitConfig, sharedConfig);
+  });
   if (withShared.allowAnonymousTelemetry === undefined) {
     withShared.allowAnonymousTelemetry = true;
   }

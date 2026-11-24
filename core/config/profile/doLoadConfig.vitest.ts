@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PackageIdentifier } from "@opencircuit/config-yaml";
+import { getConfigDependentToolDefinitions } from "../../tools";
 
 // Mock heavy dependencies before importing doLoadConfig
 const stubConfig = {
@@ -153,5 +154,42 @@ describe("doLoadConfig pre-read content bypass", () => {
 
     expect(mockLoadYaml).not.toHaveBeenCalled();
     expect(mockLoadJson).toHaveBeenCalled();
+  });
+
+  it("keeps configured chat models when optional tool discovery fails", async () => {
+    const chatModel = { model: "test-model" };
+    mockLoadJson.mockResolvedValueOnce({
+      config: {
+        ...stubConfig,
+        models: [chatModel],
+        modelsByRole: { ...stubConfig.modelsByRole, chat: [chatModel] },
+        selectedModelByRole: { chat: chatModel },
+        rules: [],
+        tools: [],
+        slashCommands: [],
+      },
+      errors: [],
+      configLoadInterrupted: false,
+    });
+    vi.mocked(getConfigDependentToolDefinitions).mockRejectedValueOnce(
+      new Error("optional tool discovery failed"),
+    );
+
+    const result = await doLoadConfig({
+      ide: mockIde,
+      llmLogger: mockLlmLogger,
+      profileId: "test-profile",
+      packageIdentifier: {
+        uriType: "file",
+        fileUri: "file:///home/user/.ocircuit/agents/test.yaml",
+      },
+    });
+
+    expect(result.config?.selectedModelByRole.chat).toEqual(chatModel);
+    expect(result.errors).toContainEqual({
+      fatal: false,
+      message:
+        "Could not load optional config-dependent tools. Configured chat models remain available.",
+    });
   });
 });
