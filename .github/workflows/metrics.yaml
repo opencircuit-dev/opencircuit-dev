@@ -52,7 +52,7 @@ jobs:
           echo "metrics_content=$content" >> "$GITHUB_OUTPUT"
 
       - name: Post a message in a channel
-        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d
+        uses: slackapi/slack-github-action@0bc3581177d9a0f8d555e07689384b376528e8fa
         with:
           webhook: ${{ secrets.ISSUE_PR_METRICS_SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
